@@ -1,4 +1,4 @@
-const CACHE_NAME = "lahetejako-v1.26";
+const CACHE_NAME = "lahetejako-v1.27";
 const APP_SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {

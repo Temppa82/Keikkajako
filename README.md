@@ -1,8 +1,14 @@
-# Lähetejako v1.26
+# Lähetejako v1.27
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.27
+
+- Geokoodaus hyväksyy katuosoitteelle vain oikeaan postinumeroon kuuluvan tuloksen.
+- Katuosoitetta ei enää korvata virheellisesti postinumeroalueen keskipisteellä.
+- Geokoodausvälimuistin versio on vaihdettu, joten vanhat väärät karttaosumat eivät jää käyttöön.
 
 ## Versio 1.26
 
