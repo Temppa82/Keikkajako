@@ -1,8 +1,14 @@
-# Lähetejako v1.27
+# Lähetejako v1.28
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.28
+
+- Kaikki CARTO-karttatasot on vaihdettu avaimettomaan OpenStreetMap-karttaan.
+- API KEY REQUIRED -vesileimat ovat poistuneet kuljettajan ja ajojärjestelijän kartoista.
+- OpenStreetMapin tekijämerkintä näkyy jokaisessa kartassa käyttöehtojen mukaisesti.
 
 ## Versio 1.27
 

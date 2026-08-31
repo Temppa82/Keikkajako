@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#1e3a5f" />
-  <title>Lähetejako v1.27</title>
+  <title>Lähetejako v1.28</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -596,7 +596,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.27</div>
+      <div style="font-weight:600; color:var(--text);">v1.28</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -907,7 +907,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.27 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
+    Lähetejako v1.28 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1311,8 +1311,8 @@
     function renderDriverRouteMap(orderedStops, startPoint, endPoint, roadGeometry = null) {
       if (!driverRouteMap) {
         driverRouteMap = L.map("driverRouteMap").setView([60.22, 24.9], 10);
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-          attribution: "&copy; OpenStreetMap &copy; CARTO",
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors",
           maxZoom: 19
         }).addTo(driverRouteMap);
       }
@@ -1371,7 +1371,7 @@
           let map=null,layer=null,hasFitted=false;
           window.renderDriverRoute=function(payload){
             if(!window.L){setTimeout(()=>window.renderDriverRoute(payload),100);return}
-            if(!map){map=L.map("map").setView([60.22,24.9],10);L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{attribution:"&copy; OpenStreetMap &copy; CARTO",maxZoom:19}).addTo(map)}
+            if(!map){map=L.map("map").setView([60.22,24.9],10);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap contributors",maxZoom:19}).addTo(map)}
             const center=map.getCenter(),zoom=map.getZoom();if(layer)layer.remove();layer=L.layerGroup().addTo(map);const bounds=[];
             const circle=(p,color,label)=>{bounds.push([p.lat,p.lon]);L.circleMarker([p.lat,p.lon],{radius:8,color,fillColor:color,fillOpacity:1}).bindTooltip(label).addTo(layer)};
             circle(payload.start,"#22c55e","Lähtö");circle(payload.end,"#f59e0b","Reitin loppu");
@@ -1422,7 +1422,7 @@
         <title>Ajojärjestelijä – valitse keikat kartasta</title><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
         <style>*{box-sizing:border-box}html,body{height:100%;margin:0;background:#0f172a;color:#e2e8f0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}body{display:grid;grid-template-rows:auto 1fr}.top{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem 1rem;background:#1e293b;border-bottom:1px solid #334155}.title{font-weight:800}.status{color:#94a3b8;font-size:.85rem}.layout{min-height:0;display:grid;grid-template-columns:1fr 310px}#map{width:100%;height:100%}.side{padding:1rem;background:#1e293b;border-left:1px solid #334155;overflow:auto}.side label{display:block;color:#94a3b8;font-size:.8rem;margin-bottom:.3rem}.side select{width:100%;padding:.6rem;background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:7px;font-weight:700}.card{margin-top:1rem;padding:1rem;background:#0f172a;border:1px solid #334155;border-radius:10px}.plate{font-size:1.2rem;font-weight:900;color:#60a5fa}.stat{display:flex;justify-content:space-between;gap:1rem;padding:.55rem 0;border-bottom:1px solid #26364c}.stat:last-child{border:0}.hint{margin-top:1rem;color:#94a3b8;font-size:.82rem;line-height:1.5}.marker{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.7);font-size:11px;font-weight:900;cursor:pointer}@media(max-width:760px){.layout{grid-template-columns:1fr}.side{position:absolute;right:8px;top:70px;z-index:1000;width:260px;max-height:55vh;border:1px solid #334155;border-radius:10px}}</style></head><body>
         <div class="top"><div><div class="title">🗺️ Valitse keikat autolle</div><div class="status" id="status">Valmistellaan karttaa…</div></div></div><div class="layout"><div id="map"></div><aside class="side"><label for="vehicle">Valittu auto</label><select id="vehicle" onchange="window.opener?.dispatcherMapChangeVehicle(this.value)"></select><div class="card"><div class="plate" id="plate">–</div><div class="stat"><span>Keikkoja</span><strong id="jobs">0</strong></div><div class="stat"><span>EUR-lavoja</span><strong id="eur">0</strong></div><div class="stat"><span>Teho-lavoja</span><strong id="teho">0</strong></div><div class="stat"><span>Lavapaikkoja</span><strong id="units">0</strong></div><div class="stat"><span>Kapasiteetti</span><strong id="capacity">–</strong></div></div><div class="hint">Napsauta kartan palloa lisätäksesi koko fyysisen osoitteen valitulle autolle. Napsauta valitun auton palloa uudelleen poistaaksesi valinnan. Toiselle autolle valittu keikka voidaan siirtää napsauttamalla sitä.</div></aside></div>
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><script>let map=null,layer=null,hasFitted=false;window.setDispatcherStatus=function(text){document.getElementById("status").textContent=text};window.renderDispatcherAssignments=function(payload){if(!window.L){setTimeout(()=>window.renderDispatcherAssignments(payload),100);return}if(!map){map=L.map("map").setView([60.22,24.9],10);L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{attribution:"&copy; OpenStreetMap &copy; CARTO",maxZoom:19}).addTo(map)}const center=map.getCenter(),zoom=map.getZoom();if(layer)layer.remove();layer=L.layerGroup().addTo(map);const bounds=[];const select=document.getElementById("vehicle");const old=select.value;select.innerHTML=payload.vehicles.map(v=>'<option value="'+v.plate+'">'+v.plate+'</option>').join('');select.value=payload.selectedPlate||old;payload.groups.forEach(g=>{bounds.push([g.lat,g.lon]);const own=g.assignedPlate===payload.selectedPlate;const other=g.assignedPlate&&!own;const color=own?'#3b82f6':(other?g.color:'#64748b');const label=own?'✓':(other?g.shortPlate:'•');const html='<div class="marker" style="background:'+color+'">'+label+'</div>';const icon=L.divIcon({className:'',html:html,iconSize:[30,30],iconAnchor:[15,15]});L.marker([g.lat,g.lon],{icon}).bindTooltip((g.assignedPlate?'['+g.assignedPlate+'] ':'')+g.recipient+'<br>'+g.address+'<br>EUR '+g.eur+' · Teho '+g.teho+' · Paino '+g.weightKg+' kg').on('click',()=>window.opener?.dispatcherMapToggleGroup(g.key)).addTo(layer)});document.getElementById('plate').textContent=payload.stats.plate;document.getElementById('jobs').textContent=payload.stats.jobs;document.getElementById('eur').textContent=payload.stats.eur;document.getElementById('teho').textContent=payload.stats.teho;document.getElementById('units').textContent=payload.stats.units;document.getElementById('capacity').textContent=payload.stats.capacity;document.getElementById('status').textContent=payload.groups.length+' kartalle sijoitettua keikkaa · '+payload.unresolved+' ilman karttapistettä';if(!hasFitted&&bounds.length){map.fitBounds(bounds,{padding:[30,30]});hasFitted=true}else{map.setView(center,zoom,{animate:false})}setTimeout(()=>map.invalidateSize(),40)};<\/script></body></html>`);
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><script>let map=null,layer=null,hasFitted=false;window.setDispatcherStatus=function(text){document.getElementById("status").textContent=text};window.renderDispatcherAssignments=function(payload){if(!window.L){setTimeout(()=>window.renderDispatcherAssignments(payload),100);return}if(!map){map=L.map("map").setView([60.22,24.9],10);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap contributors",maxZoom:19}).addTo(map)}const center=map.getCenter(),zoom=map.getZoom();if(layer)layer.remove();layer=L.layerGroup().addTo(map);const bounds=[];const select=document.getElementById("vehicle");const old=select.value;select.innerHTML=payload.vehicles.map(v=>'<option value="'+v.plate+'">'+v.plate+'</option>').join('');select.value=payload.selectedPlate||old;payload.groups.forEach(g=>{bounds.push([g.lat,g.lon]);const own=g.assignedPlate===payload.selectedPlate;const other=g.assignedPlate&&!own;const color=own?'#3b82f6':(other?g.color:'#64748b');const label=own?'✓':(other?g.shortPlate:'•');const html='<div class="marker" style="background:'+color+'">'+label+'</div>';const icon=L.divIcon({className:'',html:html,iconSize:[30,30],iconAnchor:[15,15]});L.marker([g.lat,g.lon],{icon}).bindTooltip((g.assignedPlate?'['+g.assignedPlate+'] ':'')+g.recipient+'<br>'+g.address+'<br>EUR '+g.eur+' · Teho '+g.teho+' · Paino '+g.weightKg+' kg').on('click',()=>window.opener?.dispatcherMapToggleGroup(g.key)).addTo(layer)});document.getElementById('plate').textContent=payload.stats.plate;document.getElementById('jobs').textContent=payload.stats.jobs;document.getElementById('eur').textContent=payload.stats.eur;document.getElementById('teho').textContent=payload.stats.teho;document.getElementById('units').textContent=payload.stats.units;document.getElementById('capacity').textContent=payload.stats.capacity;document.getElementById('status').textContent=payload.groups.length+' kartalle sijoitettua keikkaa · '+payload.unresolved+' ilman karttapistettä';if(!hasFitted&&bounds.length){map.fitBounds(bounds,{padding:[30,30]});hasFitted=true}else{map.setView(center,zoom,{animate:false})}setTimeout(()=>map.invalidateSize(),40)};<\/script></body></html>`);
       doc.close();
       dispatcherMapWindow.focus();
       return true;
@@ -1531,8 +1531,8 @@
       const savedZoom = hadMap ? driverRouteMap.getZoom() : null;
       if (!driverRouteMap) {
         driverRouteMap = L.map("driverRouteMap").setView([60.22, 24.9], 10);
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-          attribution: "&copy; OpenStreetMap &copy; CARTO", maxZoom: 19
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors", maxZoom: 19
         }).addTo(driverRouteMap);
       }
       if (driverRouteLayer) driverRouteLayer.remove();
@@ -3923,8 +3923,8 @@
         dragging: true
       }).setView([60.22, 24.95], 10);
 
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        attribution: "© OSM © CARTO",
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors",
         maxZoom: 18
       }).addTo(areaMap);
 
@@ -4602,8 +4602,8 @@
       if (!el || !drivers.length || typeof L === "undefined") return;
       if (!resultMap) {
         resultMap = L.map(el, { zoomControl: true }).setView([60.22, 24.85], 10);
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-          attribution: "&copy; OpenStreetMap &copy; CARTO",
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors",
           maxZoom: 19
         }).addTo(resultMap);
       }
