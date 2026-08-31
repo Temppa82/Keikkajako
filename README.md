@@ -1,8 +1,14 @@
-# Lähetejako v1.28
+# Lähetejako v1.29
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.29
+
+- Osoitehaku kokeilee rakenteisen haun jälkeen enintään kymmenen vapaamuotoista hakutulosta.
+- Hakutulos hyväksytään edelleen vain, jos sen postinumero vastaa lähetettä.
+- Viimeisenä turvallisena hakuna voidaan käyttää vastaanottajan nimeä oikean postinumeroalueen sisältä.
 
 ## Versio 1.28
 
