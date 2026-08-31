@@ -1,8 +1,15 @@
-# Lähetejako v1.30
+# Lähetejako v1.31
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.31
+
+- Myös ilman karttapistettä jääneet keikat ovat raahattavia.
+- Ratkaisematon keikka voidaan pudottaa mihin tahansa optimoitujen keikkojen väliin.
+- Käsin sijoitettu keikka säilyttää paikkansa kuljetusnäkymässä ja yhdistetyn PDF:n järjestyksessä.
+- Karttapisteetön keikka ohitetaan vain reittiviivan ja kilometrilaskennan osalta.
 
 ## Versio 1.30
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#1e3a5f" />
-  <title>Lähetejako v1.30</title>
+  <title>Lähetejako v1.31</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -596,7 +596,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.30</div>
+      <div style="font-weight:600; color:var(--text);">v1.31</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -912,7 +912,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.30 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
+    Lähetejako v1.31 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1398,7 +1398,7 @@
       if (!driverMapWindow || driverMapWindow.closed || !driverRouteState) return;
       const { ordered, manualCandidates = ordered, startPoint, endPoint, manualSelecting } = driverRouteState;
       const selectedOrder = new Map(ordered.map((stop, index) => [stop.id, index + 1]));
-      const stopsForMap = (manualCandidates.length ? manualCandidates : ordered).map(stop => ({
+      const stopsForMap = (manualCandidates.length ? manualCandidates : ordered).filter(stop => stop.geo).map(stop => ({
         id: stop.id, lat: stop.geo.lat, lon: stop.geo.lon,
         recipient: stop.recipient || "Pysähdys", address: stop.address || stop.postalCode || "",
         selected: selectedOrder.has(stop.id), order: selectedOrder.get(stop.id) || 0
@@ -1498,16 +1498,16 @@
         (manual ? ` · <span class="workload-chip">Käsijärjestys</span>` : "") +
         (unresolved.length ? ` · <span style="color:var(--warning)">${unresolved.length} osoitetta ei voitu sijoittaa reitille</span>` : "");
       driverRouteList.innerHTML = ordered.map((stop, index) => `
-        <div class="driver-route-stop" draggable="true" data-driver-stop-id="${escapeHtml(stop.id)}" title="Raahaa pysähdys uuteen kohtaan">
-          <span class="driver-route-number">${index + 1}</span>
-          <div><strong>${escapeHtml(stop.recipient)}</strong><div class="driver-route-address">${escapeHtml(stop.address || stop.postalCode)}</div></div>
+        <div class="driver-route-stop" draggable="true" data-driver-stop-id="${escapeHtml(stop.id)}" ${stop.geo ? "" : 'style="border-color:rgba(245,158,11,0.55)"'} title="Raahaa pysähdys uuteen kohtaan">
+          <span class="driver-route-number" ${stop.geo ? "" : 'style="background:var(--warning)"'}>${index + 1}</span>
+          <div><strong>${escapeHtml(stop.recipient)}</strong><div class="driver-route-address">${stop.geo ? "" : "Ei karttapistettä · "}${escapeHtml(stop.address || stop.postalCode)}</div></div>
           <span class="driver-route-pdfs">☰ &nbsp;${stop.pdfCount} PDF</span>
         </div>
       `).join("") + unresolved.map(stop => `
-        <div class="driver-route-stop" style="border-color:rgba(245,158,11,0.55)">
+        <div class="driver-route-stop" draggable="true" data-driver-stop-id="${escapeHtml(stop.id)}" style="border-color:rgba(245,158,11,0.55)" title="Karttapiste puuttuu – raahaa keikka haluamaasi kohtaan ajojärjestyksessä">
           <span class="driver-route-number" style="background:var(--warning)">!</span>
-          <div><strong>${escapeHtml(stop.recipient)}</strong><div class="driver-route-address">Osoitetta ei löytynyt: ${escapeHtml(stop.address || stop.postalCode || "puuttuu")}</div></div>
-          <span class="driver-route-pdfs">${stop.pdfCount} PDF</span>
+          <div><strong>${escapeHtml(stop.recipient)}</strong><div class="driver-route-address">Osoitetta ei löytynyt kartalta: ${escapeHtml(stop.address || stop.postalCode || "puuttuu")} · raahaa ajojärjestykseen</div></div>
+          <span class="driver-route-pdfs">☰ &nbsp;${stop.pdfCount} PDF</span>
         </div>
       `).join("");
       driverManualActions.style.display = "none";
@@ -1879,16 +1879,26 @@
       event.preventDefault();
       const target = event.target.closest("[data-driver-stop-id]");
       if (!target || !draggedDriverStopId || !driverRouteState) return;
-      const fromIndex = driverRouteState.ordered.findIndex(stop => stop.id === draggedDriverStopId);
-      const targetIndex = driverRouteState.ordered.findIndex(stop => stop.id === target.dataset.driverStopId);
-      if (fromIndex < 0 || targetIndex < 0 || fromIndex === targetIndex) return;
+      if (target.dataset.driverStopId === draggedDriverStopId) return;
+      const fromOrderedIndex = driverRouteState.ordered.findIndex(stop => stop.id === draggedDriverStopId);
+      const fromUnresolvedIndex = driverRouteState.unresolved.findIndex(stop => stop.id === draggedDriverStopId);
+      if (fromOrderedIndex < 0 && fromUnresolvedIndex < 0) return;
+      const targetOrderedIndex = driverRouteState.ordered.findIndex(stop => stop.id === target.dataset.driverStopId);
       const targetRect = target.getBoundingClientRect();
       const insertAfter = event.clientY > targetRect.top + targetRect.height / 2;
-      const [moved] = driverRouteState.ordered.splice(fromIndex, 1);
-      let insertIndex = targetIndex;
-      if (fromIndex < targetIndex) insertIndex--;
-      if (insertAfter) insertIndex++;
-      driverRouteState.ordered.splice(Math.max(0, insertIndex), 0, moved);
+      const moved = fromOrderedIndex >= 0
+        ? driverRouteState.ordered.splice(fromOrderedIndex, 1)[0]
+        : driverRouteState.unresolved.splice(fromUnresolvedIndex, 1)[0];
+      let insertIndex;
+      if (targetOrderedIndex < 0) {
+        insertIndex = driverRouteState.ordered.length;
+      } else {
+        insertIndex = targetOrderedIndex;
+        if (fromOrderedIndex >= 0 && fromOrderedIndex < targetOrderedIndex) insertIndex--;
+        if (insertAfter) insertIndex++;
+      }
+      driverRouteState.ordered.splice(Math.max(0, Math.min(insertIndex, driverRouteState.ordered.length)), 0, moved);
+      driverRouteState.manualSelecting = false;
       renderDriverRouteResult(true);
     });
     driverRouteList.addEventListener("dragend", () => {
