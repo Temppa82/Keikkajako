@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#1e3a5f" />
-  <title>Lähetejako v1.29</title>
+  <title>Lähetejako v1.30</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -596,7 +596,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.29</div>
+      <div style="font-weight:600; color:var(--text);">v1.30</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -836,6 +836,11 @@
             <option value="apple">Apple Maps</option>
           </select>
         </div>
+        <div>
+          <label for="mmlApiKey">Maanmittauslaitoksen API-avain</label>
+          <input type="password" id="mmlApiKey" placeholder="Liitä maksuton API-avain tähän" autocomplete="off" />
+          <div class="modal-file-meta" style="margin-top:0.35rem;">Parantaa suomalaisten osoitteiden löytymistä. Avain tallennetaan vain tälle laitteelle, ei GitHubiin.</div>
+        </div>
       </div>
       <p class="driver-upload-intro">Puhelimessa navigointi avataan valitussa sovelluksessa, jolloin nykyinen sijainti on käytettävissä. Valinta muistetaan tällä laitteella.</p>
       <div class="modal-actions">
@@ -907,7 +912,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.29 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
+    Lähetejako v1.30 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1000,6 +1005,7 @@
     const btnDriverSettings = document.getElementById("btnDriverSettings");
     const driverNavigationApp = document.getElementById("driverNavigationApp");
     const driverFirstName = document.getElementById("driverFirstName");
+    const mmlApiKeyInput = document.getElementById("mmlApiKey");
     const driverPreviewModal = document.getElementById("driverPreviewModal");
     const driverPreviewContainer = document.getElementById("driverPreviewContainer");
     const driverPreviewFileName = document.getElementById("driverPreviewFileName");
@@ -1016,6 +1022,7 @@
     let driverZipChoiceResolver = null;
     let driverNavigationChoice = "google";
     let driverName = "";
+    let mmlApiKey = "";
     let driverTransportIndex = 0;
     let driverTransportRenderToken = 0;
     let driverPdfFiles = [];
@@ -1043,6 +1050,7 @@
       const savedNavigationApp = localStorage.getItem("lahetejako_driver_navigation_app");
       if (["google", "waze", "apple"].includes(savedNavigationApp)) driverNavigationChoice = savedNavigationApp;
       driverName = localStorage.getItem("lahetejako_driver_first_name") || "";
+      mmlApiKey = localStorage.getItem("lahetejako_mml_api_key") || "";
     } catch (_) { /* Google Maps pysyy oletuksena */ }
 
     function openDriverNavigation(destination) {
@@ -1713,15 +1721,18 @@
     btnDriverSettings.addEventListener("click", () => {
       driverNavigationApp.value = driverNavigationChoice;
       driverFirstName.value = driverName;
+      mmlApiKeyInput.value = mmlApiKey;
       driverSettingsModal.classList.add("open");
     });
     document.getElementById("driverSettingsCancel").addEventListener("click", () => driverSettingsModal.classList.remove("open"));
     document.getElementById("driverSettingsSave").addEventListener("click", () => {
       driverNavigationChoice = driverNavigationApp.value || "google";
       driverName = driverFirstName.value.trim();
+      mmlApiKey = mmlApiKeyInput.value.trim();
       try {
         localStorage.setItem("lahetejako_driver_navigation_app", driverNavigationChoice);
         localStorage.setItem("lahetejako_driver_first_name", driverName);
+        localStorage.setItem("lahetejako_mml_api_key", mmlApiKey);
       } catch (_) { /* valinnat toimivat istunnon ajan */ }
       updateDriverSettingsButton();
       driverSettingsModal.classList.remove("open");
@@ -2152,6 +2163,48 @@
       }
     }
 
+    async function mmlAddressSearch(street, postalCode, cityHint = "") {
+      if (!mmlApiKey) return null;
+      const normalizedStreet = String(street || "").replace(/,.*$/, "").trim();
+      const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
+      const normalizedCity = String(cityHint || "").trim();
+      if (!normalizedStreet) return null;
+      const cacheKey = `mml:v1:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
+      if (geoCache[cacheKey]) return geoCache[cacheKey];
+      try {
+        const params = new URLSearchParams({
+          text: [normalizedStreet, normalizedPostal, normalizedCity].filter(Boolean).join(" "),
+          sources: "addresses,interpolated-road-addresses",
+          lang: "fi",
+          crs: "EPSG:4326",
+          size: "10",
+          options: "nowildcard,use_postal_code,use_any_codelist_lang_match",
+          "api-key": mmlApiKey
+        });
+        const response = await fetch(`https://avoin-paikkatieto.maanmittauslaitos.fi/geocoding/v2/pelias/search?${params}`, {
+          headers: { "Accept": "application/geo+json, application/json" }
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        const features = Array.isArray(data?.features) ? data.features : [];
+        const matching = features.find(feature => {
+          const properties = feature.properties || {};
+          const resultPostal = String(properties.postalcode || properties.postcode || properties.postal_code || "").replace(/\s/g, "");
+          const label = String(properties.label || properties.name || "");
+          return !normalizedPostal || resultPostal === normalizedPostal || new RegExp(`\\b${normalizedPostal}\\b`).test(label);
+        });
+        const coordinates = matching?.geometry?.coordinates;
+        if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+        const point = { lat: Number(coordinates[1]), lon: Number(coordinates[0]) };
+        if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon) || point.lat < 59 || point.lat > 71 || point.lon < 19 || point.lon > 32) return null;
+        geoCache[cacheKey] = point;
+        saveGeoCache();
+        return point;
+      } catch (_) {
+        return null;
+      }
+    }
+
     async function nominatimAddressSearch(street, postalCode, cityHint = "", recipient = "") {
       const normalizedStreet = String(street || "").replace(/,.*$/, "").trim();
       const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
@@ -2225,6 +2278,8 @@
       const postal = String(stop.postalCode || "").replace(/\s/g, "");
       if (street && postal) {
         const cityHint = String(stop.address || "").split(",").map(part => part.trim()).filter(Boolean).pop() || "";
+        const mmlPoint = await mmlAddressSearch(street, postal, cityHint);
+        if (mmlPoint) { stop.geo = mmlPoint; return mmlPoint; }
         const p = await nominatimAddressSearch(street, postal, cityHint, stop.recipient || "");
         if (p) { stop.geo = p; return p; }
         // Älä hyväksy postinumeroalueen keskipistettä katuosoitteen sijasta.

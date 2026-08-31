@@ -1,8 +1,14 @@
-# Lähetejako v1.29
+# Lähetejako v1.30
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.30
+
+- Maanmittauslaitoksen valtakunnallinen geokoodaus voidaan ottaa ensisijaiseksi osoitehauksi API-avaimella.
+- API-avain syötetään Kuljettajan asetuksiin ja tallennetaan vain käyttäjän omalle laitteelle.
+- Maanmittauslaitoksen haku käyttää rakennusosoitteita ja laskennallisia tieosoitteita; OpenStreetMap jää varapalveluksi.
 
 ## Versio 1.29
 
