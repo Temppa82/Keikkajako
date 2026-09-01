@@ -1,8 +1,46 @@
-# Lähetejako v1.44
+# Lähetejako v1.49
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.49
+
+- Ajojärjestelijän aluejako on tarkennettu 69 pieneksi lähialueeksi Helsingin, Espoon, Kauniaisten, Vantaan, Keravan, Järvenpään, Tuusulan ja Mäntsälän alueilla.
+- Kaikki 204 vuoden 2026 postinumeroa kuuluvat täsmälleen yhteen lähialueeseen ilman puuttuvia tai päällekkäisiä postinumeroita.
+- Pääalueet ja tasausalueet voidaan nyt kohdentaa esimerkiksi erikseen keskustan kaupunginosiin, Haagaan, Pitäjänmäkeen, Viikkiin, Puistolaan, Hakkilaan, Koivukylään, Martinlaaksoon, Matinkylään, Kilon suuntaan ja Espoon keskukseen.
+- Alueluettelon uusi hakukenttä suodattaa valintoja alueen nimellä tai postinumerolla.
+- Jokaisella lähialueella on oma valintapisteensä aluekartalla; nimi ja postinumerot näkyvät viemällä osoitin pisteen päälle.
+- Vanhat laajemmat aluevalinnat siirretään kerran automaattisesti niitä vastaaviin uusiin lähialueisiin ja tallennetaan heti selaimeen.
+
+## Versio 1.48
+
+- Helsingin yhdistelmäalueet `Töölö/Pasila` ja `Kallio/Sörnäinen` on jaettu erillisiksi Pasila-, Töölö-, Arabia-, Sörnäinen- ja Kallio-valinnoiksi.
+- Jokaisella uudella alueella näkyvät omat postinumerot ja sillä on oma valinta sekä pääalueeksi että tasausalueeksi.
+- Aluekartalla jokaisella uudella alueella on oma valintapisteensä.
+- Aiemmin tallennetut yhdistelmäaluevalinnat siirretään automaattisesti vastaaviin uusiin alueisiin, jotta nykyisten autojen asetukset eivät häviä päivityksessä.
+
+## Versio 1.47
+
+- Ajojärjestelijän ajoneuvokohtaisessa alueluettelossa näkyvät nyt jokaisen alueen tarkat postinumerot suoraan alueen nimen alla.
+- Näytettävät postinumerot muodostetaan samasta vuoden 2026 täsmätaulukosta, jota automaattijako käyttää, joten luettelo ja jakologiikka eivät voi erkaantua toisistaan.
+- Alueelle, jolla ei ole täsmätaulukossa omaa postinumeroa, näytetään tästä selkeä ilmoitus.
+
+## Versio 1.46
+
+- Ajojärjestelijän tiedostotuonti hyväksyy nyt PDF-tiedostojen lisäksi ZIP-paketit ja purkaa niistä kaikki PDF-lähetteet automaattisesti.
+- ZIP-paketin eri kansioissa olevat samannimiset PDF:t nimetään tuonnissa yksilöllisesti, jotta yksikään lähete ei korvaa toista.
+- Ajojärjestelijän 🔍-esikatseluun lisättiin keikkakohtainen oletusauto ja useita autokohtaisia kieltoja.
+- Autokohtaiset säännöt koskevat koko fyysistä osoitetta ja tallentuvat selaimeen, joten sama osoite saa säännöt myös myöhemmin tuoduissa lähetteissä.
+- Automaattijako kokeilee oletusautoa ensin eikä tarjoa keikkaa kielletyille autoille. Jälkitasapainotus ei siirrä oletusautolle asetettua keikkaa pois.
+- Kiellettyyn autoon siirtäminen estetään myös käsinsiirrossa ja ajojärjestelijän karttavalinnassa.
+
+## Versio 1.45
+
+- Ajojärjestelijän aluejako käyttää nyt Tilastokeskuksen vuoden 2026 postinumero–kunta-avaimen 204 täsmällistä postinumeroa suurten numerovälien sijasta.
+- Korjattu useita väärään ajosuuntaan menneitä alueita: muun muassa Itä- ja Keski-Pasila, Kulosaari, Kruunuvuorenranta, Mellunmäki, Koivukylä, Hakkila, Ylästö, Pähkinärinne, Petikko, Tuupakka sekä Viherlaakso–Jupperi.
+- Lisätty aiemmin puuttuneet Tuusulan ja Mäntsälän reuna-alueiden postinumerot, kuten Kellokoski, Jokela, Nuppulinna, Ohkola, Sälinkää ja Hautjärvi.
+- Tuntematonta tai virheellistä postinumeroa ei enää päätellä väljällä numerovälillä väärään alueeseen, vaan se merkitään muuksi alueeksi.
 
 ## Versio 1.44
 
