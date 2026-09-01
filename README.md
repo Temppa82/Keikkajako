@@ -1,8 +1,101 @@
-# Lähetejako v1.33
+# Lähetejako v1.44
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.44
+
+- Kuittaus ja varauma kirjoitetaan PDF:ään heti, kun käyttäjä painaa `Tallenna PDF:ään`.
+- Tallennusikkuna sulkeutuu vasta PDF:n onnistuneen kirjoituksen ja pysyvän laitetallennuksen jälkeen.
+- Päivitetyt PDF-tiedostot sekä kuittaus- ja varaumatiedot varmistetaan selaimen IndexedDB-tallennukseen.
+- Kun sama alkuperäinen lähete tuodaan myöhemmin uudelleen, ohjelma palauttaa sille tallennetun PDF-version ja merkinnät.
+- Kuljetusrivillä näkyy onnistuneen tallennuksen kellonaika. Virhetilanteessa ikkuna jää auki ja tarjoaa uuden yrityksen.
+
+## Versio 1.43
+
+- Korjattu Kuittaus- ja Varaumat-painikkeet: tekstin syöttöikkuna avautuu jälleen normaalisti kuljetusnäkymässä.
+- Kuittaus kirjoitetaan vastaanottajan kuittaus-, päivämäärä- ja nimenselvennysruutuun.
+- Varaumat kirjoitetaan erilliseen `Varaumat`-ruutuun kuittauskentän alapuolelle.
+- Molempien kenttien sijoittelu tarkistettiin renderöidystä testilähetteestä.
+
+## Versio 1.42
+
+- Myös viimeisen kuorman viimeisen lastattavan keikan jälkeen avautuu aina `Kuljetukseen`-ruutu.
+- Viimeisen kuorman kuljetuksen päättäminen avaa selkeän `Kuljetukset valmiit` -näkymän.
+- Kuljetusnäkymässä Navigointi-, Kuittaus-, Varaumat-, Esikatselu- ja soittopainikkeet ovat käytössä kuormakohtaisesti.
+- Kiinteä PDF-esikatselu poistettiin kuljetusnäkymästä. Koko monisivuinen lähete avautuu erillisestä Esikatselu-painikkeesta.
+- Kuljetusnäkymässä näkyvät suurina osoite, seurantanumero, EUR-lavat, Teho-lavat ja kollimäärä. Painikkeita ja tekstejä suurennettiin puhelinkäyttöä varten.
+
+## Versio 1.41
+
+- Kuormien välisen `Kuljetukseen`-ruudun uusi painike avaa juuri valmistuneen kuorman kuljetusnäkymän.
+- Kuljetusnäkymässä näytetään vain kyseisen kuorman keikat oikeassa toimitusjärjestyksessä.
+- Viimeisen keikan kohdalla `Kuorma toimitettu – seuraavaan lastaukseen` palauttaa seuraavan kuorman ensimmäiseen lastattavaan keikkaan.
+- Kuljetusnäkymän navigointi, koko PDF:n esikatselu, kuittaus, varaumat ja soittopainikkeet ovat käytössä kuormakohtaisesti.
+
+## Versio 1.40
+
+- Seurantanumeron tunnistus säilyttää nyt myös arvon sisäiset välilyönnit, esimerkiksi `647 W1-2`.
+- Jokaisen kuormarajan kohdalle lisätään lastausnäkymään erillinen `Kuljetukseen`-vaihe.
+- Seuraavan kuorman lastauskohteet näytetään vasta, kun kuljettaja jatkaa Kuljetukseen-vaiheesta seuraavaan kuormaan.
+- Kuormien sisäinen käänteinen lastausjärjestys ja koko PDF:n esikatselu säilyvät ennallaan.
+
+## Versio 1.39
+
+- Lastausjärjestys käännetään jokaisen kuorman sisällä: viimeinen toimitus lastataan ensin ja ensimmäinen toimitus viimeiseksi.
+- Lisälastaukset käsitellään omina kuorminaan, joten yhden kuorman kääntäminen ei sekoita seuraavan kuorman järjestystä.
+- Lastausnäkymässä näkyvät erikseen lastausjärjestys, kuorman numero ja varsinainen ajojärjestys.
+- Nykyisen keikan `Esikatselu – koko PDF` näyttää lähetteen kaikki sivut. Jos samalla keikalla on useita PDF:iä, niitä voi selata erikseen.
+
+## Versio 1.38
+
+- **Lastausvaihe:** `Yhdistä ja lataa PDF:t` avaa puhelimelle optimoidun näkymän, jossa näytetään yksi keikka kerrallaan.
+- Näkymässä näkyvät suurina toimitusosoite, seurantanumero sekä EUR-/Teho-lavat tai lavattomalla keikalla kollimäärä.
+- Edellinen- ja Seuraava-painikkeilla voi seurata lastauksen etenemistä keikka kerrallaan. Kuorman numero huomioi kartalle lisätyt lastaukset.
+- Kuljettajan merkintä tallentuu automaattisesti laitteelle. `Lataa päivitetty PDF` kirjoittaa kaikki tallennetut merkinnät lähetteisiin; tyhjäksi poistettu merkintä ei tule uuteen PDF:ään.
+
+## Versio 1.37
+
+- Lastausten määrällä ei ole enää kahden lastauksen rajoitusta.
+- Kapasiteettilaskenta lisää automaattisesti lastaukset 2, 3, 4 ja niin edelleen niin monta kertaa kuin kuorma vaatii.
+- **Lisää lastaus** lisää käsin uuden lastausrajan viimeksi valitun keikan jälkeen.
+- **Poista lastaus** poistaa reitin viimeisimmän käsin lisätyn lastauksen. Kapasiteetin vaatimat lastaukset säilyvät.
+- Kartan lastausmerkinnät näkyvät muodossa L2, L3, L4 ja niin edelleen.
+- Jokaisen kuljettajan karttapallon tekstikuplassa näkyvät vastaanottajan ja osoitteen lisäksi EUR-lavat, Teho-lavat sekä lasketut lavapaikat.
+- Reittiviiva, kilometrilaskenta ja kuormayhteenveto huomioivat kaikki lastauskerrat.
+- ZIP-paketti ei sisällä PDF-esimerkkitiedostoa.
+
+## Versio 1.36
+
+- Kuljettajan reitille voidaan merkitä toinen lastaus pysähdysten väliin.
+- Kartan **Merkitse 2. lastaus tähän** sijoittaa paluun lastausosoitteeseen viimeksi valitun pysähdyksen jälkeen.
+- Toinen lastaus voidaan merkitä sekä erillisessä karttaikkunassa että pääsivun reittikortissa.
+- Jos valittujen pysähdysten lavapaikat ylittävät auton kapasiteetin, ohjelma lisää toisen lastauksen automaattisesti ennen ylittävää keikkaa.
+- Automaattisesti optimoitu reitti ja **Optimoi loput** lisäävät kapasiteetin vaatiman lastausrajan myös valmiiseen järjestykseen.
+- Kartalla toinen lastaus näkyy violettina **2L**-merkintänä ja reittiviiva käy lastausosoitteessa ennen seuraavaa kuormaa.
+- Kilometrilaskenta huomioi paluun lastaukseen. Yhteenvedossa näkyvät ensimmäisen ja toisen kuorman lavapaikat erikseen.
+- PDF-tiedostot pysyvät keikkojen ajojärjestyksessä; lastausmerkintä ei lisää PDF-sivua.
+- ZIP-paketti ei sisällä PDF-esimerkkitiedostoa.
+
+## Versio 1.35
+
+- Kuljettajan asetuksiin on lisätty kuljettajan nimi, auton rekisterinumero ja maksimi lavamäärä eli kapasiteetti.
+- Asetukset muistetaan kyseisellä laitteella.
+- **Yhdistä ja lataa PDF:t** nimeää tiedoston muodossa `KuljettajannimiPVKKVVVV.pdf`, esimerkiksi `Teemu01092026.pdf`.
+- Reittiyhteenvedossa näytetään auton rekisterinumero sekä käytetyt ja käytettävissä olevat lavapaikat.
+- Kapasiteetin ylitys näytetään varoituksena. EUR-lava käyttää yhden ja Teho-lava puoli lavapaikkaa.
+- ZIP-paketti ei sisällä PDF-esimerkkitiedostoa.
+
+## Versio 1.34
+
+- Kuljettaja voi valita kartalta yhden tai useamman ensimmäisen pysähdyksen ja painaa **Optimoi loput**.
+- Käsin valittu alku säilyy täsmälleen valitussa järjestyksessä.
+- Jäljellä olevat pysähdykset optimoidaan viimeisen valitun pysähdyksen ja reitin loppuosoitteen väliin.
+- Optimoi loput -painike on sekä erillisessä karttaikkunassa että pääsivun reittikortissa.
+- Kuljetuksen aikaiset Navigointi-, Kuittaus-, Varauma- ja soittotoiminnot on poistettu toistaiseksi näkyvästä käytöstä.
+- Osoitteiden esikatselu ja korjaus, reittisuunnittelu, käsin järjestäminen sekä PDF-yhdistäminen säilyvät käytössä.
+- ZIP-paketti ei sisällä PDF-esimerkkitiedostoa.
 
 ## Versio 1.33
 
