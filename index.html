@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#1e3a5f" />
-  <title>Lähetejako v1.32</title>
+  <title>Lähetejako v1.33</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -596,7 +596,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.32</div>
+      <div style="font-weight:600; color:var(--text);">v1.33</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -912,7 +912,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.32 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
+    Lähetejako v1.33 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -2233,6 +2233,20 @@
       return postal ? "" : "";
     }
 
+    function houseNumberMatches(wantedNumber, resultNumber) {
+      const wanted = Number(String(wantedNumber || "").match(/\d{1,4}/)?.[0]);
+      const rawResult = String(resultNumber || "").trim();
+      if (!Number.isFinite(wanted) || !rawResult) return false;
+      const range = rawResult.match(/(\d{1,4})\s*[-–—]\s*(\d{1,4})/);
+      if (range) {
+        const start = Number(range[1]);
+        const end = Number(range[2]);
+        return wanted >= Math.min(start, end) && wanted <= Math.max(start, end);
+      }
+      const result = Number(rawResult.match(/\d{1,4}/)?.[0]);
+      return Number.isFinite(result) && wanted === result;
+    }
+
     function nominatimResultScore(result, street, postalCode, cityHint = "") {
       const details = result?.address || {};
       const wanted = parseStreetAddressLine(street, { allowGeneric: true });
@@ -2247,9 +2261,9 @@
       if (wantedRoad && !roadMatches) return -Infinity;
 
       let score = 4;
-      const resultHouse = String(details.house_number || "").match(/\d{1,4}/)?.[0] || "";
-      if (wantedHouse && resultHouse && wantedHouse !== resultHouse) return -Infinity;
-      if (wantedHouse && resultHouse === wantedHouse) score += 5;
+      const resultHouse = String(details.house_number || "");
+      if (wantedHouse && resultHouse && !houseNumberMatches(wantedHouse, resultHouse)) return -Infinity;
+      if (wantedHouse && houseNumberMatches(wantedHouse, resultHouse)) score += 5;
       else if (wantedHouse) score += 1; // katu löytyi, mutta OSM:stä puuttuu rakennusnumero
 
       const wantedPostal = String(postalCode || "").replace(/\s/g, "");
@@ -2277,7 +2291,7 @@
           if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
           lastGeoRequest = Date.now();
           const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.32 (Teemu H. Fingerroos)" }
+            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.33 (Teemu H. Fingerroos)" }
           });
           if (!response.ok) return [];
           return await response.json();
@@ -2352,14 +2366,14 @@
         const candidates = (Array.isArray(data?.features) ? data.features : []).map(feature => {
           const properties = feature.properties || {};
           const resultRoad = normalizeText(properties.street || properties.name || "");
-          const resultHouse = String(properties.housenumber || "").match(/\d{1,4}/)?.[0] || "";
+          const resultHouse = String(properties.housenumber || "");
           const resultPostal = String(properties.postcode || "").replace(/\s/g, "");
           const resultCity = normalizeText(properties.city || properties.county || properties.state || "");
           if (wantedRoad && (!resultRoad || (!resultRoad.includes(wantedRoad) && !wantedRoad.includes(resultRoad)))) return null;
-          if (wantedHouse && resultHouse && wantedHouse !== resultHouse) return null;
+          if (wantedHouse && resultHouse && !houseNumberMatches(wantedHouse, resultHouse)) return null;
           if (normalizedPostal && resultPostal && normalizedPostal !== resultPostal) return null;
           let score = 4;
-          if (wantedHouse && resultHouse === wantedHouse) score += 5;
+          if (wantedHouse && houseNumberMatches(wantedHouse, resultHouse)) score += 5;
           else if (wantedHouse) score += 1;
           if (normalizedPostal && resultPostal === normalizedPostal) score += 5;
           if (wantedCity && resultCity && (resultCity.includes(wantedCity) || wantedCity.includes(resultCity))) score += 2;

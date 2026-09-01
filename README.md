@@ -1,8 +1,15 @@
-# Lähetejako v1.32
+# Lähetejako v1.33
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.33
+
+- Kartan rakennusnumerovälit hyväksytään oikein: esimerkiksi osoite 19 vastaa kartan rakennusta 15–19.
+- Korjaus löytää muun muassa osoitteen Tarvonsalmenkatu 19, 02600 Espoo.
+- Väärä talonumero hylätään edelleen, jos se ei kuulu kartan ilmoittamaan numeroväliin.
+- Päivityksen ZIP-paketista on jätetty tarpeeton PDF-esimerkkitiedosto pois.
 
 ## Versio 1.32
 
