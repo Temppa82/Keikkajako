@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#1e3a5f" />
-  <title>Lähetejako v1.31</title>
+  <title>Lähetejako v1.32</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -596,7 +596,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.31</div>
+      <div style="font-weight:600; color:var(--text);">v1.32</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -912,7 +912,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.31 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
+    Lähetejako v1.32 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1617,7 +1617,9 @@
           const stop = {
             id: crypto.randomUUID(), file, fileName: file.name,
             recipient: extracted.recipient || "Ei tunnistettu",
-            address: correctedAddress || extracted.address || "", postalCode: correctedPostal || extracted.postalCode || "",
+            address: correctedAddress || extracted.address || "",
+            // Käsin korjattuun katuosoitteeseen ei saa yhdistää PDF:n vanhaa postinumeroa.
+            postalCode: correctedAddress ? correctedPostal : (extracted.postalCode || ""),
             streetKey: correctedAddress ? "" : (extracted.streetKey || ""), area: getArea(correctedPostal || extracted.postalCode),
             eur: extracted.eur || 0, teho: extracted.teho || 0,
             weightKg: extracted.weightKg ?? null,
@@ -1639,9 +1641,9 @@
         if (!routable.length) throw new Error("Yhdellekään lähetteelle ei löytynyt reititettävää osoitetta.");
 
         driverUploadStatus.innerHTML = `<span class="spinner"></span> <span>Haetaan lähtö- ja loppuosoite...</span>`;
-        const startPoint = await nominatimSearch(`${startText}, Finland`);
+        const startPoint = await geocodeAddressText(startText);
         if (!startPoint) throw new Error("Lähtöosoitetta ei löytynyt. Tarkista osoite ja postinumero.");
-        const endPoint = endText ? await nominatimSearch(`${endText}, Finland`) : startPoint;
+        const endPoint = endText ? await geocodeAddressText(endText) : startPoint;
         if (!endPoint) throw new Error("Reitin loppuosoitetta ei löytynyt. Tarkista osoite ja postinumero.");
 
         driverUploadStatus.innerHTML = `<span class="spinner"></span> <span>Lasketaan tieverkko ja optimoidaan reitti...</span>`;
@@ -2142,8 +2144,13 @@
     const DEPOT = { lat: 60.2785, lon: 25.0405, label: "Lastaus (01380 Vantaa)" };
     const SLT_PLATE = "SLT-584";
 
-    const geoCache = JSON.parse(localStorage.getItem("lahetejako_geo") || "{}");
+    let geoCache = {};
+    try {
+      const storedGeoCache = JSON.parse(localStorage.getItem("lahetejako_geo") || "{}");
+      if (storedGeoCache && typeof storedGeoCache === "object" && !Array.isArray(storedGeoCache)) geoCache = storedGeoCache;
+    } catch (_) { /* Vaurioitunut välimuisti ei saa estää koko ohjelman käynnistymistä. */ }
     let lastGeoRequest = 0;
+    let lastPhotonRequest = 0;
 
     function saveGeoCache() {
       try { localStorage.setItem("lahetejako_geo", JSON.stringify(geoCache)); } catch (_) {}
@@ -2179,7 +2186,7 @@
       const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
       const normalizedCity = String(cityHint || "").trim();
       if (!normalizedStreet) return null;
-      const cacheKey = `mml:v1:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
+      const cacheKey = `mml:v2:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
       if (geoCache[cacheKey]) return geoCache[cacheKey];
       try {
         const params = new URLSearchParams({
@@ -2215,12 +2222,53 @@
       }
     }
 
-    async function nominatimAddressSearch(street, postalCode, cityHint = "", recipient = "") {
+    function addressCityHint(address, postalCode = "") {
+      const text = String(address || "").trim();
+      const postal = String(postalCode || "").replace(/\s/g, "");
+      const postalMatch = text.match(/\b\d{5}\b\s+([^,]+)(?:,|$)/);
+      if (postalMatch) return postalMatch[1].trim();
+      const parts = text.split(",").map(part => part.trim()).filter(Boolean);
+      const last = parts.length > 1 ? parts[parts.length - 1] : "";
+      if (last && !/\d/.test(last) && !/^(?:finland|suomi)$/i.test(last)) return last;
+      return postal ? "" : "";
+    }
+
+    function nominatimResultScore(result, street, postalCode, cityHint = "") {
+      const details = result?.address || {};
+      const wanted = parseStreetAddressLine(street, { allowGeneric: true });
+      const wantedRoad = normalizeText(wanted?.name || String(street).replace(/\d.*$/, ""));
+      const wantedHouse = String(wanted?.num || String(street).match(/\b(\d{1,4})/)?.[1] || "");
+      const resultRoad = normalizeText(details.road || details.pedestrian || details.footway || details.place || details.square || "");
+      const display = normalizeText(result.display_name || "");
+      const roadMatches = !!wantedRoad && (
+        (!!resultRoad && (resultRoad.includes(wantedRoad) || wantedRoad.includes(resultRoad))) ||
+        display.includes(wantedRoad)
+      );
+      if (wantedRoad && !roadMatches) return -Infinity;
+
+      let score = 4;
+      const resultHouse = String(details.house_number || "").match(/\d{1,4}/)?.[0] || "";
+      if (wantedHouse && resultHouse && wantedHouse !== resultHouse) return -Infinity;
+      if (wantedHouse && resultHouse === wantedHouse) score += 5;
+      else if (wantedHouse) score += 1; // katu löytyi, mutta OSM:stä puuttuu rakennusnumero
+
+      const wantedPostal = String(postalCode || "").replace(/\s/g, "");
+      const resultPostal = String(details.postcode || "").replace(/\s/g, "");
+      if (wantedPostal && resultPostal && wantedPostal !== resultPostal) return -Infinity;
+      if (wantedPostal && resultPostal === wantedPostal) score += 5;
+
+      const wantedCity = normalizeText(cityHint);
+      const resultCity = normalizeText(details.city || details.town || details.municipality || details.village || details.county || "");
+      if (wantedCity && resultCity && (resultCity.includes(wantedCity) || wantedCity.includes(resultCity))) score += 2;
+      return score;
+    }
+
+    async function nominatimAddressSearch(street, postalCode, cityHint = "", recipient = "", fullAddress = "") {
       const normalizedStreet = String(street || "").replace(/,.*$/, "").trim();
       const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
-      if (!normalizedStreet || !normalizedPostal) return null;
+      if (!normalizedStreet) return null;
       const normalizedCity = String(cityHint || "").trim();
-      const cacheKey = `v3:a:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
+      const cacheKey = `v4:a:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
       if (geoCache[cacheKey]) return geoCache[cacheKey];
       try {
         const fetchNominatim = async params => {
@@ -2229,7 +2277,7 @@
           if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
           lastGeoRequest = Date.now();
           const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.29 (Teemu H. Fingerroos)" }
+            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.32 (Teemu H. Fingerroos)" }
           });
           if (!response.ok) return [];
           return await response.json();
@@ -2240,25 +2288,33 @@
           addressdetails: "1",
           limit: "10",
           street: normalizedStreet,
-          postalcode: normalizedPostal,
           country: "Finland"
         });
-        const findMatchingPostal = results => (results || []).find(result => {
-          const resultPostal = String(result.address?.postcode || "").replace(/\s/g, "");
-          const displayName = String(result.display_name || "");
-          return resultPostal === normalizedPostal || new RegExp(`\\b${normalizedPostal}\\b`).test(displayName);
-        });
-        let matching = findMatchingPostal(await fetchNominatim(exactParams));
-        if (!matching) {
-          const freeText = [normalizedStreet, normalizedPostal, normalizedCity, "Finland"].filter(Boolean).join(", ");
+        if (normalizedPostal) exactParams.set("postalcode", normalizedPostal);
+        if (normalizedCity) exactParams.set("city", normalizedCity);
+        const chooseBest = results => (results || [])
+          .map(result => ({ result, score: nominatimResultScore(result, normalizedStreet, normalizedPostal, normalizedCity) }))
+          .filter(item => Number.isFinite(item.score))
+          .sort((a, b) => b.score - a.score)[0] || null;
+
+        let best = chooseBest(await fetchNominatim(exactParams));
+        // Jos tarkka rakennehaku ei löytänyt rakennusta/postinumeroa varmasti, kokeile
+        // myös vapaata osoiteriviä. Tämä löytää OSM:ssä POI-kohteena olevat kauppakeskukset.
+        if (!best || best.score < 12) {
+          const freeText = fullAddress
+            ? [fullAddress, "Finland"].join(", ")
+            : [normalizedStreet, normalizedPostal, normalizedCity, "Finland"].filter(Boolean).join(", ");
           const freeParams = new URLSearchParams({ format: "jsonv2", countrycodes: "fi", addressdetails: "1", limit: "10", q: freeText });
-          matching = findMatchingPostal(await fetchNominatim(freeParams));
+          const freeBest = chooseBest(await fetchNominatim(freeParams));
+          if (freeBest && (!best || freeBest.score > best.score)) best = freeBest;
         }
-        if (!matching && recipient && !/^Ei tunnistettu$/i.test(recipient)) {
+        if ((!best || best.score < 9) && recipient && !/^Ei tunnistettu$/i.test(recipient)) {
           const poiText = [recipient, normalizedPostal, normalizedCity, "Finland"].filter(Boolean).join(", ");
           const poiParams = new URLSearchParams({ format: "jsonv2", countrycodes: "fi", addressdetails: "1", limit: "10", q: poiText });
-          matching = findMatchingPostal(await fetchNominatim(poiParams));
+          const poiBest = chooseBest(await fetchNominatim(poiParams));
+          if (poiBest && (!best || poiBest.score > best.score)) best = poiBest;
         }
+        const matching = best?.result;
         if (!matching) return null;
         const point = { lat: parseFloat(matching.lat), lon: parseFloat(matching.lon) };
         if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon)) return null;
@@ -2268,6 +2324,71 @@
       } catch (_) {
         return null;
       }
+    }
+
+    async function photonAddressSearch(street, postalCode, cityHint = "", fullAddress = "") {
+      const normalizedStreet = String(street || "").replace(/,.*$/, "").trim();
+      const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
+      const normalizedCity = String(cityHint || "").trim();
+      if (!normalizedStreet) return null;
+      const cacheKey = `photon:v1:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
+      if (geoCache[cacheKey]) return geoCache[cacheKey];
+      try {
+        const now = Date.now();
+        const wait = 550 - (now - lastPhotonRequest);
+        if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+        lastPhotonRequest = Date.now();
+        const query = fullAddress || [normalizedStreet, normalizedPostal, normalizedCity, "Finland"].filter(Boolean).join(", ");
+        const params = new URLSearchParams({ q: query, limit: "10" });
+        const response = await fetch(`https://photon.komoot.io/api/?${params}`, {
+          headers: { "Accept": "application/json" }
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        const wanted = parseStreetAddressLine(normalizedStreet, { allowGeneric: true });
+        const wantedRoad = normalizeText(wanted?.name || normalizedStreet.replace(/\d.*$/, ""));
+        const wantedHouse = String(wanted?.num || normalizedStreet.match(/\b(\d{1,4})/)?.[1] || "");
+        const wantedCity = normalizeText(normalizedCity);
+        const candidates = (Array.isArray(data?.features) ? data.features : []).map(feature => {
+          const properties = feature.properties || {};
+          const resultRoad = normalizeText(properties.street || properties.name || "");
+          const resultHouse = String(properties.housenumber || "").match(/\d{1,4}/)?.[0] || "";
+          const resultPostal = String(properties.postcode || "").replace(/\s/g, "");
+          const resultCity = normalizeText(properties.city || properties.county || properties.state || "");
+          if (wantedRoad && (!resultRoad || (!resultRoad.includes(wantedRoad) && !wantedRoad.includes(resultRoad)))) return null;
+          if (wantedHouse && resultHouse && wantedHouse !== resultHouse) return null;
+          if (normalizedPostal && resultPostal && normalizedPostal !== resultPostal) return null;
+          let score = 4;
+          if (wantedHouse && resultHouse === wantedHouse) score += 5;
+          else if (wantedHouse) score += 1;
+          if (normalizedPostal && resultPostal === normalizedPostal) score += 5;
+          if (wantedCity && resultCity && (resultCity.includes(wantedCity) || wantedCity.includes(resultCity))) score += 2;
+          return { feature, score };
+        }).filter(Boolean).sort((a, b) => b.score - a.score);
+        const coordinates = candidates[0]?.feature?.geometry?.coordinates;
+        if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+        const point = { lat: Number(coordinates[1]), lon: Number(coordinates[0]) };
+        if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon) || point.lat < 59 || point.lat > 71 || point.lon < 19 || point.lon > 32) return null;
+        geoCache[cacheKey] = point;
+        saveGeoCache();
+        return point;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    async function geocodeAddressText(address) {
+      const text = String(address || "").trim();
+      if (!text) return null;
+      const postal = text.match(/\b\d{5}\b/)?.[0] || "";
+      const parsed = parseStreetAddressLine(text, { allowGeneric: true });
+      const street = parsed ? `${parsed.name}${parsed.num ? ` ${parsed.num}` : ""}` : text.replace(/,.*$/, "").trim();
+      const city = addressCityHint(text, postal);
+      const mmlPoint = await mmlAddressSearch(street, postal, city);
+      if (mmlPoint) return mmlPoint;
+      const photonPoint = await photonAddressSearch(street, postal, city, text);
+      if (photonPoint) return photonPoint;
+      return await nominatimAddressSearch(street, postal, city, "", text);
     }
 
     async function geocodePostal(postalCode) {
@@ -2287,13 +2408,22 @@
       const street = stop.streetKey || stop.address || "";
       const postal = String(stop.postalCode || "").replace(/\s/g, "");
       if (street && postal) {
-        const cityHint = String(stop.address || "").split(",").map(part => part.trim()).filter(Boolean).pop() || "";
+        const cityHint = addressCityHint(stop.address || "", postal);
         const mmlPoint = await mmlAddressSearch(street, postal, cityHint);
         if (mmlPoint) { stop.geo = mmlPoint; return mmlPoint; }
-        const p = await nominatimAddressSearch(street, postal, cityHint, stop.recipient || "");
+        const photonPoint = await photonAddressSearch(street, postal, cityHint, stop.address || "");
+        if (photonPoint) { stop.geo = photonPoint; return photonPoint; }
+        const p = await nominatimAddressSearch(street, postal, cityHint, stop.recipient || "", stop.address || "");
         if (p) { stop.geo = p; return p; }
         // Älä hyväksy postinumeroalueen keskipistettä katuosoitteen sijasta.
         return null;
+      }
+      if (street) {
+        const cityHint = addressCityHint(stop.address || "", postal);
+        const photonPoint = await photonAddressSearch(street, postal, cityHint, stop.address || "");
+        if (photonPoint) { stop.geo = photonPoint; return photonPoint; }
+        const p = await nominatimAddressSearch(street, postal, cityHint, stop.recipient || "", stop.address || "");
+        if (p) { stop.geo = p; return p; }
       }
       if (postal) {
         const p = await geocodePostal(postal);

@@ -1,8 +1,17 @@
-# Lähetejako v1.31
+# Lähetejako v1.32
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.32
+
+- Osoitehaku käyttää automaattisesti kahta avaimetonta hakupalvelua sekä haluttaessa Maanmittauslaitosta.
+- Photon-varahaku löytää myös osoitteita, joita OpenStreetMapin Nominatim-haku ei tunne, kuten Isonniitynkuja 2, 02270 Espoo.
+- Tuloksesta tarkistetaan katu, talonumero ja saatavilla oleva postinumero ennen kartalle hyväksymistä.
+- Käsin vaihdetulle osoitteelle ei enää jää PDF:stä poimittua vanhaa postinumeroa.
+- Myös lähtö- ja loppuosoitteet käyttävät samaa korjattua monivaiheista hakua.
+- Vanhat mahdollisesti virheelliset osoitehakutulokset ohitetaan uusilla välimuistiavaimilla.
 
 ## Versio 1.31
 
