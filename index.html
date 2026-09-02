@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#1e3a5f" />
-  <title>Lähetejako v1.49</title>
+  <title>Lähetejako v1.54</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -629,7 +629,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.49</div>
+      <div style="font-weight:600; color:var(--text);">v1.54</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -749,7 +749,15 @@
           <p><strong>Raahaa omat PDF- tai ZIP-tiedostot tähän</strong> tai klikkaa valitaksesi</p>
           <input type="file" id="driverFileInput" multiple accept=".pdf,.zip,application/pdf,application/zip" hidden />
         </div>
+        <div style="margin-top:0.8rem;padding:0.85rem;border:1px solid rgba(59,130,246,.45);border-radius:9px;background:rgba(59,130,246,.08);">
+          <button class="btn btn-primary" id="btnLoadReadyDriverRoute" type="button">📥 Lataa valmis ajojärjestys</button>
+          <input type="file" id="driverReadyRouteInput" multiple accept=".pdf,application/pdf" hidden />
+          <div class="modal-file-meta" style="margin-top:.45rem;">Valitse valmiiksi oikeassa ajojärjestyksessä olevat PDF:t tai yksi yhdistetty PDF. Ohjelma siirtyy suoraan lastaus- ja kuljetusvaiheeseen ilman reitin optimointia.</div>
+        </div>
         <div class="status-bar" id="driverUploadStatus" style="margin-top: 1rem; display: none;"></div>
+        <div class="driver-pdf-save-destination" id="driverPdfSaveDestination" style="margin-top:.75rem;padding:.7rem .85rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,.38);font-size:.84rem;color:var(--muted);">
+          <strong style="color:var(--text);">PDF-tallennus:</strong> Ei vielä valittua kohdetta.
+        </div>
         <div class="driver-file-list" id="driverFileList"></div>
         <div class="actions" id="driverFileActions" style="display:none;">
           <button class="btn btn-primary" id="btnOptimizeDriverRoute" type="button">📍 Optimoi oma reitti</button>
@@ -778,7 +786,7 @@
         </div>
         <div class="actions" id="driverDownloadActions" style="display:none;">
           <button class="btn btn-primary" id="btnGoTransport" type="button" hidden>🚚 Siirry kuljetukseen</button>
-          <button class="btn btn-success" id="btnDownloadDriverPdf" type="button">⬇️ Yhdistä ja lataa PDF:t</button>
+          <button class="btn btn-success" id="btnDownloadDriverPdf" type="button">💾 Tallenna PDF ja aloita lastaus</button>
         </div>
         <div id="driverRouteMap"></div>
       </div>
@@ -787,6 +795,7 @@
           <div><h2 style="margin-bottom:.2rem;">📦 Lastausvaihe</h2><p class="driver-upload-intro" style="margin:0;">Yksi keikka kerrallaan lastausjärjestyksessä.</p></div>
           <button class="btn btn-secondary" id="btnBackToDriverRoute" type="button">← Reittiin</button>
         </div>
+        <div class="driver-pdf-save-destination" style="margin-top:.75rem;padding:.7rem .85rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,.38);font-size:.84rem;color:var(--muted);"></div>
         <div class="loading-progress"><span id="driverLoadingProgress"></span></div>
         <div class="loading-job">
           <div class="loading-badges" id="driverLoadingBadges"></div>
@@ -807,16 +816,17 @@
           </div>
         </div>
         <div class="actions" style="margin-top:1rem;">
-          <button class="btn btn-success" id="btnDownloadUpdatedLoadingPdf" type="button">⬇️ Lataa päivitetty PDF</button>
+          <button class="btn btn-success" id="btnDownloadUpdatedLoadingPdf" type="button">💾 Tallenna / päivitä PDF</button>
         </div>
       </div>
       <div class="card" id="driverTransportCard" style="display:none;" hidden>
         <h2 id="driverTransportTitle">🚚 Kuorma kuljetuksessa</h2>
         <p class="driver-upload-intro" id="driverTransportIntro">Yksi keikka kerrallaan: tarkista lähete, navigoi, soita asiakkaalle ja kirjaa kuittaus tai varaumat.</p>
+        <div class="driver-pdf-save-destination" style="margin-bottom:.75rem;padding:.7rem .85rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,.38);font-size:.84rem;color:var(--muted);"></div>
         <div class="transport-list" id="driverTransportList"></div>
         <div class="actions">
           <button class="btn btn-primary" id="btnFinishDriverLoad" type="button">📦 Kuorma toimitettu – seuraavaan lastaukseen</button>
-          <button class="btn btn-success" id="btnDownloadCompletedDriverPdf" type="button">⬇️ Lataa kuitatut PDF:t</button>
+          <button class="btn btn-success" id="btnDownloadCompletedDriverPdf" type="button">💾 Tallenna kuitatut PDF:t</button>
         </div>
       </div>
     </div>
@@ -896,25 +906,6 @@
           <label for="driverZipFolder">Kansio</label>
           <select id="driverZipFolder" style="width:100%; padding:0.6rem 0.7rem; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text);"></select>
         </div>
-      </div>
-      <div style="margin-top:0.85rem;padding:0.8rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,0.45);">
-        <div style="font-weight:800;margin-bottom:0.25rem;">🚚 Keikan autokohtaiset säännöt</div>
-        <div style="color:var(--muted);font-size:0.8rem;margin-bottom:0.7rem;">Sääntö koskee samaa fyysistä osoitetta ja säilyy tällä laitteella myös tulevia jakoja varten.</div>
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0.5rem;align-items:end;margin-bottom:0.65rem;">
-          <div>
-            <label for="modalPreferredVehicle">Oletusauto</label>
-            <select id="modalPreferredVehicle"></select>
-          </div>
-          <button type="button" class="btn btn-primary" id="modalSetPreferredVehicle">⭐ Aseta oletusauto</button>
-        </div>
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0.5rem;align-items:end;">
-          <div>
-            <label for="modalForbiddenVehicle">Autokohtainen kielto</label>
-            <select id="modalForbiddenVehicle"></select>
-          </div>
-          <button type="button" class="btn btn-secondary" id="modalToggleForbiddenVehicle">🚫 Kiellä autolta</button>
-        </div>
-        <div id="modalVehicleRuleStatus" style="margin-top:0.55rem;color:var(--muted);font-size:0.82rem;min-height:1.2em;"></div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="driverZipCancel" type="button">Peruuta</button>
@@ -1017,6 +1008,16 @@
           <input type="text" id="modalPostal" placeholder="esim. 00380" maxlength="5" />
         </div>
       </div>
+      <div style="margin-top:0.85rem;padding:0.8rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,0.45);">
+        <div style="font-weight:800;margin-bottom:0.25rem;">🚚 Keikan pysyvät autovalinnat</div>
+        <div style="color:var(--muted);font-size:0.8rem;margin-bottom:0.7rem;">Valinnat koskevat samaa toimitusosoitetta myös seuraavina päivinä.</div>
+        <div style="margin-bottom:0.65rem;">
+          <label for="modalPreferredVehicle">Pakota aina autolle</label>
+          <select id="modalPreferredVehicle"></select>
+        </div>
+        <button type="button" class="btn btn-secondary" id="modalOpenVehicleBan">🚫 Estä autot tältä paikalta</button>
+        <div id="modalVehicleRuleStatus" style="margin-top:0.55rem;color:var(--muted);font-size:0.82rem;min-height:1.2em;"></div>
+      </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="modalCancel">Peruuta</button>
         <button class="btn btn-primary" id="modalSave">Tallenna</button>
@@ -1024,8 +1025,21 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="vehicleBanModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="vehicleBanTitle" style="max-width:min(560px,96vw);">
+      <h3 id="vehicleBanTitle">🚫 Estä autot tältä paikalta</h3>
+      <p id="vehicleBanStopInfo" class="modal-file-meta" style="margin-bottom:0.8rem;"></p>
+      <div id="vehicleBanOptions" style="display:grid;gap:0.5rem;"></div>
+      <p class="modal-file-meta" style="margin-top:0.8rem;">Valinnat tallentuvat tälle laitteelle osoitekohtaisesti ja ovat voimassa myös tulevina päivinä.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="vehicleBanCancel" type="button">Peruuta</button>
+        <button class="btn btn-primary" id="vehicleBanSave" type="button">Tallenna autokiellot</button>
+      </div>
+    </div>
+  </div>
+
   <footer>
-    Lähetejako v1.49 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
+    Lähetejako v1.54 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1086,6 +1100,9 @@
 
     const driverDropzone = document.getElementById("driverDropzone");
     const driverFileInput = document.getElementById("driverFileInput");
+    const btnLoadReadyDriverRoute = document.getElementById("btnLoadReadyDriverRoute");
+    const driverReadyRouteInput = document.getElementById("driverReadyRouteInput");
+    const driverPdfSaveDestination = document.getElementById("driverPdfSaveDestination");
     const driverUploadStatus = document.getElementById("driverUploadStatus");
     const driverFileList = document.getElementById("driverFileList");
     const driverFileActions = document.getElementById("driverFileActions");
@@ -1181,6 +1198,12 @@
     let driverLoadingReturnIndex = null;
     let driverTransportRenderToken = 0;
     let driverPdfFiles = [];
+    let driverOutputFileHandle = null;
+    let driverDownloadedOutputName = "";
+    let driverCombinedPdfBytes = null;
+    let driverCurrentPhase = "upload";
+    let driverSessionSaveTimer = null;
+    let driverSessionRestoring = false;
     let driverRouteMap = null;
     let driverRouteLayer = null;
     let driverRouteState = null;
@@ -1206,10 +1229,11 @@
       if (driverPdfDatabasePromise) return driverPdfDatabasePromise;
       driverPdfDatabasePromise = new Promise((resolve, reject) => {
         if (!window.indexedDB) return reject(new Error("Laitteen pysyvä PDF-tallennus ei ole käytettävissä"));
-        const request = indexedDB.open("lahetejako_driver_pdf_edits", 1);
+        const request = indexedDB.open("lahetejako_driver_pdf_edits", 2);
         request.onupgradeneeded = () => {
           const database = request.result;
           if (!database.objectStoreNames.contains("pdfs")) database.createObjectStore("pdfs", { keyPath: "key" });
+          if (!database.objectStoreNames.contains("sessions")) database.createObjectStore("sessions", { keyPath: "key" });
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error || new Error("PDF-tallennusta ei voitu avata"));
@@ -1239,6 +1263,82 @@
         transaction.onerror = () => reject(transaction.error || new Error("PDF:n tallennus epäonnistui"));
         transaction.onabort = () => reject(transaction.error || new Error("PDF:n tallennus keskeytyi"));
       });
+    }
+
+    async function readDriverSessionRecord() {
+      try {
+        const database = await openDriverPdfDatabase();
+        return await new Promise((resolve, reject) => {
+          const request = database.transaction("sessions", "readonly").objectStore("sessions").get("active");
+          request.onsuccess = () => resolve(request.result || null);
+          request.onerror = () => reject(request.error);
+        });
+      } catch (_) {
+        return null;
+      }
+    }
+
+    async function putDriverSessionRecord(record) {
+      const database = await openDriverPdfDatabase();
+      await new Promise((resolve, reject) => {
+        const transaction = database.transaction("sessions", "readwrite");
+        transaction.objectStore("sessions").put(record);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error || new Error("Työtilan tallennus epäonnistui"));
+        transaction.onabort = () => reject(transaction.error || new Error("Työtilan tallennus keskeytyi"));
+      });
+    }
+
+    async function deleteDriverSessionRecord() {
+      try {
+        const database = await openDriverPdfDatabase();
+        await new Promise((resolve, reject) => {
+          const transaction = database.transaction("sessions", "readwrite");
+          transaction.objectStore("sessions").delete("active");
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error);
+        });
+      } catch (_) { /* Tyhjennys jatkuu, vaikka pysyvä tallennus ei olisi käytettävissä. */ }
+    }
+
+    async function saveDriverSessionNow() {
+      if (driverSessionRestoring || (!driverPdfFiles.length && !driverRouteState)) return;
+      const record = {
+        key: "active",
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        phase: driverCurrentPhase,
+        files: driverPdfFiles,
+        routeState: driverRouteState,
+        addressOverrides: [...driverAddressOverrides.entries()],
+        loadingIndex: driverLoadingIndex,
+        transportIndex: driverTransportIndex,
+        activeTransportLoadNumber: driverActiveTransportLoadNumber,
+        loadingReturnIndex: driverLoadingReturnIndex,
+        combinedPdfBytes: driverCombinedPdfBytes,
+        outputFileHandle: driverOutputFileHandle,
+        downloadedOutputName: driverDownloadedOutputName
+      };
+      try {
+        await putDriverSessionRecord(record);
+      } catch (error) {
+        // Kaikki selaimet eivät salli tiedostokahvan tallentamista IndexedDB:hen.
+        if (record.outputFileHandle) {
+          record.outputFileHandle = null;
+          try { await putDriverSessionRecord(record); } catch (fallbackError) { console.warn("Kuljettajan työtilan tallennus epäonnistui:", fallbackError); }
+        } else {
+          console.warn("Kuljettajan työtilan tallennus epäonnistui:", error);
+        }
+      }
+    }
+
+    function queueDriverSessionSave(delay = 120) {
+      if (driverSessionRestoring) return;
+      clearTimeout(driverSessionSaveTimer);
+      driverSessionSaveTimer = setTimeout(() => {
+        driverSessionSaveTimer = null;
+        saveDriverSessionNow();
+      }, delay);
     }
 
     try {
@@ -1278,6 +1378,83 @@
       const date = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${now.getFullYear()}`;
       const safeName = (driverName || "Kuljettaja").replace(/[^A-Za-zÅÄÖåäö0-9_-]/g, "");
       return `${safeName || "Kuljettaja"}${date}.pdf`;
+    }
+
+    function updateDriverPdfSaveDestination() {
+      if (!driverPdfSaveDestination) return;
+      let description = "Ei vielä valittua kohdetta. Selain näyttää kohdevalinnan ensimmäisen tallennuksen yhteydessä.";
+      if (driverOutputFileHandle) {
+        description = `Valittu tiedosto: <strong style="color:var(--text)">${escapeHtml(driverOutputFileHandle.name || driverRoutePdfName())}</strong>. Sama tiedosto päivitetään jatkossa päälle.`;
+      } else if (driverDownloadedOutputName) {
+        description = `Selaimen latauskansio (yleensä Lataukset): <strong style="color:var(--text)">${escapeHtml(driverDownloadedOutputName)}</strong>. Muokattava versio säilyy lisäksi sovelluksessa.`;
+      } else if (driverCombinedPdfBytes) {
+        description = `Sovelluksen pysyvä laitetallennus: <strong style="color:var(--text)">${escapeHtml(driverRoutePdfName())}</strong>. Ulkoista kansiota ei ole vielä valittu.`;
+      }
+      const content = `<strong style="color:var(--text)">PDF-tallennus:</strong> ${description}<div style="margin-top:.25rem;font-size:.75rem;">Selain ei turvallisuussyistä näytä valitun kansion koko polkua.</div>`;
+      document.querySelectorAll(".driver-pdf-save-destination").forEach(element => { element.innerHTML = content; });
+    }
+    updateDriverPdfSaveDestination();
+
+    async function chooseDriverOutputFile() {
+      if (driverOutputFileHandle) return true;
+      if (typeof window.showSaveFilePicker !== "function") return false;
+      try {
+        driverOutputFileHandle = await window.showSaveFilePicker({
+          suggestedName: driverRoutePdfName(),
+          types: [{ description: "PDF-tiedosto", accept: { "application/pdf": [".pdf"] } }]
+        });
+        driverDownloadedOutputName = "";
+        updateDriverPdfSaveDestination();
+        queueDriverSessionSave(0);
+        return true;
+      } catch (error) {
+        if (error?.name !== "AbortError") console.warn("PDF-tiedoston valinta epäonnistui:", error);
+        return false;
+      }
+    }
+
+    async function writeDriverOutputFile(bytes, { downloadFallback = false } = {}) {
+      const normalized = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+      driverCombinedPdfBytes = normalized.buffer.slice(normalized.byteOffset, normalized.byteOffset + normalized.byteLength);
+      let writtenOver = false;
+      if (driverOutputFileHandle) {
+        try {
+          let permission = await driverOutputFileHandle.queryPermission?.({ mode: "readwrite" });
+          if (permission !== "granted") permission = await driverOutputFileHandle.requestPermission?.({ mode: "readwrite" });
+          if (!permission || permission === "granted") {
+            const writable = await driverOutputFileHandle.createWritable();
+            await writable.write(normalized);
+            await writable.close();
+            writtenOver = true;
+          }
+        } catch (error) {
+          console.warn("PDF:n kirjoittaminen valitun tiedoston päälle epäonnistui:", error);
+          driverOutputFileHandle = null;
+        }
+      }
+      if (!writtenOver && downloadFallback) {
+        driverDownloadedOutputName = driverRoutePdfName();
+        saveAs(new Blob([normalized], { type: "application/pdf" }), driverDownloadedOutputName);
+      }
+      updateDriverPdfSaveDestination();
+      await saveDriverSessionNow();
+      return writtenOver;
+    }
+
+    async function syncDriverCombinedPdf({ downloadFallback = false } = {}) {
+      if (!driverRouteState) return false;
+      const bytes = await mergeDriverPdfsInOrder(driverAnnotatedEntries());
+      return await writeDriverOutputFile(bytes, { downloadFallback });
+    }
+
+    async function persistCurrentLoadingStop() {
+      const item = driverLoadingItems()[driverLoadingIndex];
+      if (item?.kind === "stop" && item.stop.pdfDirty) {
+        await persistDriverStopPdfChanges(item.stop);
+        await syncDriverCombinedPdf({ downloadFallback: false });
+      } else {
+        await saveDriverSessionNow();
+      }
     }
 
     function updateDriverSettingsButton() {
@@ -1345,6 +1522,7 @@
       }
       driverAddressOverrides.set(driverFileKey(file), address);
       driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Osoite tallennettu reitinoptimointia varten.</span>`;
+      queueDriverSessionSave();
     }
 
     function driverTransportStops() {
@@ -1382,6 +1560,11 @@
         ...(stop.recipientPhones || (stop.recipientPhone ? [stop.recipientPhone] : [])).map(phone => ({ label: "Soita vastaanottajalle", phone })),
         ...(stop.customerPhones || (stop.customerPhone ? [stop.customerPhone] : [])).map(phone => ({ label: "Soita asiakkaalle", phone }))
       ].filter((item, index, list) => list.findIndex(other => other.phone === item.phone) === index);
+      const hasPallets = (Number(stop.eur) || 0) > 0 || (Number(stop.teho) || 0) > 0;
+      const cargoFacts = hasPallets
+        ? `<div class="transport-route-fact"><span>EUR-lavat</span><strong>${Number(stop.eur) || 0}</strong></div>
+           <div class="transport-route-fact"><span>Teho-lavat</span><strong>${Number(stop.teho) || 0}</strong></div>`
+        : `<div class="transport-route-fact"><span>Kollit</span><strong>${Number(stop.packageCount) || 0}</strong></div>`;
       driverTransportList.innerHTML = `
         <div class="transport-row" data-transport-stop-id="${escapeHtml(stop.id)}">
           <div class="transport-row-head">
@@ -1390,9 +1573,7 @@
           </div>
           <div class="transport-route-facts">
             <div class="transport-route-fact"><span>Seurantanumero</span><strong>${escapeHtml(stop.trackingNumber || "Ei löytynyt")}</strong></div>
-            <div class="transport-route-fact"><span>EUR-lavat</span><strong>${Number(stop.eur) || 0}</strong></div>
-            <div class="transport-route-fact"><span>Teho-lavat</span><strong>${Number(stop.teho) || 0}</strong></div>
-            <div class="transport-route-fact"><span>Kollit</span><strong>${Number(stop.packageCount) || 0}</strong></div>
+            ${cargoFacts}
           </div>
           <div class="transport-actions">
             <button class="btn btn-secondary" type="button" data-transport-action="preview">🔍 Esikatselu</button>
@@ -1412,6 +1593,8 @@
           </div>
         </div>
       `;
+      driverCurrentPhase = "transport";
+      queueDriverSessionSave();
     }
 
     function openDriverEntry(stopId, mode) {
@@ -1465,9 +1648,11 @@
           confirmation: stop.confirmation || "",
           confirmationDate: stop.confirmationDate || "",
           reservations: stop.reservations || "",
+          loadingNote: savedDriverLoadingNote(stop),
           savedAt: new Date().toISOString()
         });
       }
+      stop.pdfDirty = false;
       stop.pdfSavedAt = new Intl.DateTimeFormat("fi-FI", { hour: "2-digit", minute: "2-digit" }).format(new Date());
     }
 
@@ -1487,6 +1672,7 @@
       driverEntrySaveStatus.textContent = "Älä sulje sovellusta. Päivitetään ja varmistetaan PDF…";
       try {
         await persistDriverStopPdfChanges(stop);
+        await syncDriverCombinedPdf({ downloadFallback: false });
         driverEntrySaveStatus.textContent = "PDF tallennettu pysyvästi laitteelle.";
         closeDriverEntry();
         renderDriverTransportList();
@@ -1546,6 +1732,7 @@
       const note = String(value || "");
       const key = driverLoadingNoteKey(stop);
       stop.loadingNote = note;
+      stop.pdfDirty = true;
       if (note.trim()) driverLoadingNotes[key] = note;
       else delete driverLoadingNotes[key];
       try {
@@ -1556,6 +1743,7 @@
       } catch (_) {
         driverLoadingNoteStatus.textContent = "Tallennettu tämän käyttökerran ajaksi.";
       }
+      queueDriverSessionSave();
     }
 
     function driverLoadNumberAt(stop) {
@@ -1571,6 +1759,7 @@
       if (!items.length) return;
       driverLoadingIndex = Math.max(0, Math.min(items.length - 1, driverLoadingIndex));
       const item = items[driverLoadingIndex];
+      driverCurrentPhase = "loading";
       driverLoadingProgress.style.width = `${((driverLoadingIndex + 1) / items.length) * 100}%`;
       driverLoadingPosition.textContent = `${driverLoadingIndex + 1} / ${items.length}`;
       btnDriverLoadingPrev.disabled = driverLoadingIndex === 0;
@@ -1603,7 +1792,7 @@
         driverLoadingAddress.textContent = "✅ Kuljetukset valmiit";
         driverLoadingTracking.textContent = "Kaikki suunnitellut kuormat on käsitelty";
         driverLoadingCargoLabel.textContent = "Seuraava vaihe";
-        driverLoadingCargo.textContent = "Lataa päivitetty PDF";
+        driverLoadingCargo.textContent = "Tallenna päivitetty PDF";
         btnDriverLoadingPreview.style.display = "none";
         driverLoadingNoteLabel.style.display = "none";
         driverLoadingNote.style.display = "none";
@@ -1648,14 +1837,17 @@
       driverLoadingNoteStatus.textContent = driverLoadingNote.value.trim()
         ? "Tallennettu. Merkintä lisätään ladattavaan PDF:ään."
         : "Kirjoitettu teksti tallentuu automaattisesti.";
+      queueDriverSessionSave();
     }
 
     function openDriverLoadingPhase() {
       if (!driverLoadingItems().length) return;
       driverLoadingIndex = 0;
+      driverCurrentPhase = "loading";
       driverRouteCard.style.display = "none";
       driverLoadingCard.hidden = false;
       renderDriverLoading();
+      queueDriverSessionSave();
       driverLoadingCard.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
@@ -1762,6 +1954,112 @@
       driverUploadStatus.innerHTML = `<strong>${driverPdfFiles.length} PDF-tiedostoa ladattu</strong>${zipFiles.length ? ` · purettu ${zipFiles.length} ZIP-paketista` : ""}${rejectedCount ? ` · ${rejectedCount} muu tiedosto ohitettiin` : ""}${!addedCount && pdfFiles.length ? " · Tiedostot olivat jo listalla" : ""}`;
       renderDriverFiles();
       driverFileInput.value = "";
+      driverCurrentPhase = "upload";
+      queueDriverSessionSave();
+    }
+
+    async function splitReadyDriverRoutePdf(file) {
+      if (typeof PDFLib === "undefined") throw new Error("PDF-käsittely ei ole latautunut");
+      const source = await PDFLib.PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
+      if (source.getPageCount() <= 1) return [file];
+      const baseName = file.name.replace(/\.pdf$/i, "") || "ajojarjestys";
+      const pages = [];
+      for (let index = 0; index < source.getPageCount(); index++) {
+        const pageDocument = await PDFLib.PDFDocument.create();
+        const [page] = await pageDocument.copyPages(source, [index]);
+        pageDocument.addPage(page);
+        const bytes = await pageDocument.save();
+        pages.push(new File([bytes], `${baseName}-${String(index + 1).padStart(3, "0")}.pdf`, {
+          type: "application/pdf",
+          lastModified: file.lastModified
+        }));
+      }
+      return pages;
+    }
+
+    async function createReadyDriverStop(file) {
+      const extracted = await extractFromPdf(file);
+      const originalKey = driverFileKey(file);
+      const savedPdf = await readSavedDriverPdf(originalKey);
+      const activeFile = savedPdf?.annotatedBytes
+        ? new File([savedPdf.annotatedBytes], file.name, { type: "application/pdf", lastModified: file.lastModified })
+        : file;
+      const stop = {
+        id: crypto.randomUUID(), file: activeFile, originalFile: file, originalKey, fileName: file.name,
+        recipient: extracted.recipient || "Ei tunnistettu",
+        address: extracted.address || "",
+        postalCode: extracted.postalCode || "",
+        streetKey: extracted.streetKey || "",
+        area: getArea(extracted.postalCode),
+        eur: extracted.eur || 0,
+        teho: extracted.teho || 0,
+        trackingNumber: extracted.trackingNumber || "",
+        packageCount: extracted.packageCount || 0,
+        weightKg: extracted.weightKg ?? null,
+        recipientPhone: extracted.recipientPhone || "",
+        customerPhone: extracted.customerPhone || "",
+        confirmation: savedPdf?.confirmation || "",
+        confirmationDate: savedPdf?.confirmationDate || "",
+        reservations: savedPdf?.reservations || "",
+        loadingNote: savedPdf?.loadingNote || driverLoadingNotes[originalKey] || "",
+        pdfDirty: false,
+        pdfSavedAt: savedPdf?.savedAt
+          ? new Intl.DateTimeFormat("fi-FI", { hour: "2-digit", minute: "2-digit" }).format(new Date(savedPdf.savedAt))
+          : ""
+      };
+      normalizeStop(stop);
+      return stop;
+    }
+
+    async function loadReadyDriverRoute(fileList) {
+      const selected = Array.from(fileList || []).filter(file => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
+      if (!selected.length) return;
+      btnLoadReadyDriverRoute.disabled = true;
+      btnLoadReadyDriverRoute.innerHTML = `<span class="spinner"></span> Luetaan valmista ajojärjestystä…`;
+      driverUploadStatus.style.display = "flex";
+      try {
+        const routeFiles = selected.length === 1 ? await splitReadyDriverRoutePdf(selected[0]) : selected;
+        driverUploadStatus.innerHTML = `<span class="spinner"></span> Luetaan 0/${routeFiles.length} lähetettä…`;
+        const parsedStops = [];
+        for (let index = 0; index < routeFiles.length; index++) {
+          parsedStops.push(await createReadyDriverStop(routeFiles[index]));
+          driverUploadStatus.innerHTML = `<span class="spinner"></span> Luetaan ${index + 1}/${routeFiles.length} lähetettä…`;
+        }
+        driverPdfFiles = routeFiles;
+        const ordered = groupDriverStopsByAddress(parsedStops);
+        const depotPoint = { lat: DEPOT.lat, lon: DEPOT.lon, label: DEPOT.label };
+        driverRouteState = {
+          ordered,
+          unresolved: [],
+          startPoint: depotPoint,
+          endPoint: depotPoint,
+          pdfCount: routeFiles.length,
+          distanceCache: new Map(),
+          manualCandidates: [],
+          manualSelecting: false,
+          manualMapFitted: false,
+          loadBreaks: recalculateDriverLoadBreaks(ordered, []),
+          readyRoute: true,
+          roadGeometry: null
+        };
+        driverOutputFileHandle = null;
+        driverDownloadedOutputName = "";
+        driverCombinedPdfBytes = null;
+        updateDriverPdfSaveDestination();
+        renderDriverFiles();
+        driverRouteCard.style.display = "none";
+        driverUploadStatus.innerHTML = `<strong>Valmis ajojärjestys ladattu.</strong> ${ordered.length} keikkaa siirrettiin suoraan lastausvaiheeseen.`;
+        driverCurrentPhase = "loading";
+        openDriverLoadingPhase();
+        await syncDriverCombinedPdf({ downloadFallback: false });
+      } catch (error) {
+        console.error(error);
+        driverUploadStatus.innerHTML = `<strong style="color:var(--danger)">Valmiin ajojärjestyksen tuonti epäonnistui:</strong> ${escapeHtml(error.message || String(error))}`;
+      } finally {
+        btnLoadReadyDriverRoute.disabled = false;
+        btnLoadReadyDriverRoute.textContent = "📥 Lataa valmis ajojärjestys";
+        driverReadyRouteInput.value = "";
+      }
     }
 
     function groupDriverStopsByAddress(stopsToGroup) {
@@ -1787,6 +2085,8 @@
           confirmation: group.map(stop => stop.confirmation).find(Boolean) || "",
           confirmationDate: group.map(stop => stop.confirmationDate).find(Boolean) || "",
           reservations: group.map(stop => stop.reservations).find(Boolean) || "",
+          loadingNote: group.map(stop => stop.loadingNote).find(Boolean) || "",
+          pdfDirty: group.some(stop => !!stop.pdfDirty),
           pdfSavedAt: group.map(stop => stop.pdfSavedAt).find(Boolean) || "",
           recipientPhones: [...new Set(group.map(stop => stop.recipientPhone).filter(Boolean))],
           customerPhones: [...new Set(group.map(stop => stop.customerPhone).filter(Boolean))],
@@ -2101,11 +2401,14 @@
       `).join("");
       driverManualActions.style.display = "none";
       driverDownloadActions.style.display = ordered.length ? "flex" : "none";
+      driverCurrentPhase = "route";
+      queueDriverSessionSave();
       refreshDriverRouteGeometry();
     }
 
     function renderDriverManualSelection() {
       if (!driverRouteState) return;
+      driverCurrentPhase = "route";
       const { ordered, manualCandidates, unresolved, startPoint, endPoint, loadBreaks = [] } = driverRouteState;
       const selectedIds = new Set(ordered.map(stop => stop.id));
       const remaining = manualCandidates.filter(stop => !selectedIds.has(stop.id));
@@ -2189,6 +2492,8 @@
         driverRouteState.loadBreaks = recalculateDriverLoadBreaks(driverRouteState.ordered, driverRouteState.loadBreaks);
         driverRouteState.manualSelecting = false;
         renderDriverRouteResult(true);
+      } else {
+        queueDriverSessionSave();
       }
     }
 
@@ -2306,6 +2611,8 @@
             confirmation: savedPdf?.confirmation || "",
             confirmationDate: savedPdf?.confirmationDate || "",
             reservations: savedPdf?.reservations || "",
+            loadingNote: savedPdf?.loadingNote || driverLoadingNotes[originalKey] || "",
+            pdfDirty: false,
             pdfSavedAt: savedPdf?.savedAt
               ? new Intl.DateTimeFormat("fi-FI", { hour: "2-digit", minute: "2-digit" }).format(new Date(savedPdf.savedAt))
               : ""
@@ -2394,6 +2701,8 @@
       addDriverFiles(event.dataTransfer.files);
     });
     driverFileInput.addEventListener("change", () => addDriverFiles(driverFileInput.files));
+    btnLoadReadyDriverRoute.addEventListener("click", () => driverReadyRouteInput.click());
+    driverReadyRouteInput.addEventListener("change", () => loadReadyDriverRoute(driverReadyRouteInput.files));
     document.getElementById("driverZipImport").addEventListener("click", () => {
       const resolve = driverZipChoiceResolver;
       driverZipChoiceResolver = null;
@@ -2507,6 +2816,7 @@
     btnGoTransport.addEventListener("click", () => {
       if (!driverRouteState?.ordered?.length || driverRouteState.manualSelecting) return;
       driverTransportIndex = 0;
+      driverCurrentPhase = "transport";
       renderDriverTransportList();
       driverRouteCard.style.display = "none";
       driverTransportCard.style.display = "block";
@@ -2517,6 +2827,7 @@
       if (stepButton && driverRouteState) {
         driverTransportIndex += stepButton.dataset.transportStep === "next" ? 1 : -1;
         renderDriverTransportList();
+        queueDriverSessionSave();
         return;
       }
       const button = event.target.closest("[data-transport-action]");
@@ -2543,13 +2854,14 @@
       btnDownloadCompletedDriverPdf.disabled = true;
       btnDownloadCompletedDriverPdf.innerHTML = `<span class="spinner"></span> Kirjoitetaan kuittaukset PDF:iin…`;
       try {
-        const bytes = await mergeDriverPdfsInOrder(driverAnnotatedEntries());
-        saveAs(new Blob([bytes], { type: "application/pdf" }), driverRoutePdfName());
+        const pickerSupported = typeof window.showSaveFilePicker === "function";
+        if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
+        await syncDriverCombinedPdf({ downloadFallback: !driverOutputFileHandle });
       } catch (error) {
         alert("PDF:n luonti epäonnistui: " + (error.message || error));
       } finally {
         btnDownloadCompletedDriverPdf.disabled = false;
-        btnDownloadCompletedDriverPdf.innerHTML = "⬇️ Lataa kuitatut PDF:t";
+        btnDownloadCompletedDriverPdf.innerHTML = "💾 Tallenna kuitatut PDF:t";
       }
     });
     btnDownloadDriverPdf.addEventListener("click", async () => {
@@ -2558,25 +2870,33 @@
       btnDownloadDriverPdf.innerHTML = `<span class="spinner"></span> Yhdistetään PDF:t…`;
       try {
         const unresolvedEntries = driverRouteState.unresolved.flatMap(stop => stop.files || []);
-        const mergedBytes = await mergeDriverPdfsInOrder(driverAnnotatedEntries());
-        const blob = new Blob([mergedBytes], { type: "application/pdf" });
-        saveAs(blob, driverRoutePdfName());
+        const pickerSupported = typeof window.showSaveFilePicker === "function";
+        if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
+        await syncDriverCombinedPdf({ downloadFallback: !driverOutputFileHandle });
         driverUploadStatus.style.display = "flex";
-        driverUploadStatus.innerHTML = `<strong>Yhdistetty PDF ladattu.</strong> Sivut ovat reittijärjestyksessä${unresolvedEntries.length ? "; reitittämättömät PDF:t ovat lopussa" : ""}.`;
+        driverUploadStatus.innerHTML = `<strong>PDF tallennettu ja automaattitallennus käytössä.</strong> Sivut ovat reittijärjestyksessä${unresolvedEntries.length ? "; reitittämättömät PDF:t ovat lopussa" : ""}.`;
         openDriverLoadingPhase();
       } catch (error) {
         driverUploadStatus.style.display = "flex";
         driverUploadStatus.innerHTML = `<strong style="color:var(--danger)">PDF-tiedostojen yhdistäminen epäonnistui:</strong> ${escapeHtml(error.message || String(error))}`;
       } finally {
         btnDownloadDriverPdf.disabled = false;
-        btnDownloadDriverPdf.innerHTML = "⬇️ Yhdistä ja lataa PDF:t";
+        btnDownloadDriverPdf.innerHTML = "💾 Tallenna PDF ja aloita lastaus";
       }
     });
-    btnBackToDriverRoute.addEventListener("click", () => {
-      closeDriverLoadingPreview();
-      driverLoadingCard.hidden = true;
-      driverRouteCard.style.display = "block";
-      driverRouteCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    btnBackToDriverRoute.addEventListener("click", async () => {
+      try {
+        await persistCurrentLoadingStop();
+        closeDriverLoadingPreview();
+        driverLoadingCard.hidden = true;
+        driverRouteCard.style.display = "block";
+        driverCurrentPhase = "route";
+        if (driverRouteState?.readyRoute) renderDriverRouteResult(true);
+        await saveDriverSessionNow();
+        driverRouteCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (error) {
+        alert("PDF:n automaattitallennus epäonnistui: " + (error.message || error));
+      }
     });
     driverLoadingNote.addEventListener("input", () => {
       const item = driverLoadingItems()[driverLoadingIndex];
@@ -2594,10 +2914,12 @@
       driverActiveTransportLoadNumber = item.loadNumber;
       driverLoadingReturnIndex = driverLoadingIndex + 1;
       driverTransportIndex = 0;
+      driverCurrentPhase = "transport";
       driverLoadingCard.hidden = true;
       driverTransportCard.hidden = false;
       driverTransportCard.style.display = "block";
       renderDriverTransportList();
+      queueDriverSessionSave();
       driverTransportCard.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     document.getElementById("btnCloseDriverLoadingPreview").addEventListener("click", closeDriverLoadingPreview);
@@ -2618,34 +2940,56 @@
       driverLoadingPreviewFileIndex++;
       renderDriverLoadingPreview();
     });
-    btnDriverLoadingPrev.addEventListener("click", () => {
+    btnDriverLoadingPrev.addEventListener("click", async () => {
       if (driverLoadingIndex <= 0) return;
-      closeDriverLoadingPreview();
-      driverLoadingIndex--;
-      renderDriverLoading();
+      btnDriverLoadingPrev.disabled = true;
+      btnDriverLoadingNext.disabled = true;
+      try {
+        driverLoadingNoteStatus.textContent = "Tallennetaan PDF:ää automaattisesti…";
+        await persistCurrentLoadingStop();
+        closeDriverLoadingPreview();
+        driverLoadingIndex--;
+        renderDriverLoading();
+        await saveDriverSessionNow();
+      } catch (error) {
+        alert("PDF:n automaattitallennus epäonnistui: " + (error.message || error));
+        renderDriverLoading();
+      }
     });
-    btnDriverLoadingNext.addEventListener("click", () => {
+    btnDriverLoadingNext.addEventListener("click", async () => {
       if (driverLoadingIndex >= driverLoadingItems().length - 1) return;
-      closeDriverLoadingPreview();
-      driverLoadingIndex++;
-      renderDriverLoading();
+      btnDriverLoadingPrev.disabled = true;
+      btnDriverLoadingNext.disabled = true;
+      try {
+        driverLoadingNoteStatus.textContent = "Tallennetaan PDF:ää automaattisesti…";
+        await persistCurrentLoadingStop();
+        closeDriverLoadingPreview();
+        driverLoadingIndex++;
+        renderDriverLoading();
+        await saveDriverSessionNow();
+      } catch (error) {
+        alert("PDF:n automaattitallennus epäonnistui: " + (error.message || error));
+        renderDriverLoading();
+      }
     });
     btnDownloadUpdatedLoadingPdf.addEventListener("click", async () => {
       if (!driverLoadingStops().length) return;
       btnDownloadUpdatedLoadingPdf.disabled = true;
       btnDownloadUpdatedLoadingPdf.innerHTML = `<span class="spinner"></span> Kirjoitetaan merkinnät PDF:ään…`;
       try {
-        const bytes = await mergeDriverPdfsInOrder(driverAnnotatedEntries());
-        saveAs(new Blob([bytes], { type: "application/pdf" }), driverRoutePdfName());
-        driverLoadingNoteStatus.textContent = "Päivitetty PDF ladattu. Kaikki tallennetut merkinnät ovat mukana.";
+        await persistCurrentLoadingStop();
+        const pickerSupported = typeof window.showSaveFilePicker === "function";
+        if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
+        await syncDriverCombinedPdf({ downloadFallback: !driverOutputFileHandle });
+        driverLoadingNoteStatus.textContent = "Päivitetty PDF tallennettu. Kaikki merkinnät ovat mukana.";
       } catch (error) {
         alert("PDF:n luonti epäonnistui: " + (error.message || error));
       } finally {
         btnDownloadUpdatedLoadingPdf.disabled = false;
-        btnDownloadUpdatedLoadingPdf.innerHTML = "⬇️ Lataa päivitetty PDF";
+        btnDownloadUpdatedLoadingPdf.innerHTML = "💾 Tallenna / päivitä PDF";
       }
     });
-    btnFinishDriverLoad.addEventListener("click", () => {
+    btnFinishDriverLoad.addEventListener("click", async () => {
       if (driverLoadingReturnIndex == null) return;
       driverTransportCard.style.display = "none";
       driverTransportCard.hidden = true;
@@ -2653,7 +2997,9 @@
       driverLoadingIndex = driverLoadingReturnIndex;
       driverLoadingReturnIndex = null;
       driverActiveTransportLoadNumber = null;
+      driverCurrentPhase = "loading";
       renderDriverLoading();
+      await saveDriverSessionNow();
       driverLoadingCard.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     driverRouteList.addEventListener("dragstart", event => {
@@ -2708,6 +3054,10 @@
       closeDriverEntry();
       closeDriverLoadingPreview();
       driverPdfFiles = [];
+      driverOutputFileHandle = null;
+      driverDownloadedOutputName = "";
+      driverCombinedPdfBytes = null;
+      driverCurrentPhase = "upload";
       driverAddressOverrides.clear();
       driverFileInput.value = "";
       driverUploadStatus.style.display = "none";
@@ -2727,7 +3077,62 @@
       driverDownloadActions.style.display = "none";
       if (driverRouteLayer) { driverRouteLayer.remove(); driverRouteLayer = null; }
       renderDriverFiles();
+      updateDriverPdfSaveDestination();
+      deleteDriverSessionRecord();
     });
+
+    async function restoreDriverSession() {
+      const saved = await readDriverSessionRecord();
+      if (!saved?.files?.length) return;
+      driverSessionRestoring = true;
+      try {
+        driverPdfFiles = saved.files;
+        driverRouteState = saved.routeState || null;
+        if (driverRouteState && !(driverRouteState.distanceCache instanceof Map)) {
+          driverRouteState.distanceCache = new Map(Array.isArray(driverRouteState.distanceCache) ? driverRouteState.distanceCache : []);
+        }
+        driverAddressOverrides.clear();
+        (saved.addressOverrides || []).forEach(([key, value]) => driverAddressOverrides.set(key, value));
+        driverLoadingIndex = Math.max(0, Number(saved.loadingIndex) || 0);
+        driverTransportIndex = Math.max(0, Number(saved.transportIndex) || 0);
+        driverActiveTransportLoadNumber = saved.activeTransportLoadNumber || null;
+        driverLoadingReturnIndex = saved.loadingReturnIndex ?? null;
+        driverCombinedPdfBytes = saved.combinedPdfBytes || null;
+        driverOutputFileHandle = saved.outputFileHandle || null;
+        driverDownloadedOutputName = saved.downloadedOutputName || "";
+        updateDriverPdfSaveDestination();
+        driverCurrentPhase = saved.phase || (driverRouteState ? "route" : "upload");
+        renderDriverFiles();
+        driverUploadStatus.style.display = "flex";
+        const savedTime = saved.updatedAt ? new Intl.DateTimeFormat("fi-FI", { hour: "2-digit", minute: "2-digit" }).format(new Date(saved.updatedAt)) : "";
+        driverUploadStatus.innerHTML = `<strong>Edellinen kuljettajan työtila palautettiin.</strong>${savedTime ? ` Tallennettu klo ${escapeHtml(savedTime)}.` : ""}`;
+        driverRouteCard.style.display = "none";
+        driverLoadingCard.hidden = true;
+        driverTransportCard.style.display = "none";
+        driverTransportCard.hidden = true;
+        if (driverRouteState) {
+          if (driverCurrentPhase === "loading") {
+            driverLoadingCard.hidden = false;
+            renderDriverLoading();
+          } else if (driverCurrentPhase === "transport") {
+            driverTransportCard.hidden = false;
+            driverTransportCard.style.display = "block";
+            await renderDriverTransportList();
+          } else {
+            driverRouteCard.style.display = "block";
+            if (driverRouteState.manualSelecting) renderDriverManualSelection();
+            else renderDriverRouteResult(true);
+          }
+        }
+      } catch (error) {
+        console.warn("Kuljettajan työtilaa ei voitu palauttaa:", error);
+      } finally {
+        driverSessionRestoring = false;
+      }
+    }
+
+    window.addEventListener("pagehide", () => saveDriverSessionNow());
+    restoreDriverSession();
 
     // Täsmällinen postinumeroaluejako. Koodit perustuvat Tilastokeskuksen
     // vuoden 2026 postinumero–kunta-avaimeen; suuria numerovälejä ei käytetä,
@@ -3093,7 +3498,10 @@
 
     function persistentDeliveryRuleKey(stop) {
       const key = physicalAddressKey(stop);
-      return key.startsWith("addr:") ? key : null;
+      if (key.startsWith("addr:")) return key;
+      const postalCode = String(stop?.postalCode || "").replace(/\s/g, "");
+      const address = String(stop?.address || "").toLocaleLowerCase("fi").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+      return address && postalCode ? `text:${address}|${postalCode}` : null;
     }
 
     function saveDeliveryVehicleRules() {
@@ -3295,7 +3703,7 @@
           if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
           lastGeoRequest = Date.now();
           const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.49 (Teemu H. Fingerroos)" }
+            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.54 (Teemu H. Fingerroos)" }
           });
           if (!response.ok) return [];
           return await response.json();
@@ -4456,40 +4864,28 @@
       if (!address && postalCode) address = postalCode;
       address = stripRightColumnNoise(address);
 
-      // EUR-lava (täysi) ja Teho-lava (puolikas = 0.5)
-      // Ei käytetä enää "Kolleja"-kenttää suoraan EUR-määränä.
-      let eur = 0;
-      let teho = 0;
-
-      // EUR-rivi: tuotenumero EUR tai teksti "Leimattu EUR..."
-      const eurPatterns = [
-        /\bEUR\b[\s\S]{0,100}?(\d+)\s+(\d+)\s+(?:KPL|kpl)/i,
-        /\bEUR\b[\s\S]{0,80}?(\d+)\s+(?:KPL|kpl)/i,
-        /Leimattu\s+EUR[\s\S]{0,60}?(\d+)\s+(\d+)/i,
-        /EUR\s+kokoinen\s+lava[\s\S]{0,40}?(\d+)\s+(\d+)/i
-      ];
-      for (const re of eurPatterns) {
-        const m = fullText.match(re);
-        if (m) {
-          eur = parseInt(m[2] || m[1], 10) || 0;
-          break;
-        }
+      // Tuoterivin sarakkeet ovat: Tuotenro, Erittely, Tilattu, Toimitettu ja yksikkö.
+      // Määräksi otetaan aina rivin viimeinen numero ennen yksikköä eli Toimitettu-sarake.
+      function deliveredQuantityForProductCodes(codes) {
+        const escapedCodes = codes.map(code => code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+        const rowStart = new RegExp(`^(?:${escapedCodes.join("|")})(?=\\s|$)`, "i");
+        let total = 0;
+        positionedTextLines.forEach(rawLine => {
+          const line = String(rawLine || "").replace(/\s+/g, " ").trim();
+          if (!rowStart.test(line)) return;
+          const beforeUnit = line.match(/(-?\d+(?:[,.]\d+)?)\s+(?:KPL|KOL|LAVA|PL|PKT|PLO|RLL|SK|SÄK|SÄK\.|RUL)\s*$/i);
+          const allNumbers = [...line.matchAll(/(?:^|\s)(-?\d+(?:[,.]\d+)?)(?=\s|$)/g)];
+          const rawValue = beforeUnit?.[1] || allNumbers.at(-1)?.[1] || "0";
+          const value = Number(String(rawValue).replace(",", "."));
+          if (Number.isFinite(value) && value > 0) total += value;
+        });
+        return total;
       }
 
-      // Teho-lava (puolikas EUR:stä)
-      const tehoPatterns = [
-        /\bTEHO\b[\s\S]{0,100}?(\d+)\s+(\d+)\s+(?:KPL|kpl)/i,
-        /\bTEHO\b[\s\S]{0,80}?(\d+)\s+(?:KPL|kpl)/i,
-        /Teho[- ]?lava[\s\S]{0,60}?(\d+)\s+(\d+)/i,
-        /Teho[- ]?lava[\s\S]{0,40}?(\d+)/i
-      ];
-      for (const re of tehoPatterns) {
-        const m = fullText.match(re);
-        if (m) {
-          teho = parseInt(m[2] || m[1], 10) || 0;
-          break;
-        }
-      }
+      // Täysiksi EUR-lavoiksi lasketaan vain nämä Tuotenro-sarakkeen arvot.
+      const eur = deliveredQuantityForProductCodes(["EUR", "KEUR", "LAVA"]);
+      // Teho-lavoiksi lasketaan vain nämä Tuotenro-sarakkeen arvot.
+      const teho = deliveredQuantityForProductCodes(["TEHO", "KTEHO", "RUL"]);
 
       // Tilausnumero / lähete / asiakas – sama keikka useassa PDF:ssä
       let orderNumber = "";
@@ -4515,21 +4911,14 @@
         || fullText.match(/(?:Seur\.?\s*nro|Seurantanumero)\s*:?\s*([A-ZÅÄÖ0-9][A-ZÅÄÖ0-9./_-]*)/i);
       if (trackingM) trackingNumber = trackingM[1].replace(/\s+/g, " ").trim();
 
-      // Ensisijainen kollimäärä on lähetteen Kolleja-yhteenvetokenttä. Jos se puuttuu,
-      // hyväksytään vain selvästi kolliksi/paketiksi nimetty tuoterivi, ei tavallisia tuotteita.
-      const packageHeaderM = fullText.match(/Kolleja\s*:?\s*(\d+)/i);
-      if (packageHeaderM) {
-        packageCount = parseInt(packageHeaderM[1], 10) || 0;
-      } else {
-        const packageProductPatterns = [
-          /(?:IRTO[- ]?KOLLI|KOLLI|PAKETTI|PAHVILAATIKKO)[\s\S]{0,100}?(\d+)\s+(\d+)\s+(?:KPL|kpl)/i,
-          /(?:IRTO[- ]?KOLLI|KOLLI|PAKETTI|PAHVILAATIKKO)[\s\S]{0,75}?(\d+)\s+(?:KPL|kpl)/i
-        ];
-        for (const re of packageProductPatterns) {
-          const match = fullText.match(re);
-          if (!match) continue;
-          packageCount = parseInt(match[2] || match[1], 10) || 0;
-          break;
+      // Jos keikalla on lavoja, sitä ei ilmoiteta lisäksi kolleina.
+      // Ilman lavoja kollimäärä luetaan Tuotenro=KOL-rivin Toimitettu-sarakkeesta.
+      if (eur <= 0 && teho <= 0) {
+        packageCount = deliveredQuantityForProductCodes(["KOL"]);
+        // Vanhempien lähetteiden varatieto, jos KOL-tuoterivi puuttuu kokonaan.
+        if (packageCount <= 0) {
+          const packageHeaderM = fullText.match(/Kolleja\s*:?\s*(\d+(?:[,.]\d+)?)/i);
+          packageCount = Number(String(packageHeaderM?.[1] || "0").replace(",", ".")) || 0;
         }
       }
 
@@ -4833,6 +5222,16 @@
         const driverLabel = s.driverIndex >= 0 && drivers[s.driverIndex]
           ? drivers[s.driverIndex].name
           : (s.status === "unassigned" ? "❌" : "–");
+        const forcedPlate = s.preferredDriverPlate || "";
+        const availableVehicles = fleet.filter(vehicle => vehicle.active || vehicle.plate === forcedPlate);
+        const automaticLabel = driverLabel !== "–" && driverLabel !== "❌"
+          ? `Automaattinen (nyt ${driverLabel})`
+          : "Automaattinen";
+        const vehicleOptions = availableVehicles.map(vehicle =>
+          `<option value="${escapeHtml(vehicle.plate)}" ${forcedPlate === vehicle.plate ? "selected" : ""}>${escapeHtml(vehicle.plate)}${vehicle.active ? "" : " (ei töissä)"}</option>`
+        ).join("") + (forcedPlate && !fleet.some(vehicle => vehicle.plate === forcedPlate)
+          ? `<option value="${escapeHtml(forcedPlate)}" selected>${escapeHtml(forcedPlate)} (poistettu kalustosta)</option>`
+          : "");
         const units = (s.eur || 0) + (s.teho || 0) * 0.5;
         const nFiles = (s.files && s.files.length) || 1;
         const fileLabel = nFiles > 1
@@ -4861,8 +5260,15 @@
             <td><input class="edit-input" data-id="${s.id}" data-field="eur" type="number" min="0" step="1" value="${s.eur}" style="width:50px" /></td>
             <td><input class="edit-input" data-id="${s.id}" data-field="teho" type="number" min="0" step="1" value="${s.teho || 0}" style="width:50px" /></td>
             <td>${units}</td>
-            <td>${driverLabel}${s.preferredDriverPlate ? `<div style="font-size:0.72rem;color:#facc15;">⭐ ${escapeHtml(s.preferredDriverPlate)}</div>` : ""}${normalizeForbiddenPlates(s.forbiddenDriverPlates).length ? `<div style="font-size:0.7rem;color:#fca5a5;" title="Kielletyt autot">🚫 ${escapeHtml(normalizeForbiddenPlates(s.forbiddenDriverPlates).join(", "))}</div>` : ""}</td>
-            <td style="text-align:center;"><button type="button" class="lock-mini-btn btn-lock-stop ${s.locked ? "locked" : ""}" data-id="${s.id}" ${s.driverIndex < 0 ? "disabled" : ""} title="${s.locked ? "Poista lukitus" : "Lukitse tämä osoite nykyiselle autolle"}">${s.locked ? "🔒" : "🔓"}</button></td>
+            <td style="min-width:175px;">
+              <select class="job-driver-select" data-id="${s.id}" aria-label="Valitse auto keikalle ${idx + 1}" style="width:100%;min-width:165px;padding:0.42rem 0.5rem;font-size:0.78rem;">
+                <option value="">${escapeHtml(automaticLabel)}</option>
+                ${vehicleOptions}
+              </select>
+              <button type="button" class="btn btn-secondary btn-stop-vehicle-ban" data-id="${s.id}" style="width:100%;margin-top:0.35rem;padding:0.38rem 0.45rem;font-size:0.75rem;">🚫 Estä auto${normalizeForbiddenPlates(s.forbiddenDriverPlates).length ? ` (${normalizeForbiddenPlates(s.forbiddenDriverPlates).length})` : ""}</button>
+              ${s.preferredDriverPlate ? `<div style="font-size:0.72rem;color:#facc15;margin-top:0.2rem;">📌 pysyvä pakotus ${escapeHtml(s.preferredDriverPlate)}</div>` : ""}${normalizeForbiddenPlates(s.forbiddenDriverPlates).length ? `<div style="font-size:0.7rem;color:#fca5a5;" title="Kielletyt autot">🚫 ${escapeHtml(normalizeForbiddenPlates(s.forbiddenDriverPlates).join(", "))}</div>` : ""}
+            </td>
+            <td style="text-align:center;"><button type="button" class="lock-mini-btn btn-lock-stop ${s.locked ? "locked" : ""}" data-id="${s.id}" ${s.driverIndex < 0 && !s.locked ? "disabled" : ""} title="${s.locked ? "Poista pakotettu autovalinta" : "Lukitse tämä osoite nykyiselle autolle"}">${s.locked ? "🔒" : "🔓"}</button></td>
             <td>${statusBadge}</td>
           </tr>
         `;
@@ -4896,6 +5302,14 @@
 
       document.querySelectorAll("#stopsBody .btn-lock-stop").forEach(btn => {
         btn.addEventListener("click", () => toggleAddressLock(btn.dataset.id));
+      });
+
+      document.querySelectorAll("#stopsBody .job-driver-select").forEach(select => {
+        select.addEventListener("change", () => setStopForcedVehicle(select.dataset.id, select.value));
+      });
+
+      document.querySelectorAll("#stopsBody .btn-stop-vehicle-ban").forEach(button => {
+        button.addEventListener("click", () => openVehicleBanModal(button.dataset.id));
       });
 
       document.querySelectorAll(".edit-input").forEach(input => {
@@ -5572,12 +5986,12 @@
           }
           if (group.preferredPlate) {
             const preferredIdx = drivers.findIndex(drv => drv.name === group.preferredPlate);
-            if (preferredIdx >= 0 &&
-                !group.forbiddenPlates.has(group.preferredPlate) &&
-                drivers[preferredIdx].totalUnits + group.totalUnits <= drivers[preferredIdx].capacity * 2 + 0.01) {
+            if (preferredIdx >= 0 && !group.forbiddenPlates.has(group.preferredPlate)) {
               assignGroup(group, preferredIdx, "primary", true);
               continue;
             }
+            group.list.forEach(stop => { stop.driverIndex = -1; stop.status = "unassigned"; });
+            continue;
           }
           let d = pickDriverForGroup(group, { mode: "primary" });
           if (d >= 0) {
@@ -5858,6 +6272,31 @@
 
     function recomputeDriverTotals() {
       drivers.forEach(d => recalculateDriverRoute(d, { autoSecondLoad: false }));
+    }
+
+    function setStopForcedVehicle(stopId, plateValue) {
+      const stop = stops.find(item => item.id === stopId);
+      if (!stop) return;
+      const plate = String(plateValue || "").trim();
+      const key = physicalAddressKey(stop);
+      const group = stops.filter(item => physicalAddressKey(item) === key);
+      if (plate && group.some(item => stopForbidsDriver(item, plate))) {
+        alert(`Tämä keikka on kielletty autolta ${plate}. Poista kielto ensin keikan 🔍-esikatselussa.`);
+        renderList();
+        return;
+      }
+      setDeliveryVehicleRule(stop, plate, stop.forbiddenDriverPlates || []);
+      group.forEach(item => {
+        item.locked = false;
+        item.lockedDriverPlate = null;
+      });
+      const targetDriverIndex = plate ? drivers.findIndex(driver => driver.name === plate) : -1;
+      if (plate && targetDriverIndex >= 0) {
+        moveStopsToDriver(group.map(item => item.id), targetDriverIndex);
+      } else {
+        renderList();
+        if (drivers.length) renderDrivers();
+      }
     }
 
     function toggleAddressLock(stopId) {
@@ -6451,10 +6890,12 @@
     const modalAddress = document.getElementById("modalAddress");
     const modalPostal = document.getElementById("modalPostal");
     const modalPreferredVehicle = document.getElementById("modalPreferredVehicle");
-    const modalForbiddenVehicle = document.getElementById("modalForbiddenVehicle");
-    const modalSetPreferredVehicle = document.getElementById("modalSetPreferredVehicle");
-    const modalToggleForbiddenVehicle = document.getElementById("modalToggleForbiddenVehicle");
+    const modalOpenVehicleBan = document.getElementById("modalOpenVehicleBan");
     const modalVehicleRuleStatus = document.getElementById("modalVehicleRuleStatus");
+    const vehicleBanModal = document.getElementById("vehicleBanModal");
+    const vehicleBanStopInfo = document.getElementById("vehicleBanStopInfo");
+    const vehicleBanOptions = document.getElementById("vehicleBanOptions");
+    let vehicleBanStopId = null;
 
     function updateModalVehicleRuleControls(stop) {
       if (!stop) return;
@@ -6463,19 +6904,65 @@
       const options = fleet.map(vehicle =>
         `<option value="${escapeHtml(vehicle.plate)}">${escapeHtml(vehicle.plate)}${vehicle.active ? "" : " (ei töissä)"}</option>`
       ).join("");
-      modalPreferredVehicle.innerHTML = `<option value="">Ei oletusautoa</option>${options}`;
+      modalPreferredVehicle.innerHTML = `<option value="">Automaattinen – ei pysyvää pakotusta</option>${options}`;
       modalPreferredVehicle.value = fleet.some(vehicle => vehicle.plate === preferred) ? preferred : "";
-      modalForbiddenVehicle.innerHTML = options || `<option value="">Ei ajoneuvoja</option>`;
-      const firstForbidden = forbidden.find(plate => fleet.some(vehicle => vehicle.plate === plate));
-      if (firstForbidden) modalForbiddenVehicle.value = firstForbidden;
-      const selectedForbiddenPlate = modalForbiddenVehicle.value;
-      const isForbidden = forbidden.includes(selectedForbiddenPlate);
-      modalToggleForbiddenVehicle.disabled = !selectedForbiddenPlate;
-      modalToggleForbiddenVehicle.textContent = isForbidden ? "✅ Salli jälleen" : "🚫 Kiellä autolta";
+      modalOpenVehicleBan.textContent = forbidden.length
+        ? `🚫 Estetyt autot (${forbidden.length}) – muokkaa`
+        : "🚫 Estä autot tältä paikalta";
       const parts = [];
-      if (preferred) parts.push(`⭐ Oletusauto: ${preferred}`);
+      if (preferred) parts.push(`📌 Pysyvä autopakotus: ${preferred}`);
       if (forbidden.length) parts.push(`🚫 Ei autoille: ${forbidden.join(", ")}`);
-      modalVehicleRuleStatus.textContent = parts.length ? parts.join(" · ") : "Ei autokohtaisia sääntöjä.";
+      const persistenceNote = persistentDeliveryRuleKey(stop)
+        ? "Sääntö tallennetaan tämän osoitteen tuleville keikoille."
+        : "Korjaa ensin osoite ja postinumero, jotta sääntö voidaan muistaa tulevina päivinä.";
+      modalVehicleRuleStatus.textContent = (parts.length ? parts.join(" · ") + " · " : "") + persistenceNote;
+    }
+
+    function openVehicleBanModal(stopId) {
+      const stop = stops.find(item => item.id === stopId);
+      if (!stop) return;
+      vehicleBanStopId = stop.id;
+      const forbidden = new Set(normalizeForbiddenPlates(stop.forbiddenDriverPlates));
+      vehicleBanStopInfo.textContent = `${stop.recipient || "Ei tunnistettua vastaanottajaa"} · ${stop.address || "Osoite puuttuu"}${stop.postalCode ? `, ${stop.postalCode}` : ""}`;
+      vehicleBanOptions.innerHTML = fleet.length
+        ? fleet.map(vehicle => `
+            <label style="display:flex;align-items:center;gap:0.65rem;padding:0.7rem 0.8rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,0.45);cursor:pointer;">
+              <input type="checkbox" class="vehicle-ban-checkbox" value="${escapeHtml(vehicle.plate)}" ${forbidden.has(vehicle.plate) ? "checked" : ""}>
+              <span><strong>${escapeHtml(vehicle.plate)}</strong>${vehicle.active ? "" : " · ei töissä"}</span>
+            </label>`).join("")
+        : `<div class="modal-file-meta">Kalustossa ei ole vielä autoja. Lisää autot ensin asetuksissa.</div>`;
+      vehicleBanModal.classList.add("open");
+    }
+
+    function closeVehicleBanModal() {
+      vehicleBanModal.classList.remove("open");
+      vehicleBanStopId = null;
+    }
+
+    function saveVehicleBans() {
+      const stop = stops.find(item => item.id === vehicleBanStopId);
+      if (!stop) return closeVehicleBanModal();
+      const forbidden = [...vehicleBanOptions.querySelectorAll(".vehicle-ban-checkbox:checked")].map(input => input.value);
+      const preferred = forbidden.includes(stop.preferredDriverPlate) ? "" : (stop.preferredDriverPlate || "");
+      const key = physicalAddressKey(stop);
+      const group = stops.filter(item => physicalAddressKey(item) === key);
+      setDeliveryVehicleRule(stop, preferred, forbidden);
+      group.forEach(item => {
+        if (item.lockedDriverPlate && forbidden.includes(item.lockedDriverPlate)) {
+          item.locked = false;
+          item.lockedDriverPlate = null;
+        }
+      });
+      const hasAssignmentConflict = group.some(item => item.driverIndex >= 0 && drivers[item.driverIndex] && forbidden.includes(drivers[item.driverIndex].name));
+      closeVehicleBanModal();
+      if (hasAssignmentConflict) {
+        moveStopsToDriver(group.map(item => item.id), -1);
+      } else {
+        renderList();
+        if (drivers.length) renderDrivers();
+      }
+      const currentPreviewStop = stops.find(item => item.id === modalStopId);
+      if (currentPreviewStop && postalModal.classList.contains("open")) updateModalVehicleRuleControls(currentPreviewStop);
     }
 
     function getAllPdfEntries() {
@@ -6777,38 +7264,18 @@
       applyModalFieldsToCurrent(true);
     });
 
-    modalSetPreferredVehicle.addEventListener("click", () => {
+    modalPreferredVehicle.addEventListener("change", () => {
       const stop = stops.find(item => item.id === modalStopId);
       if (!stop) return;
-      const preferred = modalPreferredVehicle.value;
-      const forbidden = normalizeForbiddenPlates(stop.forbiddenDriverPlates).filter(plate => plate !== preferred);
-      setDeliveryVehicleRule(stop, preferred, forbidden);
+      setStopForcedVehicle(stop.id, modalPreferredVehicle.value);
       updateModalVehicleRuleControls(stop);
-      renderList();
-      if (drivers.length) renderDrivers();
     });
 
-    modalForbiddenVehicle.addEventListener("change", () => {
-      const stop = stops.find(item => item.id === modalStopId);
-      if (!stop) return;
-      const plate = modalForbiddenVehicle.value;
-      const isForbidden = normalizeForbiddenPlates(stop.forbiddenDriverPlates).includes(plate);
-      modalToggleForbiddenVehicle.disabled = !plate;
-      modalToggleForbiddenVehicle.textContent = isForbidden ? "✅ Salli jälleen" : "🚫 Kiellä autolta";
-    });
-
-    modalToggleForbiddenVehicle.addEventListener("click", () => {
-      const stop = stops.find(item => item.id === modalStopId);
-      const plate = modalForbiddenVehicle.value;
-      if (!stop || !plate) return;
-      const forbidden = new Set(normalizeForbiddenPlates(stop.forbiddenDriverPlates));
-      if (forbidden.has(plate)) forbidden.delete(plate);
-      else forbidden.add(plate);
-      const preferred = stop.preferredDriverPlate === plate && forbidden.has(plate) ? "" : (stop.preferredDriverPlate || "");
-      setDeliveryVehicleRule(stop, preferred, [...forbidden]);
-      updateModalVehicleRuleControls(stop);
-      renderList();
-      if (drivers.length) renderDrivers();
+    modalOpenVehicleBan.addEventListener("click", () => openVehicleBanModal(modalStopId));
+    document.getElementById("vehicleBanCancel").addEventListener("click", closeVehicleBanModal);
+    document.getElementById("vehicleBanSave").addEventListener("click", saveVehicleBans);
+    vehicleBanModal.addEventListener("click", event => {
+      if (event.target === vehicleBanModal) closeVehicleBanModal();
     });
 
     // Enter tallentaa modalissa (postinumero-kentässä)
@@ -6818,6 +7285,13 @@
 
     // Pikanäppäimet esikatselu-popupissa
     document.addEventListener("keydown", (e) => {
+      if (vehicleBanModal.classList.contains("open")) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          closeVehicleBanModal();
+        }
+        return;
+      }
       if (!postalModal.classList.contains("open")) return;
 
       // Älä kaappa nuolia/M:ää kun fokus on tekstikentässä

@@ -1,8 +1,55 @@
-# Lähetejako v1.49
+# Lähetejako v1.54
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.54
+
+- EUR-lavoiksi lasketaan tuoterivit, joiden Tuotenro on `EUR`, `KEUR` tai `LAVA`.
+- Teho-lavoiksi lasketaan tuoterivit, joiden Tuotenro on `TEHO`, `KTEHO` tai `RUL`.
+- Lava- ja kollimäärä luetaan aina kyseisen tuoterivin `Toimitettu`-sarakkeesta eli rivin viimeisestä numerosta ennen yksikköä.
+- Jos keikalla on EUR- tai Teho-lavoja, kollimäärää ei näytetä eikä lasketa lisäksi.
+- Jos lavoja ei ole, kollimäärä luetaan Tuotenro=`KOL`-rivin `Toimitettu`-sarakkeesta. Vanhojen lähetteiden `Kolleja`-yhteenvetokenttä toimii vain varatietona, jos KOL-rivi puuttuu.
+- Kuljetusnäkymä näyttää lavakeikalla vain EUR- ja Teho-lavamäärät; lavattomalla keikalla näytetään kollimäärä.
+- Kuljettajan tiedostotuonnissa, lastausvaiheessa ja kuljetusvaiheessa näkyy PDF:n tallennuskohde tai tieto sovelluksen sisäisestä pysyvästä tallennuksesta.
+- Selain näyttää turvallisuussyistä valitun tiedoston nimen ja tallennustavan, mutta ei paljasta kansion koko polkua.
+
+## Versio 1.53
+
+- Lastausvaiheen merkintä kirjoitetaan automaattisesti PDF:ään, kun kuljettaja siirtyy edelliseen tai seuraavaan keikkaan.
+- Kuljettajan aktiivinen työtila, PDF:t, ajojärjestys, lastauskohta, kuljetuskohta, merkinnät, kuittaukset ja varaumat tallennetaan selaimen pysyvään laitetallennukseen ja palautetaan ohjelman uudelleenavauksessa.
+- Ohjelma ylläpitää yhtä ajantasaista yhdistettyä PDF-versiota eikä käynnistä uutta selaimen latausta jokaisesta automaattitallennuksesta.
+- Tiedoston suoraa tallennusta tukevissa selaimissa käyttäjä valitsee kohdetiedoston kerran, minkä jälkeen sama PDF päivitetään tiedoston päälle ilman `(1)`-kopioita.
+- Kuljettajan näkymässä on uusi `Lataa valmis ajojärjestys` -painike. Valmiiksi järjestetyt PDF:t tai yhden yhdistetyn PDF:n sivut avataan suoraan lastaus- ja kuljetusvaiheeseen ilman optimointia.
+- Valmiin ajojärjestyksen lisälastaukset muodostetaan kuljettajan asetuksiin tallennetun lavakapasiteetin perusteella.
+
+## Versio 1.52
+
+- Jokaisella `Poimitut lähetteet` -taulukon keikalla on autopakotuksen vieressä `Estä auto` -painike.
+- Sama autokieltopainike on kaikissa 🔍-esikatseluissa yhdessä pysyvän autopakotuksen kanssa.
+- Yhdeltä toimituspaikalta voi estää yhden tai useita autoja esimerkiksi matalan tunnelin, sillan tai ahtaan pihan vuoksi.
+- Autokiellot tallentuvat osoite- ja postinumerokohtaisesti tälle laitteelle ja tulevat automaattisesti voimaan myös seuraavien päivien keikoissa.
+- Jos estettävä auto oli samalla osoitteen pakotettu tai nykyinen auto, ristiriitainen pakotus poistetaan ja jo jaettu keikka palautetaan jakamattomaksi.
+- Taulukossa näkyvät sekä estettyjen autojen määrä että rekisterinumerot.
+
+## Versio 1.51
+
+- Sama pysyvä autopakotusvalikko on käytettävissä sekä `Poimitut lähetteet` -taulukon jokaisella rivillä että jokaisessa 🔍-esikatselussa.
+- Taulukosta ja esikatselusta tehty autovalinta tallentuu heti selaimeen toimitusosoitteen ja postinumeron perusteella.
+- Myöhempänä päivänä ladattu saman osoitteen lähete saa automaattisesti aiemmin valitun auton.
+- Valinta säilyy, kunnes käyttäjä valitsee toisen auton tai palauttaa asetukseksi `Automaattinen – ei pysyvää pakotusta`.
+- Pysyvä pakotus on ehdoton: keikkaa ei tarjota muille autoille normaalissa jaossa tai jälkitasapainotuksessa.
+- Jos osoitetta ei ole tunnistettu riittävästi pysyvää tallennusta varten, esikatselu pyytää korjaamaan osoitteen ja postinumeron.
+
+## Versio 1.50
+
+- `Poimitut lähetteet` -taulukon jokaisella keikalla on nyt oma autovalikko Auto-sarakkeessa.
+- Auton valitseminen lukitsee koko fyysisen osoitteen kyseiselle autolle ja pakottaa valinnan seuraavassa `Jaa keikat autoille` -ajossa.
+- Jos jako on jo tehty, valinta siirtää keikan valitulle autolle heti.
+- `Automaattinen` poistaa pakotetun autovalinnan ja palauttaa keikan normaalin alue- ja tasauslogiikan piiriin seuraavassa jaossa.
+- Samassa fyysisessä osoitteessa olevat PDF:t pidetään edelleen yhdessä.
+- Esikatselussa asetettu autokohtainen kielto estää kielletyn auton valitsemisen myös taulukosta.
 
 ## Versio 1.49
 
