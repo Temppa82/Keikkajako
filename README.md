@@ -1,8 +1,61 @@
-# Lähetejako v1.54
+# Lähetejako v1.62
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.62
+
+- Grafiitinharmaata käyttöliittymää vaalennettiin kauttaaltaan.
+- Kortit, kentät ja reunat erottuvat nyt selvemmin taustasta säilyttäen rauhallisen harmaan ilmeen.
+- Myös erilliset karttaikkunat käyttävät samaa vaaleampaa väripalettia.
+
+## Versio 1.61
+
+- Käyttöliittymässä on uusi hillitty grafiitinharmaa värimaailma.
+- Kortit, taustat, syöttökentät ja reunat käyttävät eri harmaan sävyjä.
+- Tärkeissä toimintopainikkeissa säilyy maltillinen teräksensininen korostus käytettävyyden vuoksi.
+
+## Versio 1.60
+
+- Kuljettajanäkymän jokaisessa työvaiheessa on Aloita alusta -painike.
+- Painike palauttaa kuljettajan työn lähtötilaan ja poistaa ohjelmasta ladatut PDF:t, reitin sekä lastaus- ja kuljetustilan.
+- Tyhjennys pyytää varmistuksen. Kuljettajan asetukset ja pysyvät osoitekorjaukset säilyvät.
+
+## Versio 1.59
+
+- Kuljettajan työvaiheet on erotettu neljäksi omaksi ruudukseen: PDF-tiedostojen syöttö ja tarkastus, ajojärjestys, lastaus sekä kuljetus.
+- Tarkista toimitusosoite -esikatselu näyttää yhden PDF-sivun kerrallaan. Sivujen välillä liikutaan omilla Edellinen sivu- ja Seuraava sivu -painikkeilla.
+- Lastaus- ja kuljetusvaiheet täyttävät näytön ilman koko sivun pystysuuntaista vieritystä.
+- Lastaus- ja kuljetusvaiheen Edellinen- ja Seuraava-painikkeet pysyvät samalla paikalla keikkaa vaihdettaessa.
+- Lastaus-, kuljetus- ja reittivaiheista voi palata PDF-listaan ja jatkaa sen jälkeen kesken jääneeseen vaiheeseen.
+
+## Versio 1.58
+
+- Korjattu tyylisääntö, joka esti tavaramäärien suuren tekstikoon. Tavaramäärät vastaavat nyt suuren seurantanumeron kokoa.
+
+## Versio 1.57
+
+- Kuljetusnäkymän tavaramäärät näytetään yhtä suurella ja näkyvällä tekstillä kuin tärkeät seurantanumerot.
+
+## Versio 1.56
+
+- Kuljetusnäkymän seurantanumerot näytetään vain kerran yhdessä ruudussa.
+- Tavaraa sisältävien lähetteiden seurantanumerot ovat suuria ja näkyviä; nollamääräiset seurantanumerot näkyvät pienempinä.
+- EUR-, Teho-, Rullakko- ja kollimäärät ovat yhdessä viereisessä ruudussa ja vain nollaa suuremmat määrät näytetään.
+- Aiempi päällekkäinen seurantanumerokohtainen erittely poistettiin.
+
+## Versio 1.55
+
+- Käsin korjatut osoitteet ja postinumerot jäävät laitteen muistiin ja niitä käytetään automaattisesti tulevissa lähetteissä.
+- Soittopainikkeet käyttävät puhelimen oletussoittosovellusta.
+- Automaattinen yhdistäminen vaatii saman toimitusosoitteen lisäksi saman yrityksen tai vastaanottajan.
+- `RUL` käsitellään ja näytetään erillisenä Rullakko-tavaralajina, ei Teho-lavana.
+- Yhdistetyn pysähdyksen tavaramäärät näytetään seurantanumeroittain EUR-, Teho-, Rullakko- tai kollimäärineen.
+- Kuljetusnäkymän toimintopainikkeet ja seurantanumero on suurennettu puhelinkäyttöä varten.
+- Kuljettajan PDF-esikatselu avautuu koko näytölle ja näyttää kaikki PDF-sivut vieritettävänä.
+- Osoitehaku kokeilee tarvittaessa oikeaa katuosoitetta ja kaupunkia ilman virheellistä postinumeroa.
+- Kuljettajan asetuksissa on valinta navigointikohteen lähettämiseksi toiselle laitteelle jakovalikon kautta.
 
 ## Versio 1.54
 

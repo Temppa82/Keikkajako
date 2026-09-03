@@ -3,23 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#1e3a5f" />
-  <title>Lähetejako v1.54</title>
+  <meta name="theme-color" content="#3f4246" />
+  <title>Lähetejako v1.62</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --border: #334155;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --danger: #ef4444;
+      --bg: #2c2e31;
+      --card: #383b3f;
+      --border: #565a60;
+      --text: #f5f5f5;
+      --muted: #c0c3c7;
+      --accent: #647f9f;
+      --accent-hover: #7891ae;
+      --success: #5f9870;
+      --warning: #c39a58;
+      --danger: #b96666;
       --radius: 10px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,7 +32,7 @@
       min-height: 100vh;
     }
     header {
-      background: linear-gradient(135deg, #1e3a5f, #0f172a);
+      background: linear-gradient(135deg, #484b50, #34363a);
       padding: 1.25rem 1.5rem;
       border-bottom: 1px solid var(--border);
       display: flex;
@@ -59,11 +59,11 @@
       text-align: center;
       transition: all 0.2s;
       cursor: pointer;
-      background: rgba(59, 130, 246, 0.05);
+      background: rgba(255, 255, 255, 0.025);
     }
     .dropzone.dragover {
       border-color: var(--accent);
-      background: rgba(59, 130, 246, 0.15);
+      background: rgba(100, 127, 159, 0.18);
     }
     .dropzone p { color: var(--muted); margin-top: 0.5rem; }
     .btn {
@@ -82,7 +82,7 @@
     .btn-primary:hover { background: var(--accent-hover); }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-secondary { background: var(--border); color: var(--text); }
-    .btn-secondary:hover { background: #475569; }
+    .btn-secondary:hover { background: #686d74; }
     .btn-success { background: var(--success); color: #052e16; }
     .btn-success:hover { background: #16a34a; }
     .settings-grid {
@@ -337,7 +337,7 @@
       background: var(--bg);
     }
     .fleet-row:hover { border-color: var(--accent); }
-    .fleet-row.selected { border-color: var(--accent); background: rgba(59,130,246,0.12); }
+    .fleet-row.selected { border-color: var(--accent); background: rgba(100,127,159,0.14); }
     .fleet-row.inactive { opacity: 0.45; }
     .fleet-row input[type="number"] {
       width: 100%;
@@ -403,7 +403,7 @@
       padding:0.2rem 0;
       border-radius:5px;
     }
-    .route-row.manual { background:rgba(59,130,246,0.07); }
+    .route-row.manual { background:rgba(100,127,159,0.08); }
     .route-actions {
       display:inline-flex;
       gap:0.18rem;
@@ -422,16 +422,16 @@
       line-height:1;
       padding:0 0.25rem;
     }
-    .route-mini-btn:hover, .lock-mini-btn:hover { border-color:var(--accent); background:rgba(59,130,246,0.18); }
+    .route-mini-btn:hover, .lock-mini-btn:hover { border-color:var(--accent); background:rgba(100,127,159,0.18); }
     .route-mini-btn:disabled { opacity:0.25; cursor:not-allowed; }
     .lock-mini-btn.locked { border-color:#f59e0b; background:rgba(245,158,11,0.16); }
     .workload-chip {
       display:inline-block;
       padding:0.1rem 0.4rem;
       border-radius:999px;
-      background:rgba(59,130,246,0.12);
-      border:1px solid rgba(59,130,246,0.25);
-      color:#bfdbfe;
+      background:rgba(100,127,159,0.14);
+      border:1px solid rgba(100,127,159,0.3);
+      color:#c9d3de;
       font-size:0.72rem;
       white-space:nowrap;
     }
@@ -463,12 +463,12 @@
       cursor: pointer;
       transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
     }
-    .view-tab:hover { color: var(--text); background: rgba(59,130,246,0.08); }
+    .view-tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
     .view-tab.active {
       color: white;
       background: var(--accent);
       border-color: rgba(255,255,255,0.2);
-      box-shadow: 0 3px 12px rgba(59,130,246,0.28);
+      box-shadow: 0 3px 12px rgba(0,0,0,0.28);
     }
     .view-tab:focus-visible { outline: 3px solid rgba(96,165,250,0.45); outline-offset: 2px; }
     .mode-view[hidden] { display: none !important; }
@@ -503,14 +503,74 @@
       place-items: center;
       border: 1px solid var(--accent);
       border-radius: 7px;
-      background: rgba(59,130,246,0.12);
-      color: #bfdbfe;
+      background: rgba(100,127,159,0.14);
+      color: #c9d3de;
       cursor: pointer;
       font-size: 1rem;
     }
-    .driver-preview-btn:hover { background: rgba(59,130,246,0.26); }
-    .driver-preview-modal { max-width: min(1100px, 97vw); }
-    .driver-preview-modal .modal-preview { max-height: 74vh; min-height: 260px; }
+    .driver-preview-btn:hover { background: rgba(100,127,159,0.28); }
+    .driver-preview-modal {
+      width: 100vw;
+      max-width: none;
+      height: 100vh;
+      max-height: none;
+      border-radius: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .driver-preview-modal .modal-preview { flex:1; max-height:none; min-height:260px; overflow:auto; }
+    .driver-preview-modal .modal-preview { display:block; }
+    body.driver-fixed-phase { overflow:hidden; }
+    #driverView.driver-phase-loading,
+    #driverView.driver-phase-transport {
+      position:fixed;
+      inset:0;
+      height:100dvh;
+      z-index:40;
+      overflow:hidden;
+      background:var(--bg);
+    }
+    #driverView.driver-phase-loading > .container,
+    #driverView.driver-phase-transport > .container {
+      height:100%;
+      max-width:100%;
+      padding:.75rem;
+    }
+    #driverView.driver-phase-loading #driverLoadingCard,
+    #driverView.driver-phase-transport #driverTransportCard {
+      height:100%;
+      margin:0 auto;
+      display:flex !important;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    #driverView.driver-phase-loading #driverLoadingCard { max-width:820px; }
+    #driverView.driver-phase-loading .loading-job {
+      flex:1;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      overflow:auto;
+    }
+    #driverView.driver-phase-loading .loading-nav {
+      position:sticky;
+      bottom:0;
+      margin-top:auto;
+      padding-top:.7rem;
+      padding-bottom:.15rem;
+      background:linear-gradient(transparent, var(--card) 28%);
+    }
+    #driverView.driver-phase-transport #driverTransportCard .transport-list { flex:1; min-height:0; overflow:hidden; }
+    #driverView.driver-phase-transport .transport-row { height:100%; display:flex; flex-direction:column; overflow:auto; }
+    #driverView.driver-phase-transport .transport-step-nav {
+      position:sticky;
+      bottom:0;
+      margin-top:auto;
+      padding:.75rem 0 .15rem;
+      background:linear-gradient(transparent, var(--card) 28%);
+    }
+    .driver-phase-top { display:flex; justify-content:space-between; align-items:flex-start; gap:.65rem; }
+    .driver-phase-top-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.45rem; }
     .driver-route-settings {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -552,7 +612,7 @@
     .driver-route-stop.dragging { opacity: 0.38; }
     .driver-route-stop.drag-target {
       border-color: var(--accent);
-      background: rgba(59,130,246,0.14);
+      background: rgba(100,127,159,0.16);
     }
     .driver-route-number {
       width: 30px;
@@ -572,12 +632,26 @@
     .transport-row-head { display:grid; grid-template-columns:34px minmax(0,1fr); gap:0.7rem; align-items:start; }
     .transport-row-head strong { display:block; font-size:1.2rem; line-height:1.25; }
     .transport-row-head .driver-route-address { margin-top:.25rem; font-size:1rem; line-height:1.35; }
-    .transport-route-facts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.55rem; margin-top:.85rem; }
-    .transport-route-fact { padding:.7rem; border:1px solid #334155; border-radius:9px; background:#0f172a; }
+    .transport-route-facts { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); gap:.65rem; margin-top:.85rem; align-items:stretch; }
+    .transport-route-fact { padding:.7rem; border:1px solid var(--border); border-radius:9px; background:#303236; }
     .transport-route-fact span { display:block; color:var(--muted); font-size:.72rem; text-transform:uppercase; }
-    .transport-route-fact strong { display:block; margin-top:.2rem; color:#fff; font-size:1.08rem; overflow-wrap:anywhere; }
+    .transport-route-fact strong { display:block; margin-top:.2rem; color:#fff; font-size:1.2rem; overflow-wrap:anywhere; }
+    .transport-route-fact.tracking { border-color:rgba(100,127,159,.85); }
+    .tracking-number-important { color:#fff; font-size:clamp(1.65rem,6vw,2.35rem); line-height:1.08; font-weight:900; overflow-wrap:anywhere; }
+    .tracking-number-important + .tracking-number-important { margin-top:.4rem; }
+    .tracking-zero-list { display:flex; flex-wrap:wrap; gap:.3rem .65rem; margin-top:.65rem; padding-top:.55rem; border-top:1px solid var(--border); color:var(--muted); font-size:.88rem; line-height:1.25; }
+    .transport-cargo-values { display:flex; flex-wrap:wrap; align-content:flex-start; gap:.5rem .8rem; margin-top:.45rem; }
+    .transport-route-fact .transport-cargo-value {
+      display:inline-block;
+      color:#fff;
+      font-size:clamp(1.65rem,6vw,2.35rem);
+      line-height:1.08;
+      font-weight:900;
+      white-space:nowrap;
+      text-transform:none;
+    }
     .transport-actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0.55rem; margin-top:0.85rem; }
-    .transport-actions .btn, .transport-phone-buttons .btn { min-height:52px; justify-content:center; font-size:1rem; }
+    .transport-actions .btn, .transport-phone-buttons .btn { min-height:64px; justify-content:center; font-size:1.12rem; font-weight:800; padding:.8rem; }
     .transport-status { color:var(--muted); font-size:0.78rem; margin-top:0.45rem; margin-left:2.55rem; }
     .transport-preview { margin-top:0.85rem; min-height:260px; max-height:68vh; display:block; overflow-y:auto; scroll-snap-type:y proximity; }
     .transport-pdf-page { position:relative; width:100%; margin:0 auto 0.8rem; scroll-snap-align:start; background:#fff; }
@@ -587,17 +661,17 @@
     .transport-phone-buttons { display:flex; flex-wrap:wrap; gap:0.55rem; margin-top:0.7rem; }
     .transport-step-nav { display:flex; align-items:center; justify-content:space-between; gap:0.7rem; margin-top:0.9rem; }
     .loading-card { max-width:760px; margin-left:auto; margin-right:auto; }
-    .loading-progress { height:9px; border-radius:999px; background:#334155; overflow:hidden; margin:0.75rem 0 1rem; }
+    .loading-progress { height:9px; border-radius:999px; background:var(--border); overflow:hidden; margin:0.75rem 0 1rem; }
     .loading-progress > span { display:block; height:100%; background:var(--success); transition:width .2s; }
     .loading-job { border:1px solid var(--border); border-radius:12px; padding:1rem; background:rgba(15,23,42,.42); }
     .loading-badges { display:flex; flex-wrap:wrap; gap:.45rem; margin-bottom:.8rem; }
-    .loading-badge { padding:.28rem .62rem; border-radius:999px; background:#334155; color:#cbd5e1; font-size:.78rem; font-weight:800; }
+    .loading-badge { padding:.28rem .62rem; border-radius:999px; background:var(--border); color:#d4d6d8; font-size:.78rem; font-weight:800; }
     .loading-address { font-size:clamp(1.35rem,5vw,2rem); line-height:1.18; font-weight:900; color:#fff; margin-bottom:1rem; overflow-wrap:anywhere; }
     .loading-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; }
-    .loading-fact { padding:.8rem; border-radius:9px; background:#0f172a; border:1px solid #334155; }
+    .loading-fact { padding:.8rem; border-radius:9px; background:#303236; border:1px solid var(--border); }
     .loading-fact span { display:block; color:var(--muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; }
     .loading-fact strong { display:block; margin-top:.2rem; font-size:1.18rem; color:#fff; overflow-wrap:anywhere; }
-    .loading-note { width:100%; min-height:120px; margin-top:1rem; padding:.85rem; resize:vertical; background:#0f172a; border:1px solid #475569; border-radius:9px; color:#fff; font:inherit; font-size:1rem; }
+    .loading-note { width:100%; min-height:120px; margin-top:1rem; padding:.85rem; resize:vertical; background:#303236; border:1px solid #686d74; border-radius:9px; color:#fff; font:inherit; font-size:1rem; }
     .loading-note-status { min-height:1.2rem; margin-top:.35rem; color:var(--success); font-size:.78rem; }
     .loading-nav { display:grid; grid-template-columns:1fr auto 1fr; gap:.6rem; align-items:center; margin-top:1rem; }
     .loading-nav .btn:last-child { justify-self:end; }
@@ -614,10 +688,23 @@
       .loading-nav { grid-template-columns:1fr 1fr; }
       .loading-nav strong { grid-column:1 / -1; grid-row:1; text-align:center; }
       .loading-nav .btn { width:100%; justify-content:center; }
-      .transport-route-facts { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .transport-route-facts { grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr); }
       .transport-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .transport-phone-buttons { display:grid; grid-template-columns:1fr; }
       .transport-row { padding:.9rem; }
+      .transport-actions .btn, .transport-phone-buttons .btn { min-height:68px; font-size:1.15rem; }
+      #driverView.driver-phase-loading > .container,
+      #driverView.driver-phase-transport > .container { padding:0; }
+      #driverView.driver-phase-loading #driverLoadingCard,
+      #driverView.driver-phase-transport #driverTransportCard {
+        max-width:none;
+        border:0;
+        border-radius:0;
+        padding:.75rem;
+      }
+      .driver-phase-top { align-items:center; }
+      .driver-phase-top h2 { font-size:1.15rem; }
+      .driver-phase-top-actions .btn { padding:.58rem .65rem; font-size:.82rem; }
     }
   </style>
 </head>
@@ -629,7 +716,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.54</div>
+      <div style="font-weight:600; color:var(--text);">v1.62</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -705,6 +792,7 @@
               <th>Alue</th>
               <th>EUR</th>
               <th>Teho</th>
+              <th>Rullakko</th>
               <th>Yht.</th>
               <th>Auto</th>
               <th>Lukko</th>
@@ -738,7 +826,7 @@
 
   <main class="mode-view" id="driverView" role="tabpanel" aria-labelledby="driverTab" hidden>
     <div class="container">
-      <div class="card driver-upload-card">
+      <div class="card driver-upload-card" id="driverUploadCard">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:0.35rem;">
           <h2 style="margin-bottom:0;">1. Omat lähetteet</h2>
           <button class="btn btn-secondary" id="btnDriverSettings" type="button">⚙️ Asetukset</button>
@@ -749,7 +837,7 @@
           <p><strong>Raahaa omat PDF- tai ZIP-tiedostot tähän</strong> tai klikkaa valitaksesi</p>
           <input type="file" id="driverFileInput" multiple accept=".pdf,.zip,application/pdf,application/zip" hidden />
         </div>
-        <div style="margin-top:0.8rem;padding:0.85rem;border:1px solid rgba(59,130,246,.45);border-radius:9px;background:rgba(59,130,246,.08);">
+        <div style="margin-top:0.8rem;padding:0.85rem;border:1px solid rgba(100,127,159,.45);border-radius:9px;background:rgba(100,127,159,.09);">
           <button class="btn btn-primary" id="btnLoadReadyDriverRoute" type="button">📥 Lataa valmis ajojärjestys</button>
           <input type="file" id="driverReadyRouteInput" multiple accept=".pdf,application/pdf" hidden />
           <div class="modal-file-meta" style="margin-top:.45rem;">Valitse valmiiksi oikeassa ajojärjestyksessä olevat PDF:t tai yksi yhdistetty PDF. Ohjelma siirtyy suoraan lastaus- ja kuljetusvaiheeseen ilman reitin optimointia.</div>
@@ -762,7 +850,10 @@
         <div class="actions" id="driverFileActions" style="display:none;">
           <button class="btn btn-primary" id="btnOptimizeDriverRoute" type="button">📍 Optimoi oma reitti</button>
           <button class="btn btn-secondary" id="btnChooseDriverRoute" type="button">🗺️ Valitse reitin alku itse</button>
-          <button class="btn btn-secondary" id="btnClearDriverFiles" type="button">Tyhjennä omat lähetteet</button>
+          <button class="btn btn-secondary" id="btnClearDriverFiles" data-driver-reset type="button">🔄 Aloita alusta</button>
+        </div>
+        <div class="actions" id="driverResumeActions" style="display:none;">
+          <button class="btn btn-primary" id="btnResumeDriverPhase" type="button">Jatka keskeneräiseen vaiheeseen →</button>
         </div>
         <div class="driver-route-settings" id="driverRouteSettings" style="display:none;">
           <label>Lähtöosoite
@@ -774,7 +865,7 @@
         </div>
       </div>
       <div class="card" id="driverRouteCard" style="display:none;">
-        <h2>2. Suunniteltu reitti</h2>
+        <div class="driver-phase-top"><h2>2. Suunniteltu reitti</h2><div class="driver-phase-top-actions"><button class="btn btn-secondary" id="btnDriverRouteToUpload" type="button">← PDF-listaan</button><button class="btn btn-secondary" data-driver-reset type="button">🔄 Aloita alusta</button></div></div>
         <div class="driver-route-summary" id="driverRouteSummary"></div>
         <div class="driver-route-list" id="driverRouteList"></div>
         <div class="actions" id="driverManualActions" style="display:none;">
@@ -791,9 +882,9 @@
         <div id="driverRouteMap"></div>
       </div>
       <div class="card loading-card" id="driverLoadingCard" hidden>
-        <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start;">
+        <div class="driver-phase-top">
           <div><h2 style="margin-bottom:.2rem;">📦 Lastausvaihe</h2><p class="driver-upload-intro" style="margin:0;">Yksi keikka kerrallaan lastausjärjestyksessä.</p></div>
-          <button class="btn btn-secondary" id="btnBackToDriverRoute" type="button">← Reittiin</button>
+          <div class="driver-phase-top-actions"><button class="btn btn-secondary" id="btnDriverLoadingToUpload" type="button">← PDF-listaan</button><button class="btn btn-secondary" id="btnBackToDriverRoute" type="button">← Reittiin</button><button class="btn btn-secondary" data-driver-reset type="button">🔄 Aloita alusta</button></div>
         </div>
         <div class="driver-pdf-save-destination" style="margin-top:.75rem;padding:.7rem .85rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,.38);font-size:.84rem;color:var(--muted);"></div>
         <div class="loading-progress"><span id="driverLoadingProgress"></span></div>
@@ -804,6 +895,7 @@
             <div class="loading-fact"><span>Seurantanumero</span><strong id="driverLoadingTracking">–</strong></div>
             <div class="loading-fact"><span id="driverLoadingCargoLabel">Lavat</span><strong id="driverLoadingCargo">–</strong></div>
           </div>
+          <div id="driverLoadingShipmentBreakdown"></div>
           <button class="btn btn-primary" id="btnOpenDriverTransport" type="button" hidden style="width:100%;justify-content:center;margin-top:1rem;font-size:1.05rem;">🚚 Siirry kuljetusnäkymään</button>
           <button class="btn btn-secondary" id="btnDriverLoadingPreview" type="button" style="width:100%;justify-content:center;margin-top:1rem;">🔍 Esikatselu – koko PDF</button>
           <label for="driverLoadingNote" id="driverLoadingNoteLabel" style="display:block;margin-top:1rem;font-weight:800;">Kuljettajan merkintä PDF:ään</label>
@@ -820,7 +912,7 @@
         </div>
       </div>
       <div class="card" id="driverTransportCard" style="display:none;" hidden>
-        <h2 id="driverTransportTitle">🚚 Kuorma kuljetuksessa</h2>
+        <div class="driver-phase-top"><h2 id="driverTransportTitle">🚚 Kuorma kuljetuksessa</h2><div class="driver-phase-top-actions"><button class="btn btn-secondary" id="btnDriverTransportToUpload" type="button">← PDF-listaan</button><button class="btn btn-secondary" data-driver-reset type="button">🔄 Aloita alusta</button></div></div>
         <p class="driver-upload-intro" id="driverTransportIntro">Yksi keikka kerrallaan: tarkista lähete, navigoi, soita asiakkaalle ja kirjaa kuittaus tai varaumat.</p>
         <div class="driver-pdf-save-destination" style="margin-bottom:.75rem;padding:.7rem .85rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,.38);font-size:.84rem;color:var(--muted);"></div>
         <div class="transport-list" id="driverTransportList"></div>
@@ -843,6 +935,11 @@
       </div>
       <div class="modal-preview transport-preview" id="driverLoadingPreviewContainer"><span style="color:#666;">Ladataan lähetettä…</span></div>
       <div class="modal-nav">
+        <button class="btn btn-secondary" id="btnDriverLoadingPdfPagePrev" type="button">← Edellinen sivu</button>
+        <span id="driverLoadingPdfPagePosition" style="color:var(--muted);font-size:.85rem;"></span>
+        <button class="btn btn-secondary" id="btnDriverLoadingPdfPageNext" type="button">Seuraava sivu →</button>
+      </div>
+      <div class="modal-nav">
         <button class="btn btn-secondary" id="btnDriverLoadingPreviewPrev" type="button">← Edellinen PDF</button>
         <span id="driverLoadingPreviewPosition" style="color:var(--muted);font-size:.85rem;"></span>
         <button class="btn btn-secondary" id="btnDriverLoadingPreviewNext" type="button">Seuraava PDF →</button>
@@ -862,6 +959,11 @@
       </div>
       <div class="modal-preview" id="driverPreviewContainer">
         <span style="color:#666;">Ladataan esikatselua…</span>
+      </div>
+      <div class="modal-nav">
+        <button type="button" class="btn btn-secondary" id="driverPreviewPdfPagePrev">← Edellinen sivu</button>
+        <span id="driverPreviewPdfPagePosition" style="color:var(--muted);font-size:.85rem;"></span>
+        <button type="button" class="btn btn-secondary" id="driverPreviewPdfPageNext">Seuraava sivu →</button>
       </div>
       <div class="modal-fields" style="grid-template-columns:minmax(0,1fr) auto; align-items:end;">
         <div>
@@ -935,6 +1037,10 @@
           <label for="driverVehiclePlate">Auton rekisterinumero</label>
           <input type="text" id="driverVehiclePlate" placeholder="esim. ABC-123" autocomplete="off" />
         </div>
+        <label style="display:flex;align-items:flex-start;gap:.65rem;padding:.7rem;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+          <input type="checkbox" id="driverNavigateOtherDevice" style="width:auto;margin-top:.2rem;">
+          <span><strong>Käytä toista laitetta navigointiin</strong><span class="modal-file-meta" style="display:block;margin-top:.25rem;">Navigointi avaa jakovalikon, jolla kohdelinkin voi lähettää esimerkiksi autossa olevaan tablettiin.</span></span>
+        </label>
         <div>
           <label for="driverMaxCapacity">Maksimi lavamäärä eli kapasiteetti</label>
           <input type="number" id="driverMaxCapacity" min="0.5" step="0.5" placeholder="esim. 18" inputmode="decimal" />
@@ -966,8 +1072,8 @@
         display:flex; gap:1.25rem; flex-wrap:wrap;
         margin:0.75rem 0 0.25rem;
         padding:0.65rem 0.85rem;
-        background:rgba(59,130,246,0.12);
-        border:1px solid rgba(59,130,246,0.35);
+        background:rgba(100,127,159,0.14);
+        border:1px solid rgba(100,127,159,0.38);
         border-radius:8px;
         font-size:0.95rem;
       ">
@@ -1039,7 +1145,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.54 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
+    Lähetejako v1.62 · Teemu H. Fingerroos · Asennettava PWA · PDF-tiedostoja ei lähetetä palvelimelle · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1093,6 +1199,7 @@
       driverTab.classList.toggle("active", !showDispatcher);
       dispatcherTab.setAttribute("aria-selected", String(showDispatcher));
       driverTab.setAttribute("aria-selected", String(!showDispatcher));
+      updateDriverPhaseClasses();
     }
 
     dispatcherTab.addEventListener("click", () => setActiveView("dispatcher"));
@@ -1103,6 +1210,9 @@
     const btnLoadReadyDriverRoute = document.getElementById("btnLoadReadyDriverRoute");
     const driverReadyRouteInput = document.getElementById("driverReadyRouteInput");
     const driverPdfSaveDestination = document.getElementById("driverPdfSaveDestination");
+    const driverUploadCard = document.getElementById("driverUploadCard");
+    const driverResumeActions = document.getElementById("driverResumeActions");
+    const btnResumeDriverPhase = document.getElementById("btnResumeDriverPhase");
     const driverUploadStatus = document.getElementById("driverUploadStatus");
     const driverFileList = document.getElementById("driverFileList");
     const driverFileActions = document.getElementById("driverFileActions");
@@ -1113,6 +1223,7 @@
     const driverStartAddress = document.getElementById("driverStartAddress");
     const driverEndAddress = document.getElementById("driverEndAddress");
     const driverRouteCard = document.getElementById("driverRouteCard");
+    const btnDriverRouteToUpload = document.getElementById("btnDriverRouteToUpload");
     const driverRouteSummary = document.getElementById("driverRouteSummary");
     const driverRouteList = document.getElementById("driverRouteList");
     const driverManualActions = document.getElementById("driverManualActions");
@@ -1125,12 +1236,14 @@
     const btnDownloadDriverPdf = document.getElementById("btnDownloadDriverPdf");
     const driverLoadingCard = document.getElementById("driverLoadingCard");
     const btnBackToDriverRoute = document.getElementById("btnBackToDriverRoute");
+    const btnDriverLoadingToUpload = document.getElementById("btnDriverLoadingToUpload");
     const driverLoadingProgress = document.getElementById("driverLoadingProgress");
     const driverLoadingBadges = document.getElementById("driverLoadingBadges");
     const driverLoadingAddress = document.getElementById("driverLoadingAddress");
     const driverLoadingTracking = document.getElementById("driverLoadingTracking");
     const driverLoadingCargoLabel = document.getElementById("driverLoadingCargoLabel");
     const driverLoadingCargo = document.getElementById("driverLoadingCargo");
+    const driverLoadingShipmentBreakdown = document.getElementById("driverLoadingShipmentBreakdown");
     const btnDriverLoadingPreview = document.getElementById("btnDriverLoadingPreview");
     const driverLoadingPreviewModal = document.getElementById("driverLoadingPreviewModal");
     const driverLoadingPreviewContainer = document.getElementById("driverLoadingPreviewContainer");
@@ -1138,6 +1251,9 @@
     const driverLoadingPreviewPosition = document.getElementById("driverLoadingPreviewPosition");
     const btnDriverLoadingPreviewPrev = document.getElementById("btnDriverLoadingPreviewPrev");
     const btnDriverLoadingPreviewNext = document.getElementById("btnDriverLoadingPreviewNext");
+    const btnDriverLoadingPdfPagePrev = document.getElementById("btnDriverLoadingPdfPagePrev");
+    const btnDriverLoadingPdfPageNext = document.getElementById("btnDriverLoadingPdfPageNext");
+    const driverLoadingPdfPagePosition = document.getElementById("driverLoadingPdfPagePosition");
     const driverLoadingNoteLabel = document.getElementById("driverLoadingNoteLabel");
     const driverLoadingNote = document.getElementById("driverLoadingNote");
     const driverLoadingNoteStatus = document.getElementById("driverLoadingNoteStatus");
@@ -1152,6 +1268,7 @@
     const driverTransportIntro = document.getElementById("driverTransportIntro");
     const driverTransportList = document.getElementById("driverTransportList");
     const btnFinishDriverLoad = document.getElementById("btnFinishDriverLoad");
+    const btnDriverTransportToUpload = document.getElementById("btnDriverTransportToUpload");
     const btnDownloadCompletedDriverPdf = document.getElementById("btnDownloadCompletedDriverPdf");
     const driverEntryModal = document.getElementById("driverEntryModal");
     const driverEntryTitle = document.getElementById("driverEntryTitle");
@@ -1168,6 +1285,7 @@
     const driverFirstName = document.getElementById("driverFirstName");
     const driverVehiclePlate = document.getElementById("driverVehiclePlate");
     const driverMaxCapacity = document.getElementById("driverMaxCapacity");
+    const driverNavigateOtherDeviceInput = document.getElementById("driverNavigateOtherDevice");
     const mmlApiKeyInput = document.getElementById("mmlApiKey");
     const driverPreviewModal = document.getElementById("driverPreviewModal");
     const driverPreviewContainer = document.getElementById("driverPreviewContainer");
@@ -1175,10 +1293,15 @@
     const driverPreviewPosition = document.getElementById("driverPreviewPosition");
     const driverPreviewPrev = document.getElementById("driverPreviewPrev");
     const driverPreviewNext = document.getElementById("driverPreviewNext");
+    const driverPreviewPdfPagePrev = document.getElementById("driverPreviewPdfPagePrev");
+    const driverPreviewPdfPageNext = document.getElementById("driverPreviewPdfPageNext");
+    const driverPreviewPdfPagePosition = document.getElementById("driverPreviewPdfPagePosition");
     const driverPreviewAddress = document.getElementById("driverPreviewAddress");
     const driverPreviewAddressStatus = document.getElementById("driverPreviewAddressStatus");
     const driverPreviewSaveAddress = document.getElementById("driverPreviewSaveAddress");
     let driverPreviewIndex = 0;
+    let driverPreviewPdfPage = 1;
+    let driverPreviewPdfPageCount = 1;
     const driverAddressOverrides = new Map();
     let driverEntryStopId = null;
     let driverEntryMode = "confirmation";
@@ -1187,9 +1310,12 @@
     let driverName = "";
     let driverPlate = "";
     let driverCapacity = 0;
+    let driverNavigateOtherDevice = false;
     let mmlApiKey = "";
     let driverLoadingIndex = 0;
     let driverLoadingPreviewFileIndex = 0;
+    let driverLoadingPreviewPdfPage = 1;
+    let driverLoadingPreviewPdfPageCount = 1;
     let driverLoadingPreviewRenderToken = 0;
     let driverLoadingPreviewEntries = null;
     let driverLoadingNotes = {};
@@ -1202,6 +1328,7 @@
     let driverDownloadedOutputName = "";
     let driverCombinedPdfBytes = null;
     let driverCurrentPhase = "upload";
+    let driverResumePhase = null;
     let driverSessionSaveTimer = null;
     let driverSessionRestoring = false;
     let driverRouteMap = null;
@@ -1213,6 +1340,79 @@
     let dispatcherMapWindow = null;
     let dispatcherMapGroups = [];
     let dispatcherMapSelectedPlate = "";
+
+    function updateDriverPhaseClasses() {
+      driverView.classList.remove("driver-phase-upload", "driver-phase-route", "driver-phase-loading", "driver-phase-transport");
+      driverView.classList.add(`driver-phase-${driverCurrentPhase}`);
+      const fixedPhase = !driverView.hidden && (driverCurrentPhase === "loading" || driverCurrentPhase === "transport");
+      document.body.classList.toggle("driver-fixed-phase", fixedPhase);
+    }
+
+    function setDriverPhase(phase, { save = true, scroll = true } = {}) {
+      driverCurrentPhase = phase;
+      driverUploadCard.hidden = phase !== "upload";
+      driverRouteCard.hidden = phase !== "route";
+      driverRouteCard.style.display = phase === "route" ? "block" : "none";
+      driverLoadingCard.hidden = phase !== "loading";
+      driverTransportCard.hidden = phase !== "transport";
+      driverTransportCard.style.display = phase === "transport" ? "flex" : "none";
+      driverResumeActions.style.display = phase === "upload" && driverResumePhase && driverRouteState ? "flex" : "none";
+      if (driverResumePhase) {
+        const labels = { route: "ajojärjestykseen", loading: "lastaukseen", transport: "kuljetukseen" };
+        btnResumeDriverPhase.textContent = `Jatka ${labels[driverResumePhase] || "keskeneräiseen vaiheeseen"} →`;
+      }
+      updateDriverPhaseClasses();
+      if (scroll) window.scrollTo({ top: 0, behavior: "instant" });
+      if (save) queueDriverSessionSave();
+    }
+
+    function openDriverPdfList() {
+      if (driverCurrentPhase !== "upload") driverResumePhase = driverCurrentPhase;
+      setDriverPhase("upload");
+    }
+
+    const ADDRESS_CORRECTIONS_STORAGE_KEY = "lahetejako_address_corrections_v1";
+    let savedAddressCorrections = {};
+    try {
+      const stored = JSON.parse(localStorage.getItem(ADDRESS_CORRECTIONS_STORAGE_KEY) || "{}");
+      if (stored && typeof stored === "object" && !Array.isArray(stored)) savedAddressCorrections = stored;
+    } catch (_) { /* Vaurioitunut tallenne ohitetaan. */ }
+
+    function addressCorrectionKey(address, postalCode = "") {
+      const normalized = String(address || "")
+        .toLocaleLowerCase("fi")
+        .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\bfinland\b|\bsuomi\b/g, " ")
+        .replace(/[^a-z0-9åäö]+/gi, " ").replace(/\s+/g, " ").trim();
+      const postal = String(postalCode || address || "").match(/\b\d{5}\b/)?.[0] || "";
+      return normalized ? `${normalized}|${postal}` : "";
+    }
+
+    function findSavedAddressCorrection(address, postalCode = "") {
+      const exact = savedAddressCorrections[addressCorrectionKey(address, postalCode)];
+      if (exact) return exact;
+      // Myös välimerkkien, ylimääräisten välien ja puuttuvan postinumeron variantit tunnistetaan.
+      const withoutPostal = String(address || "").replace(/\b\d{5}\b.*$/i, "").trim();
+      return savedAddressCorrections[addressCorrectionKey(withoutPostal, postalCode)]
+        || savedAddressCorrections[addressCorrectionKey(withoutPostal, "")]
+        || null;
+    }
+
+    function rememberAddressCorrection(originalAddress, originalPostalCode, correctedAddress) {
+      const corrected = String(correctedAddress || "").trim();
+      if (!corrected) return;
+      const correctedPostal = corrected.match(/\b\d{5}\b/)?.[0] || "";
+      const value = { address: corrected, postalCode: correctedPostal, savedAt: new Date().toISOString() };
+      const original = String(originalAddress || "").trim();
+      const streetOnly = original.replace(/\b\d{5}\b.*$/i, "").trim();
+      [addressCorrectionKey(original, originalPostalCode), addressCorrectionKey(streetOnly, originalPostalCode), addressCorrectionKey(streetOnly, "")]
+        .filter(Boolean).forEach(key => { savedAddressCorrections[key] = value; });
+      try { localStorage.setItem(ADDRESS_CORRECTIONS_STORAGE_KEY, JSON.stringify(savedAddressCorrections)); } catch (_) {}
+    }
+
+    function correctedExtractedAddress(extracted) {
+      return findSavedAddressCorrection(extracted?.address || "", extracted?.postalCode || "");
+    }
 
     function formatDriverFileSize(bytes) {
       if (bytes < 1024) return `${bytes} t`;
@@ -1308,6 +1508,7 @@
         version: 1,
         updatedAt: new Date().toISOString(),
         phase: driverCurrentPhase,
+        resumePhase: driverResumePhase,
         files: driverPdfFiles,
         routeState: driverRouteState,
         addressOverrides: [...driverAddressOverrides.entries()],
@@ -1347,17 +1548,34 @@
       driverName = localStorage.getItem("lahetejako_driver_first_name") || "";
       driverPlate = localStorage.getItem("lahetejako_driver_vehicle_plate") || "";
       driverCapacity = Math.max(0, Number(localStorage.getItem("lahetejako_driver_max_capacity")) || 0);
+      driverNavigateOtherDevice = localStorage.getItem("lahetejako_driver_other_device_navigation") === "1";
       mmlApiKey = localStorage.getItem("lahetejako_mml_api_key") || "";
       const savedLoadingNotes = JSON.parse(localStorage.getItem("lahetejako_driver_loading_notes_v1") || "{}");
       if (savedLoadingNotes && typeof savedLoadingNotes === "object" && !Array.isArray(savedLoadingNotes)) driverLoadingNotes = savedLoadingNotes;
     } catch (_) { /* Google Maps pysyy oletuksena */ }
 
-    function openDriverNavigation(destination) {
+    async function openDriverNavigation(destination) {
       const encoded = encodeURIComponent(destination);
       const userAgent = navigator.userAgent || "";
       const isAndroid = /Android/i.test(userAgent);
       const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
       let url;
+      const shareUrl = `https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving&dir_action=navigate`;
+      if (driverNavigateOtherDevice) {
+        try {
+          if (navigator.share) {
+            await navigator.share({ title: "Seuraava toimitusosoite", text: destination, url: shareUrl });
+          } else if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(shareUrl);
+            alert("Navigointilinkki kopioitiin. Lähetä se toiselle laitteelle.");
+          } else {
+            window.prompt("Kopioi navigointilinkki toiselle laitteelle:", shareUrl);
+          }
+        } catch (error) {
+          if (error?.name !== "AbortError") window.prompt("Kopioi navigointilinkki toiselle laitteelle:", shareUrl);
+        }
+        return;
+      }
       if (driverNavigationChoice === "waze") {
         url = `https://www.waze.com/ul?q=${encoded}&navigate=yes`;
       } else if (driverNavigationChoice === "apple") {
@@ -1493,12 +1711,17 @@
       driverPreviewAddressStatus.textContent = driverAddressOverrides.has(driverFileKey(file)) ? "Käytössä on käsin korjattu osoite." : "";
       driverPreviewModal.classList.add("open");
       try {
-        const [, extracted] = await Promise.all([
-          renderPdfCrop(file, driverPreviewContainer),
+        const [pdfInfo, extracted] = await Promise.all([
+          renderFullDriverPdf(file, driverPreviewContainer, driverPreviewPdfPage),
           extractFromPdf(file)
         ]);
+        driverPreviewPdfPage = pdfInfo.pageNumber;
+        driverPreviewPdfPageCount = pdfInfo.pageCount;
+        driverPreviewPdfPagePosition.textContent = `${driverPreviewPdfPage} / ${driverPreviewPdfPageCount}`;
+        driverPreviewPdfPagePrev.disabled = driverPreviewPdfPage <= 1;
+        driverPreviewPdfPageNext.disabled = driverPreviewPdfPage >= driverPreviewPdfPageCount;
         if (previewedIndex === driverPreviewIndex && !driverAddressOverrides.has(driverFileKey(file))) {
-          driverPreviewAddress.value = extracted.address || "";
+          driverPreviewAddress.value = correctedExtractedAddress(extracted)?.address || extracted.address || "";
         }
         driverPreviewAddress.placeholder = "Katuosoite, postinumero ja kaupunki";
       } catch (error) {
@@ -1506,12 +1729,24 @@
       }
     }
 
+    async function renderDriverPreviewPdfPage() {
+      const file = driverPdfFiles[driverPreviewIndex];
+      if (!file) return;
+      driverPreviewContainer.innerHTML = `<span style="color:#666;">Ladataan sivua…</span>`;
+      const pdfInfo = await renderFullDriverPdf(file, driverPreviewContainer, driverPreviewPdfPage);
+      driverPreviewPdfPage = pdfInfo.pageNumber;
+      driverPreviewPdfPageCount = pdfInfo.pageCount;
+      driverPreviewPdfPagePosition.textContent = `${driverPreviewPdfPage} / ${driverPreviewPdfPageCount}`;
+      driverPreviewPdfPagePrev.disabled = driverPreviewPdfPage <= 1;
+      driverPreviewPdfPageNext.disabled = driverPreviewPdfPage >= driverPreviewPdfPageCount;
+    }
+
     function closeDriverPreview() {
       driverPreviewModal.classList.remove("open");
       driverPreviewContainer.innerHTML = "";
     }
 
-    function saveDriverPreviewAddress() {
+    async function saveDriverPreviewAddress() {
       const file = driverPdfFiles[driverPreviewIndex];
       if (!file) return;
       const address = driverPreviewAddress.value.trim();
@@ -1521,7 +1756,11 @@
         return;
       }
       driverAddressOverrides.set(driverFileKey(file), address);
-      driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Osoite tallennettu reitinoptimointia varten.</span>`;
+      try {
+        const extracted = await extractFromPdf(file);
+        rememberAddressCorrection(extracted.address || "", extracted.postalCode || "", address);
+      } catch (_) { /* Tiedostokohtainen korjaus jää silti voimaan. */ }
+      driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Osoite tallennettu pysyvästi ja käytetään myös tulevissa lähetteissä.</span>`;
       queueDriverSessionSave();
     }
 
@@ -1538,6 +1777,63 @@
     function findDriverRouteStop(stopId) {
       return [...(driverRouteState?.ordered || []), ...(driverRouteState?.unresolved || [])]
         .find(item => item.id === stopId);
+    }
+
+    function driverShipmentBreakdown(stop) {
+      const entries = Array.isArray(stop?.files) ? stop.files : [];
+      const rows = entries.map(entry => ({
+        trackingNumber: String(entry.trackingNumber || "").trim(),
+        eur: Number(entry.eur) || 0,
+        teho: Number(entry.teho) || 0,
+        rollCages: Number(entry.rollCages) || 0,
+        packageCount: Number(entry.packageCount) || 0
+      })).filter(row => row.trackingNumber || row.eur || row.teho || row.rollCages || row.packageCount);
+      if (rows.length) return rows;
+      return [{
+        trackingNumber: String(stop?.trackingNumber || "").trim(),
+        eur: Number(stop?.eur) || 0,
+        teho: Number(stop?.teho) || 0,
+        rollCages: Number(stop?.rollCages) || 0,
+        packageCount: Number(stop?.packageCount) || 0
+      }];
+    }
+
+    function driverTransportSummaryHtml(stop) {
+      const grouped = new Map();
+      driverShipmentBreakdown(stop).forEach((row, index) => {
+        const trackingNumber = row.trackingNumber || `Ei seurantanumeroa ${index + 1}`;
+        if (!grouped.has(trackingNumber)) grouped.set(trackingNumber, { trackingNumber, eur:0, teho:0, rollCages:0, packageCount:0 });
+        const target = grouped.get(trackingNumber);
+        target.eur += row.eur;
+        target.teho += row.teho;
+        target.rollCages += row.rollCages;
+        target.packageCount += row.packageCount;
+      });
+      const rows = [...grouped.values()];
+      const hasCargo = row => row.eur > 0 || row.teho > 0 || row.rollCages > 0 || row.packageCount > 0;
+      const important = rows.filter(hasCargo);
+      const secondary = rows.filter(row => !hasCargo(row));
+      const trackingHtml = [
+        ...important.map(row => `<div class="tracking-number-important">${escapeHtml(row.trackingNumber)}</div>`),
+        secondary.length ? `<div class="tracking-zero-list">${secondary.map(row => `<span>${escapeHtml(row.trackingNumber)}</span>`).join("")}</div>` : ""
+      ].join("") || `<div class="tracking-zero-list" style="border:0;padding:0;margin-top:.5rem;">Ei löytynyt</div>`;
+      const totals = rows.reduce((sum, row) => ({
+        eur: sum.eur + row.eur,
+        teho: sum.teho + row.teho,
+        rollCages: sum.rollCages + row.rollCages,
+        packageCount: sum.packageCount + row.packageCount
+      }), { eur:0, teho:0, rollCages:0, packageCount:0 });
+      const cargo = [
+        totals.eur > 0 ? `EUR ${totals.eur}` : "",
+        totals.teho > 0 ? `Teho ${totals.teho}` : "",
+        totals.rollCages > 0 ? `Rullakko ${totals.rollCages}` : "",
+        totals.packageCount > 0 ? `Kollit ${totals.packageCount}` : ""
+      ].filter(Boolean);
+      const cargoHtml = cargo.length
+        ? `<div class="transport-cargo-values">${cargo.map(value => `<span class="transport-cargo-value">${escapeHtml(value)}</span>`).join("")}</div>`
+        : `<div class="tracking-zero-list" style="border:0;padding:0;margin-top:.5rem;">Ei ilmoitettua määrää</div>`;
+      return `<div class="transport-route-fact tracking"><span>Seurantanumerot</span>${trackingHtml}</div>
+              <div class="transport-route-fact"><span>Tavaramäärät</span>${cargoHtml}</div>`;
     }
 
     async function renderDriverTransportList() {
@@ -1560,11 +1856,6 @@
         ...(stop.recipientPhones || (stop.recipientPhone ? [stop.recipientPhone] : [])).map(phone => ({ label: "Soita vastaanottajalle", phone })),
         ...(stop.customerPhones || (stop.customerPhone ? [stop.customerPhone] : [])).map(phone => ({ label: "Soita asiakkaalle", phone }))
       ].filter((item, index, list) => list.findIndex(other => other.phone === item.phone) === index);
-      const hasPallets = (Number(stop.eur) || 0) > 0 || (Number(stop.teho) || 0) > 0;
-      const cargoFacts = hasPallets
-        ? `<div class="transport-route-fact"><span>EUR-lavat</span><strong>${Number(stop.eur) || 0}</strong></div>
-           <div class="transport-route-fact"><span>Teho-lavat</span><strong>${Number(stop.teho) || 0}</strong></div>`
-        : `<div class="transport-route-fact"><span>Kollit</span><strong>${Number(stop.packageCount) || 0}</strong></div>`;
       driverTransportList.innerHTML = `
         <div class="transport-row" data-transport-stop-id="${escapeHtml(stop.id)}">
           <div class="transport-row-head">
@@ -1572,8 +1863,7 @@
             <div><strong>${escapeHtml(stop.recipient)}</strong><div class="driver-route-address">${escapeHtml(stop.address || stop.postalCode)}</div></div>
           </div>
           <div class="transport-route-facts">
-            <div class="transport-route-fact"><span>Seurantanumero</span><strong>${escapeHtml(stop.trackingNumber || "Ei löytynyt")}</strong></div>
-            ${cargoFacts}
+            ${driverTransportSummaryHtml(stop)}
           </div>
           <div class="transport-actions">
             <button class="btn btn-secondary" type="button" data-transport-action="preview">🔍 Esikatselu</button>
@@ -1593,7 +1883,7 @@
           </div>
         </div>
       `;
-      driverCurrentPhase = "transport";
+      setDriverPhase("transport", { save:false, scroll:false });
       queueDriverSessionSave();
     }
 
@@ -1759,7 +2049,7 @@
       if (!items.length) return;
       driverLoadingIndex = Math.max(0, Math.min(items.length - 1, driverLoadingIndex));
       const item = items[driverLoadingIndex];
-      driverCurrentPhase = "loading";
+      setDriverPhase("loading", { save:false, scroll:false });
       driverLoadingProgress.style.width = `${((driverLoadingIndex + 1) / items.length) * 100}%`;
       driverLoadingPosition.textContent = `${driverLoadingIndex + 1} / ${items.length}`;
       btnDriverLoadingPrev.disabled = driverLoadingIndex === 0;
@@ -1768,6 +2058,7 @@
       btnDriverLoadingNext.textContent = "Seuraava →";
       btnDriverLoadingNext.style.display = "flex";
       btnOpenDriverTransport.hidden = true;
+      driverLoadingShipmentBreakdown.innerHTML = "";
 
       if (item.kind === "transport") {
         driverLoadingBadges.innerHTML = `<span class="loading-badge">Kuorma ${item.loadNumber} valmis</span>`;
@@ -1804,11 +2095,11 @@
       const stop = item.stop;
       const routeIndex = (driverRouteState.ordered || []).indexOf(stop);
       const loadNumber = driverLoadNumberAt(stop);
-      const pallets = (Number(stop.eur) || 0) + (Number(stop.teho) || 0);
+      const pallets = (Number(stop.eur) || 0) + (Number(stop.teho) || 0) + (Number(stop.rollCages) || 0);
       const tracking = String(stop.trackingNumber || "").trim();
       const packageCount = Math.max(0, Number(stop.packageCount) || 0);
       const badges = [
-        `<span class="loading-badge">Lastausjärjestys ${driverLoadingIndex + 1} / ${stops.length}</span>`,
+        `<span class="loading-badge">Lastausjärjestys ${driverLoadingStops().indexOf(stop) + 1} / ${driverLoadingStops().length}</span>`,
         loadNumber ? `<span class="loading-badge">Kuorma ${loadNumber}</span>` : `<span class="loading-badge">Ei kartalla</span>`,
         routeIndex >= 0 ? `<span class="loading-badge">Ajojärjestys ${routeIndex + 1}</span>` : "",
         stop.recipient ? `<span class="loading-badge">${escapeHtml(stop.recipient)}</span>` : ""
@@ -1816,6 +2107,7 @@
       driverLoadingBadges.innerHTML = badges.join("");
       driverLoadingAddress.textContent = stop.address || stop.postalCode || "Osoitetta ei tunnistettu";
       driverLoadingTracking.textContent = tracking || "Ei löytynyt lähetteestä";
+      driverLoadingShipmentBreakdown.innerHTML = "";
       btnDriverLoadingPreview.style.display = "flex";
       driverLoadingNoteLabel.style.display = "block";
       driverLoadingNote.style.display = "block";
@@ -1828,6 +2120,7 @@
         const cargo = [];
         if (Number(stop.eur) > 0) cargo.push(`EUR ${Number(stop.eur)}`);
         if (Number(stop.teho) > 0) cargo.push(`Teho ${Number(stop.teho)}`);
+        if (Number(stop.rollCages) > 0) cargo.push(`Rullakko ${Number(stop.rollCages)}`);
         driverLoadingCargo.textContent = cargo.join(" · ");
       } else {
         driverLoadingCargoLabel.textContent = "Kollit";
@@ -1843,12 +2136,10 @@
     function openDriverLoadingPhase() {
       if (!driverLoadingItems().length) return;
       driverLoadingIndex = 0;
-      driverCurrentPhase = "loading";
-      driverRouteCard.style.display = "none";
-      driverLoadingCard.hidden = false;
+      driverResumePhase = null;
+      setDriverPhase("loading", { save:false });
       renderDriverLoading();
       queueDriverSessionSave();
-      driverLoadingCard.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
     function currentDriverPreviewFiles() {
@@ -1870,7 +2161,12 @@
       driverLoadingPreviewContainer.innerHTML = `<span style="color:#666;">Ladataan koko PDF:ää…</span>`;
       driverLoadingPreviewModal.classList.add("open");
       try {
-        await renderFullDriverPdf(entry.file, driverLoadingPreviewContainer);
+        const pdfInfo = await renderFullDriverPdf(entry.file, driverLoadingPreviewContainer, driverLoadingPreviewPdfPage);
+        driverLoadingPreviewPdfPage = pdfInfo.pageNumber;
+        driverLoadingPreviewPdfPageCount = pdfInfo.pageCount;
+        driverLoadingPdfPagePosition.textContent = `${driverLoadingPreviewPdfPage} / ${driverLoadingPreviewPdfPageCount}`;
+        btnDriverLoadingPdfPagePrev.disabled = driverLoadingPreviewPdfPage <= 1;
+        btnDriverLoadingPdfPageNext.disabled = driverLoadingPreviewPdfPage >= driverLoadingPreviewPdfPageCount;
         if (token !== driverLoadingPreviewRenderToken) return;
       } catch (error) {
         if (token !== driverLoadingPreviewRenderToken) return;
@@ -1924,6 +2220,7 @@
 
     async function addDriverFiles(fileList) {
       const incoming = Array.from(fileList || []);
+      driverResumePhase = null;
       const directPdfs = incoming.filter(file => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
       const zipFiles = incoming.filter(file => file.name.toLowerCase().endsWith(".zip") || /application\/(zip|x-zip-compressed)/i.test(file.type));
       const rejectedCount = incoming.length - directPdfs.length - zipFiles.length;
@@ -1954,7 +2251,7 @@
       driverUploadStatus.innerHTML = `<strong>${driverPdfFiles.length} PDF-tiedostoa ladattu</strong>${zipFiles.length ? ` · purettu ${zipFiles.length} ZIP-paketista` : ""}${rejectedCount ? ` · ${rejectedCount} muu tiedosto ohitettiin` : ""}${!addedCount && pdfFiles.length ? " · Tiedostot olivat jo listalla" : ""}`;
       renderDriverFiles();
       driverFileInput.value = "";
-      driverCurrentPhase = "upload";
+      setDriverPhase("upload", { save:false, scroll:false });
       queueDriverSessionSave();
     }
 
@@ -1979,6 +2276,7 @@
 
     async function createReadyDriverStop(file) {
       const extracted = await extractFromPdf(file);
+      const rememberedAddress = correctedExtractedAddress(extracted);
       const originalKey = driverFileKey(file);
       const savedPdf = await readSavedDriverPdf(originalKey);
       const activeFile = savedPdf?.annotatedBytes
@@ -1987,12 +2285,15 @@
       const stop = {
         id: crypto.randomUUID(), file: activeFile, originalFile: file, originalKey, fileName: file.name,
         recipient: extracted.recipient || "Ei tunnistettu",
-        address: extracted.address || "",
-        postalCode: extracted.postalCode || "",
-        streetKey: extracted.streetKey || "",
-        area: getArea(extracted.postalCode),
+        address: rememberedAddress?.address || extracted.address || "",
+        postalCode: rememberedAddress?.postalCode || extracted.postalCode || "",
+        streetKey: rememberedAddress ? "" : (extracted.streetKey || ""),
+        area: getArea(rememberedAddress?.postalCode || extracted.postalCode),
+        originalExtractedAddress: extracted.address || "",
+        originalExtractedPostalCode: extracted.postalCode || "",
         eur: extracted.eur || 0,
         teho: extracted.teho || 0,
+        rollCages: extracted.rollCages || 0,
         trackingNumber: extracted.trackingNumber || "",
         packageCount: extracted.packageCount || 0,
         weightKg: extracted.weightKg ?? null,
@@ -2049,7 +2350,8 @@
         renderDriverFiles();
         driverRouteCard.style.display = "none";
         driverUploadStatus.innerHTML = `<strong>Valmis ajojärjestys ladattu.</strong> ${ordered.length} keikkaa siirrettiin suoraan lastausvaiheeseen.`;
-        driverCurrentPhase = "loading";
+        driverResumePhase = null;
+        setDriverPhase("loading", { save:false });
         openDriverLoadingPhase();
         await syncDriverCombinedPdf({ downloadFallback: false });
       } catch (error) {
@@ -2065,7 +2367,9 @@
     function groupDriverStopsByAddress(stopsToGroup) {
       const groups = new Map();
       stopsToGroup.forEach(stop => {
-        const key = physicalAddressKey(stop);
+        // Sama osoite ei yksin riitä: eri yritykset/vastaanottajat ovat eri keikkoja.
+        const recipientKey = companyKey(stop.recipient) || normalizeText(stop.recipient || "tuntematon");
+        const key = `${physicalAddressKey(stop)}|recipient:${recipientKey}`;
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(stop);
       });
@@ -2080,7 +2384,13 @@
             file: stop.file,
             originalFile: stop.originalFile || stop.file,
             originalKey: stop.originalKey || driverFileKey(stop.originalFile || stop.file),
-            fileName: stop.fileName
+            fileName: stop.fileName,
+            recipient: stop.recipient || "",
+            trackingNumber: stop.trackingNumber || "",
+            eur: Number(stop.eur) || 0,
+            teho: Number(stop.teho) || 0,
+            rollCages: Number(stop.rollCages) || 0,
+            packageCount: Number(stop.packageCount) || 0
           })),
           confirmation: group.map(stop => stop.confirmation).find(Boolean) || "",
           confirmationDate: group.map(stop => stop.confirmationDate).find(Boolean) || "",
@@ -2094,13 +2404,14 @@
           packageCount: group.reduce((sum, stop) => sum + (Number(stop.packageCount) || 0), 0),
           eur: group.reduce((sum, stop) => sum + (Number(stop.eur) || 0), 0),
           teho: group.reduce((sum, stop) => sum + (Number(stop.teho) || 0), 0),
+          rollCages: group.reduce((sum, stop) => sum + (Number(stop.rollCages) || 0), 0),
           weightKg: group.reduce((sum, stop) => sum + (Number(stop.weightKg) || 0), 0)
         };
       });
     }
 
     function driverStopUnits(stop) {
-      return (Number(stop?.eur) || 0) + (Number(stop?.teho) || 0) * 0.5;
+      return (Number(stop?.eur) || 0) + ((Number(stop?.teho) || 0) + (Number(stop?.rollCages) || 0)) * 0.5;
     }
 
     function normalizeDriverLoadBreaks(loadBreaks, stopCount, allowEnd = false) {
@@ -2178,7 +2489,7 @@
           points.push(latLng);
           L.marker(latLng, {
             icon: L.divIcon({ className: "", html: `<div class="route-number-icon" style="background:#3b82f6">${index + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] })
-          }).bindTooltip(`<strong>${index + 1}. ${escapeHtml(stop.recipient)}</strong><br>${escapeHtml(stop.address || stop.postalCode)}<br>EUR ${Number(stop.eur) || 0} · Teho ${Number(stop.teho) || 0} · lavapaikat ${driverStopUnits(stop).toFixed(1).replace(".0", "")}`, { direction: "top", offset: [0, -12] })
+          }).bindTooltip(`<strong>${index + 1}. ${escapeHtml(stop.recipient)}</strong><br>${escapeHtml(stop.address || stop.postalCode)}<br>EUR ${Number(stop.eur) || 0} · Teho ${Number(stop.teho) || 0} · Rullakko ${Number(stop.rollCages) || 0} · lavapaikat ${driverStopUnits(stop).toFixed(1).replace(".0", "")}`, { direction: "top", offset: [0, -12] })
             .addTo(driverRouteLayer);
         }
         const loadBreak = loadBreakByPosition.get(index + 1);
@@ -2217,9 +2528,9 @@
         <title>Kuljettajan ajojärjestys</title>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
         <style>
-          *{box-sizing:border-box}html,body{height:100%;margin:0;background:#0f172a;color:#e2e8f0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-          body{display:grid;grid-template-rows:auto 1fr}.top{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem 1rem;background:#1e293b;border-bottom:1px solid #334155}
-          .title{font-weight:800}.status{color:#94a3b8;font-size:.88rem}.buttons{display:flex;gap:.5rem;flex-wrap:wrap}.buttons button{border:0;border-radius:7px;padding:.5rem .75rem;background:#334155;color:#e2e8f0;font-weight:700;cursor:pointer}.buttons button.primary{background:#2563eb;color:white}.buttons button:hover{background:#475569}.buttons button.primary:hover{background:#1d4ed8}.buttons button:disabled{opacity:.45;cursor:not-allowed}
+          *{box-sizing:border-box}html,body{height:100%;margin:0;background:#2c2e31;color:#f5f5f5;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+          body{display:grid;grid-template-rows:auto 1fr}.top{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem 1rem;background:#383b3f;border-bottom:1px solid #565a60}
+          .title{font-weight:800}.status{color:#c0c3c7;font-size:.88rem}.buttons{display:flex;gap:.5rem;flex-wrap:wrap}.buttons button{border:0;border-radius:7px;padding:.5rem .75rem;background:#565a60;color:#f5f5f5;font-weight:700;cursor:pointer}.buttons button.primary{background:#647f9f;color:white}.buttons button:hover{background:#686d74}.buttons button.primary:hover{background:#7891ae}.buttons button:disabled{opacity:.45;cursor:not-allowed}
           #map{width:100%;height:100%}.route-marker{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:white;border:2px solid white;box-shadow:0 1px 6px rgba(0,0,0,.7);font-size:12px;font-weight:900}.leaflet-tooltip{font-size:13px}
         </style></head><body>
         <div class="top"><div><div class="title">🗺️ Valitse ensimmäiset pysähdykset</div><div class="status" id="status">Ladataan pysähdyksiä…</div></div><div class="buttons"><button class="primary" id="optimizeRemaining" onclick="window.opener?.driverMapOptimizeRemaining()">✨ Optimoi loput</button><button id="addLoad" onclick="window.opener?.driverMapAddLoad()">➕ Lisää lastaus</button><button id="removeLoad" onclick="window.opener?.driverMapRemoveLoad()">✖ Poista lastaus</button><button onclick="window.opener?.driverMapUndoSelection()">↩️ Peruuta viimeinen</button><button onclick="window.opener?.driverMapResetSelection()">🔄 Aloita alusta</button></div></div>
@@ -2232,7 +2543,7 @@
             const circle=(p,color,label)=>{bounds.push([p.lat,p.lon]);L.circleMarker([p.lat,p.lon],{radius:8,color,fillColor:color,fillOpacity:1}).bindTooltip(label).addTo(layer)};
             circle(payload.start,"#22c55e","Lähtö");circle(payload.end,"#f59e0b","Reitin loppu");
             (payload.loadBreaks||[]).forEach((b,i)=>{const n=i+2,icon=L.divIcon({className:"",html:'<div class="route-marker" style="background:#a855f7">L'+n+'</div>',iconSize:[30,30],iconAnchor:[-10-(n-2)*32,15]});L.marker([payload.start.lat,payload.start.lon],{icon}).bindTooltip('Lastaus '+n+' · '+(b.forced?'kapasiteetin lisäämä':'käsin lisätty')).addTo(layer)});
-            payload.stops.forEach(s=>{bounds.push([s.lat,s.lon]);const markerHtml='<div class="route-marker" style="background:'+(s.selected?'#3b82f6':'#64748b')+';cursor:'+(s.selected?'default':'pointer')+'">'+(s.selected?s.order:'•')+'</div>';const icon=L.divIcon({className:"",html:markerHtml,iconSize:[30,30],iconAnchor:[15,15]});const tooltip=(s.selected?s.order+'. ':'Valitse: ')+s.recipient+'<br>'+s.address+'<br>EUR '+s.eur+' · Teho '+s.teho+' · lavapaikat '+s.units;const marker=L.marker([s.lat,s.lon],{icon}).bindTooltip(tooltip).addTo(layer);if(!s.selected)marker.on("click",()=>window.opener?.driverMapSelectStop(s.id))});
+            payload.stops.forEach(s=>{bounds.push([s.lat,s.lon]);const markerHtml='<div class="route-marker" style="background:'+(s.selected?'#3b82f6':'#64748b')+';cursor:'+(s.selected?'default':'pointer')+'">'+(s.selected?s.order:'•')+'</div>';const icon=L.divIcon({className:"",html:markerHtml,iconSize:[30,30],iconAnchor:[15,15]});const tooltip=(s.selected?s.order+'. ':'Valitse: ')+s.recipient+'<br>'+s.address+'<br>EUR '+s.eur+' · Teho '+s.teho+' · Rullakko '+s.rollCages+' · lavapaikat '+s.units;const marker=L.marker([s.lat,s.lon],{icon}).bindTooltip(tooltip).addTo(layer);if(!s.selected)marker.on("click",()=>window.opener?.driverMapSelectStop(s.id))});
             const breakPositions=new Set((payload.loadBreaks||[]).map(b=>b.after)),fallbackLine=[[payload.start.lat,payload.start.lon]];payload.stops.filter(s=>s.selected).sort((a,b)=>a.order-b.order).forEach(s=>{fallbackLine.push([s.lat,s.lon]);if(breakPositions.has(s.order))fallbackLine.push([payload.start.lat,payload.start.lon])});const line=payload.geometry?.length?payload.geometry:fallbackLine;if(line.length>1)L.polyline(line,{color:"#3b82f6",weight:5,opacity:.88,dashArray:payload.geometry?null:"7 6"}).addTo(layer);
             document.getElementById("status").textContent=payload.status;
             const optimizeButton=document.getElementById("optimizeRemaining");if(optimizeButton){optimizeButton.disabled=!payload.canOptimizeRemaining;optimizeButton.style.display=payload.manualSelecting?'inline-block':'none'}
@@ -2253,7 +2564,7 @@
         id: stop.id, lat: stop.geo.lat, lon: stop.geo.lon,
         recipient: stop.recipient || "Pysähdys", address: stop.address || stop.postalCode || "",
         selected: selectedOrder.has(stop.id), order: selectedOrder.get(stop.id) || 0,
-        eur: Number(stop.eur) || 0, teho: Number(stop.teho) || 0, units: driverStopUnits(stop).toFixed(1).replace(".0", "")
+        eur: Number(stop.eur) || 0, teho: Number(stop.teho) || 0, rollCages: Number(stop.rollCages) || 0, units: driverStopUnits(stop).toFixed(1).replace(".0", "")
       }));
       const remaining = stopsForMap.filter(stop => !stop.selected).length;
       const activeBreaks = normalizeDriverLoadBreaks(loadBreaks, ordered.length, manualSelecting);
@@ -2292,9 +2603,9 @@
       doc.open();
       doc.write(`<!DOCTYPE html><html lang="fi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
         <title>Ajojärjestelijä – valitse keikat kartasta</title><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-        <style>*{box-sizing:border-box}html,body{height:100%;margin:0;background:#0f172a;color:#e2e8f0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}body{display:grid;grid-template-rows:auto 1fr}.top{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem 1rem;background:#1e293b;border-bottom:1px solid #334155}.title{font-weight:800}.status{color:#94a3b8;font-size:.85rem}.layout{min-height:0;display:grid;grid-template-columns:1fr 310px}#map{width:100%;height:100%}.side{padding:1rem;background:#1e293b;border-left:1px solid #334155;overflow:auto}.side label{display:block;color:#94a3b8;font-size:.8rem;margin-bottom:.3rem}.side select{width:100%;padding:.6rem;background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:7px;font-weight:700}.card{margin-top:1rem;padding:1rem;background:#0f172a;border:1px solid #334155;border-radius:10px}.plate{font-size:1.2rem;font-weight:900;color:#60a5fa}.stat{display:flex;justify-content:space-between;gap:1rem;padding:.55rem 0;border-bottom:1px solid #26364c}.stat:last-child{border:0}.hint{margin-top:1rem;color:#94a3b8;font-size:.82rem;line-height:1.5}.marker{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.7);font-size:11px;font-weight:900;cursor:pointer}@media(max-width:760px){.layout{grid-template-columns:1fr}.side{position:absolute;right:8px;top:70px;z-index:1000;width:260px;max-height:55vh;border:1px solid #334155;border-radius:10px}}</style></head><body>
-        <div class="top"><div><div class="title">🗺️ Valitse keikat autolle</div><div class="status" id="status">Valmistellaan karttaa…</div></div></div><div class="layout"><div id="map"></div><aside class="side"><label for="vehicle">Valittu auto</label><select id="vehicle" onchange="window.opener?.dispatcherMapChangeVehicle(this.value)"></select><div class="card"><div class="plate" id="plate">–</div><div class="stat"><span>Keikkoja</span><strong id="jobs">0</strong></div><div class="stat"><span>EUR-lavoja</span><strong id="eur">0</strong></div><div class="stat"><span>Teho-lavoja</span><strong id="teho">0</strong></div><div class="stat"><span>Lavapaikkoja</span><strong id="units">0</strong></div><div class="stat"><span>Kapasiteetti</span><strong id="capacity">–</strong></div></div><div class="hint">Napsauta kartan palloa lisätäksesi koko fyysisen osoitteen valitulle autolle. Napsauta valitun auton palloa uudelleen poistaaksesi valinnan. Toiselle autolle valittu keikka voidaan siirtää napsauttamalla sitä.</div></aside></div>
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><script>let map=null,layer=null,hasFitted=false;window.setDispatcherStatus=function(text){document.getElementById("status").textContent=text};window.renderDispatcherAssignments=function(payload){if(!window.L){setTimeout(()=>window.renderDispatcherAssignments(payload),100);return}if(!map){map=L.map("map").setView([60.22,24.9],10);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap contributors",maxZoom:19}).addTo(map)}const center=map.getCenter(),zoom=map.getZoom();if(layer)layer.remove();layer=L.layerGroup().addTo(map);const bounds=[];const select=document.getElementById("vehicle");const old=select.value;select.innerHTML=payload.vehicles.map(v=>'<option value="'+v.plate+'">'+v.plate+'</option>').join('');select.value=payload.selectedPlate||old;payload.groups.forEach(g=>{bounds.push([g.lat,g.lon]);const own=g.assignedPlate===payload.selectedPlate;const other=g.assignedPlate&&!own;const color=own?'#3b82f6':(other?g.color:'#64748b');const label=own?'✓':(other?g.shortPlate:'•');const html='<div class="marker" style="background:'+color+'">'+label+'</div>';const icon=L.divIcon({className:'',html:html,iconSize:[30,30],iconAnchor:[15,15]});L.marker([g.lat,g.lon],{icon}).bindTooltip((g.assignedPlate?'['+g.assignedPlate+'] ':'')+g.recipient+'<br>'+g.address+'<br>EUR '+g.eur+' · Teho '+g.teho+' · Paino '+g.weightKg+' kg').on('click',()=>window.opener?.dispatcherMapToggleGroup(g.key)).addTo(layer)});document.getElementById('plate').textContent=payload.stats.plate;document.getElementById('jobs').textContent=payload.stats.jobs;document.getElementById('eur').textContent=payload.stats.eur;document.getElementById('teho').textContent=payload.stats.teho;document.getElementById('units').textContent=payload.stats.units;document.getElementById('capacity').textContent=payload.stats.capacity;document.getElementById('status').textContent=payload.groups.length+' kartalle sijoitettua keikkaa · '+payload.unresolved+' ilman karttapistettä';if(!hasFitted&&bounds.length){map.fitBounds(bounds,{padding:[30,30]});hasFitted=true}else{map.setView(center,zoom,{animate:false})}setTimeout(()=>map.invalidateSize(),40)};<\/script></body></html>`);
+        <style>*{box-sizing:border-box}html,body{height:100%;margin:0;background:#2c2e31;color:#f5f5f5;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}body{display:grid;grid-template-rows:auto 1fr}.top{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem 1rem;background:#383b3f;border-bottom:1px solid #565a60}.title{font-weight:800}.status{color:#c0c3c7;font-size:.85rem}.layout{min-height:0;display:grid;grid-template-columns:1fr 310px}#map{width:100%;height:100%}.side{padding:1rem;background:#383b3f;border-left:1px solid #565a60;overflow:auto}.side label{display:block;color:#c0c3c7;font-size:.8rem;margin-bottom:.3rem}.side select{width:100%;padding:.6rem;background:#2c2e31;color:#f5f5f5;border:1px solid #686d74;border-radius:7px;font-weight:700}.card{margin-top:1rem;padding:1rem;background:#2c2e31;border:1px solid #565a60;border-radius:10px}.plate{font-size:1.2rem;font-weight:900;color:#b5c4d3}.stat{display:flex;justify-content:space-between;gap:1rem;padding:.55rem 0;border-bottom:1px solid #4a4d52}.stat:last-child{border:0}.hint{margin-top:1rem;color:#c0c3c7;font-size:.82rem;line-height:1.5}.marker{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.7);font-size:11px;font-weight:900;cursor:pointer}@media(max-width:760px){.layout{grid-template-columns:1fr}.side{position:absolute;right:8px;top:70px;z-index:1000;width:260px;max-height:55vh;border:1px solid #565a60;border-radius:10px}}</style></head><body>
+        <div class="top"><div><div class="title">🗺️ Valitse keikat autolle</div><div class="status" id="status">Valmistellaan karttaa…</div></div></div><div class="layout"><div id="map"></div><aside class="side"><label for="vehicle">Valittu auto</label><select id="vehicle" onchange="window.opener?.dispatcherMapChangeVehicle(this.value)"></select><div class="card"><div class="plate" id="plate">–</div><div class="stat"><span>Keikkoja</span><strong id="jobs">0</strong></div><div class="stat"><span>EUR-lavoja</span><strong id="eur">0</strong></div><div class="stat"><span>Teho-lavoja</span><strong id="teho">0</strong></div><div class="stat"><span>Rullakoita</span><strong id="rollCages">0</strong></div><div class="stat"><span>Lavapaikkoja</span><strong id="units">0</strong></div><div class="stat"><span>Kapasiteetti</span><strong id="capacity">–</strong></div></div><div class="hint">Napsauta kartan palloa lisätäksesi koko fyysisen osoitteen valitulle autolle. Napsauta valitun auton palloa uudelleen poistaaksesi valinnan. Toiselle autolle valittu keikka voidaan siirtää napsauttamalla sitä.</div></aside></div>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><script>let map=null,layer=null,hasFitted=false;window.setDispatcherStatus=function(text){document.getElementById("status").textContent=text};window.renderDispatcherAssignments=function(payload){if(!window.L){setTimeout(()=>window.renderDispatcherAssignments(payload),100);return}if(!map){map=L.map("map").setView([60.22,24.9],10);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap contributors",maxZoom:19}).addTo(map)}const center=map.getCenter(),zoom=map.getZoom();if(layer)layer.remove();layer=L.layerGroup().addTo(map);const bounds=[];const select=document.getElementById("vehicle");const old=select.value;select.innerHTML=payload.vehicles.map(v=>'<option value="'+v.plate+'">'+v.plate+'</option>').join('');select.value=payload.selectedPlate||old;payload.groups.forEach(g=>{bounds.push([g.lat,g.lon]);const own=g.assignedPlate===payload.selectedPlate;const other=g.assignedPlate&&!own;const color=own?'#3b82f6':(other?g.color:'#64748b');const label=own?'✓':(other?g.shortPlate:'•');const html='<div class="marker" style="background:'+color+'">'+label+'</div>';const icon=L.divIcon({className:'',html:html,iconSize:[30,30],iconAnchor:[15,15]});L.marker([g.lat,g.lon],{icon}).bindTooltip((g.assignedPlate?'['+g.assignedPlate+'] ':'')+g.recipient+'<br>'+g.address+'<br>EUR '+g.eur+' · Teho '+g.teho+' · Rullakko '+g.rollCages+' · Paino '+g.weightKg+' kg').on('click',()=>window.opener?.dispatcherMapToggleGroup(g.key)).addTo(layer)});document.getElementById('plate').textContent=payload.stats.plate;document.getElementById('jobs').textContent=payload.stats.jobs;document.getElementById('eur').textContent=payload.stats.eur;document.getElementById('teho').textContent=payload.stats.teho;document.getElementById('rollCages').textContent=payload.stats.rollCages;document.getElementById('units').textContent=payload.stats.units;document.getElementById('capacity').textContent=payload.stats.capacity;document.getElementById('status').textContent=payload.groups.length+' kartalle sijoitettua keikkaa · '+payload.unresolved+' ilman karttapistettä';if(!hasFitted&&bounds.length){map.fitBounds(bounds,{padding:[30,30]});hasFitted=true}else{map.setView(center,zoom,{animate:false})}setTimeout(()=>map.invalidateSize(),40)};<\/script></body></html>`);
       doc.close();
       dispatcherMapWindow.focus();
       return true;
@@ -2367,7 +2678,7 @@
       const { ordered, unresolved, startPoint, endPoint, pdfCount, loadBreaks = [] } = driverRouteState;
       const routeKm = driverRouteLengthFromState();
       const allStops = [...ordered, ...unresolved];
-      const usedCapacity = allStops.reduce((sum, stop) => sum + (Number(stop.eur) || 0) + (Number(stop.teho) || 0) * 0.5, 0);
+      const usedCapacity = allStops.reduce((sum, stop) => sum + (Number(stop.eur) || 0) + ((Number(stop.teho) || 0) + (Number(stop.rollCages) || 0)) * 0.5, 0);
       const activeBreaks = normalizeDriverLoadBreaks(loadBreaks, ordered.length);
       const loads = driverLoadSegments(ordered, activeBreaks);
       const breakByAfter = new Map(activeBreaks.map((item, index) => [item.after, { ...item, loadNumber: index + 2 }]));
@@ -2401,14 +2712,14 @@
       `).join("");
       driverManualActions.style.display = "none";
       driverDownloadActions.style.display = ordered.length ? "flex" : "none";
-      driverCurrentPhase = "route";
+      setDriverPhase("route", { save:false, scroll:false });
       queueDriverSessionSave();
       refreshDriverRouteGeometry();
     }
 
     function renderDriverManualSelection() {
       if (!driverRouteState) return;
-      driverCurrentPhase = "route";
+      setDriverPhase("route", { save:false, scroll:false });
       const { ordered, manualCandidates, unresolved, startPoint, endPoint, loadBreaks = [] } = driverRouteState;
       const selectedIds = new Set(ordered.map(stop => stop.id));
       const remaining = manualCandidates.filter(stop => !selectedIds.has(stop.id));
@@ -2468,7 +2779,7 @@
           iconSize: [26, 26], iconAnchor: [13, 13]
         });
         const marker = L.marker([stop.geo.lat, stop.geo.lon], { icon })
-          .bindTooltip(`${selected ? `${selectedIndex + 1}. ` : "Valitse: "}${escapeHtml(stop.recipient)}<br>${escapeHtml(stop.address || stop.postalCode)}<br>EUR ${Number(stop.eur) || 0} · Teho ${Number(stop.teho) || 0} · lavapaikat ${driverStopUnits(stop).toFixed(1).replace(".0", "")}`)
+          .bindTooltip(`${selected ? `${selectedIndex + 1}. ` : "Valitse: "}${escapeHtml(stop.recipient)}<br>${escapeHtml(stop.address || stop.postalCode)}<br>EUR ${Number(stop.eur) || 0} · Teho ${Number(stop.teho) || 0} · Rullakko ${Number(stop.rollCages) || 0} · lavapaikat ${driverStopUnits(stop).toFixed(1).replace(".0", "")}`)
           .addTo(driverRouteLayer);
         if (!selected) marker.on("click", () => selectDriverMapStop(stop.id));
       });
@@ -2593,8 +2904,9 @@
           const activeFile = savedPdf?.annotatedBytes
             ? new File([savedPdf.annotatedBytes], file.name, { type: "application/pdf", lastModified: file.lastModified })
             : file;
-          const correctedAddress = driverAddressOverrides.get(driverFileKey(file));
-          const correctedPostal = correctedAddress?.match(/\b\d{5}\b/)?.[0] || "";
+          const rememberedAddress = correctedExtractedAddress(extracted);
+          const correctedAddress = driverAddressOverrides.get(driverFileKey(file)) || rememberedAddress?.address || "";
+          const correctedPostal = correctedAddress?.match(/\b\d{5}\b/)?.[0] || rememberedAddress?.postalCode || "";
           const stop = {
             id: crypto.randomUUID(), file: activeFile, originalFile: file, originalKey, fileName: file.name,
             recipient: extracted.recipient || "Ei tunnistettu",
@@ -2602,7 +2914,8 @@
             // Käsin korjattuun katuosoitteeseen ei saa yhdistää PDF:n vanhaa postinumeroa.
             postalCode: correctedAddress ? correctedPostal : (extracted.postalCode || ""),
             streetKey: correctedAddress ? "" : (extracted.streetKey || ""), area: getArea(correctedPostal || extracted.postalCode),
-            eur: extracted.eur || 0, teho: extracted.teho || 0,
+            originalExtractedAddress: extracted.address || "", originalExtractedPostalCode: extracted.postalCode || "",
+            eur: extracted.eur || 0, teho: extracted.teho || 0, rollCages: extracted.rollCages || 0,
             trackingNumber: extracted.trackingNumber || "",
             packageCount: extracted.packageCount || 0,
             weightKg: extracted.weightKg ?? null,
@@ -2669,7 +2982,7 @@
           renderDriverRouteResult(false);
           driverUploadStatus.innerHTML = `<strong>Reitti optimoitu.</strong> ${ordered.length} pysähdystä, noin ${routeKm.toFixed(1)} km.`;
         }
-        driverRouteCard.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.scrollTo({ top: 0, behavior: "auto" });
       } catch (error) {
         console.error(error);
         driverUploadStatus.innerHTML = `<strong style="color:var(--danger)">Reitin optimointi epäonnistui:</strong> ${escapeHtml(error.message || String(error))}`;
@@ -2724,6 +3037,7 @@
       driverFirstName.value = driverName;
       driverVehiclePlate.value = driverPlate;
       driverMaxCapacity.value = driverCapacity > 0 ? String(driverCapacity) : "";
+      driverNavigateOtherDeviceInput.checked = driverNavigateOtherDevice;
       mmlApiKeyInput.value = mmlApiKey;
       driverSettingsModal.classList.add("open");
     });
@@ -2733,12 +3047,14 @@
       driverName = driverFirstName.value.trim();
       driverPlate = driverVehiclePlate.value.trim().toUpperCase().replace(/\s+/g, "");
       driverCapacity = Math.max(0, Number(String(driverMaxCapacity.value || "").replace(",", ".")) || 0);
+      driverNavigateOtherDevice = driverNavigateOtherDeviceInput.checked;
       mmlApiKey = mmlApiKeyInput.value.trim();
       try {
         localStorage.setItem("lahetejako_driver_navigation_app", driverNavigationChoice);
         localStorage.setItem("lahetejako_driver_first_name", driverName);
         localStorage.setItem("lahetejako_driver_vehicle_plate", driverPlate);
         localStorage.setItem("lahetejako_driver_max_capacity", driverCapacity > 0 ? String(driverCapacity) : "");
+        localStorage.setItem("lahetejako_driver_other_device_navigation", driverNavigateOtherDevice ? "1" : "0");
         localStorage.setItem("lahetejako_mml_api_key", mmlApiKey);
       } catch (_) { /* valinnat toimivat istunnon ajan */ }
       updateDriverSettingsButton();
@@ -2757,6 +3073,7 @@
       const button = event.target.closest("[data-driver-preview-index]");
       if (!button) return;
       driverPreviewIndex = Number(button.dataset.driverPreviewIndex) || 0;
+      driverPreviewPdfPage = 1;
       renderDriverPreview();
     });
     document.getElementById("driverPreviewClose").addEventListener("click", closeDriverPreview);
@@ -2765,11 +3082,23 @@
     });
     driverPreviewPrev.addEventListener("click", () => {
       driverPreviewIndex--;
+      driverPreviewPdfPage = 1;
       renderDriverPreview();
     });
     driverPreviewNext.addEventListener("click", () => {
       driverPreviewIndex++;
+      driverPreviewPdfPage = 1;
       renderDriverPreview();
+    });
+    driverPreviewPdfPagePrev.addEventListener("click", async () => {
+      if (driverPreviewPdfPage <= 1) return;
+      driverPreviewPdfPage--;
+      await renderDriverPreviewPdfPage();
+    });
+    driverPreviewPdfPageNext.addEventListener("click", async () => {
+      if (driverPreviewPdfPage >= driverPreviewPdfPageCount) return;
+      driverPreviewPdfPage++;
+      await renderDriverPreviewPdfPage();
     });
     driverPreviewSaveAddress.addEventListener("click", saveDriverPreviewAddress);
     driverPreviewAddress.addEventListener("keydown", event => {
@@ -2792,6 +3121,24 @@
       }
     });
     btnOptimizeDriverRoute.addEventListener("click", () => optimizeDriverRoute(false));
+    [btnDriverRouteToUpload, btnDriverLoadingToUpload, btnDriverTransportToUpload].forEach(button => {
+      button.addEventListener("click", openDriverPdfList);
+    });
+    btnResumeDriverPhase.addEventListener("click", async () => {
+      const phase = driverResumePhase;
+      driverResumePhase = null;
+      if (!phase || !driverRouteState) return setDriverPhase("upload");
+      setDriverPhase(phase, { save:false });
+      if (phase === "route") {
+        if (driverRouteState.manualSelecting) renderDriverManualSelection();
+        else renderDriverRouteResult(true);
+      } else if (phase === "loading") {
+        renderDriverLoading();
+      } else if (phase === "transport") {
+        await renderDriverTransportList();
+      }
+      await saveDriverSessionNow();
+    });
     btnChooseDriverRoute.addEventListener("click", () => {
       const popupOpened = openDriverMapWindow();
       if (!popupOpened) alert("Selain esti karttaikkunan avaamisen. Karttavalinta avataan tälle sivulle. Salli ponnahdusikkunat, jos haluat kartan omaan ikkunaan.");
@@ -2816,11 +3163,9 @@
     btnGoTransport.addEventListener("click", () => {
       if (!driverRouteState?.ordered?.length || driverRouteState.manualSelecting) return;
       driverTransportIndex = 0;
-      driverCurrentPhase = "transport";
+      driverResumePhase = null;
+      setDriverPhase("transport", { save:false });
       renderDriverTransportList();
-      driverRouteCard.style.display = "none";
-      driverTransportCard.style.display = "block";
-      driverTransportCard.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     driverTransportList.addEventListener("click", event => {
       const stepButton = event.target.closest("[data-transport-step]");
@@ -2839,6 +3184,7 @@
       if (action === "preview") {
         driverLoadingPreviewEntries = stop.files || [];
         driverLoadingPreviewFileIndex = 0;
+        driverLoadingPreviewPdfPage = 1;
         renderDriverLoadingPreview();
       } else if (action === "navigate") {
         const destination = stop.address || stop.postalCode;
@@ -2888,12 +3234,10 @@
       try {
         await persistCurrentLoadingStop();
         closeDriverLoadingPreview();
-        driverLoadingCard.hidden = true;
-        driverRouteCard.style.display = "block";
-        driverCurrentPhase = "route";
+        driverResumePhase = null;
+        setDriverPhase("route", { save:false });
         if (driverRouteState?.readyRoute) renderDriverRouteResult(true);
         await saveDriverSessionNow();
-        driverRouteCard.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (error) {
         alert("PDF:n automaattitallennus epäonnistui: " + (error.message || error));
       }
@@ -2905,6 +3249,7 @@
     btnDriverLoadingPreview.addEventListener("click", () => {
       driverLoadingPreviewEntries = null;
       driverLoadingPreviewFileIndex = 0;
+      driverLoadingPreviewPdfPage = 1;
       renderDriverLoadingPreview();
     });
     btnOpenDriverTransport.addEventListener("click", () => {
@@ -2914,13 +3259,10 @@
       driverActiveTransportLoadNumber = item.loadNumber;
       driverLoadingReturnIndex = driverLoadingIndex + 1;
       driverTransportIndex = 0;
-      driverCurrentPhase = "transport";
-      driverLoadingCard.hidden = true;
-      driverTransportCard.hidden = false;
-      driverTransportCard.style.display = "block";
+      driverResumePhase = null;
+      setDriverPhase("transport", { save:false });
       renderDriverTransportList();
       queueDriverSessionSave();
-      driverTransportCard.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     document.getElementById("btnCloseDriverLoadingPreview").addEventListener("click", closeDriverLoadingPreview);
     driverLoadingPreviewModal.addEventListener("click", event => {
@@ -2932,12 +3274,24 @@
     btnDriverLoadingPreviewPrev.addEventListener("click", () => {
       if (driverLoadingPreviewFileIndex <= 0) return;
       driverLoadingPreviewFileIndex--;
+      driverLoadingPreviewPdfPage = 1;
       renderDriverLoadingPreview();
     });
     btnDriverLoadingPreviewNext.addEventListener("click", () => {
       const files = currentDriverPreviewFiles();
       if (driverLoadingPreviewFileIndex >= files.length - 1) return;
       driverLoadingPreviewFileIndex++;
+      driverLoadingPreviewPdfPage = 1;
+      renderDriverLoadingPreview();
+    });
+    btnDriverLoadingPdfPagePrev.addEventListener("click", () => {
+      if (driverLoadingPreviewPdfPage <= 1) return;
+      driverLoadingPreviewPdfPage--;
+      renderDriverLoadingPreview();
+    });
+    btnDriverLoadingPdfPageNext.addEventListener("click", () => {
+      if (driverLoadingPreviewPdfPage >= driverLoadingPreviewPdfPageCount) return;
+      driverLoadingPreviewPdfPage++;
       renderDriverLoadingPreview();
     });
     btnDriverLoadingPrev.addEventListener("click", async () => {
@@ -2991,16 +3345,13 @@
     });
     btnFinishDriverLoad.addEventListener("click", async () => {
       if (driverLoadingReturnIndex == null) return;
-      driverTransportCard.style.display = "none";
-      driverTransportCard.hidden = true;
-      driverLoadingCard.hidden = false;
       driverLoadingIndex = driverLoadingReturnIndex;
       driverLoadingReturnIndex = null;
       driverActiveTransportLoadNumber = null;
-      driverCurrentPhase = "loading";
+      driverResumePhase = null;
+      setDriverPhase("loading", { save:false });
       renderDriverLoading();
       await saveDriverSessionNow();
-      driverLoadingCard.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     driverRouteList.addEventListener("dragstart", event => {
       const row = event.target.closest("[data-driver-stop-id]");
@@ -3049,22 +3400,30 @@
       draggedDriverStopId = null;
       driverRouteList.querySelectorAll(".dragging, .drag-target").forEach(item => item.classList.remove("dragging", "drag-target"));
     });
-    btnClearDriverFiles.addEventListener("click", () => {
+    async function resetDriverWorkflow() {
+      if ((driverPdfFiles.length || driverRouteState) && !confirm("Aloitetaanko alusta? Kaikki ladatut PDF-tiedostot sekä nykyinen reitti-, lastaus- ja kuljetustila poistetaan ohjelmasta.")) return;
       closeDriverPreview();
       closeDriverEntry();
       closeDriverLoadingPreview();
+      try { driverMapWindow?.close(); } catch (_) { /* Suljettu karttaikkuna ohitetaan. */ }
+      driverMapWindow = null;
       driverPdfFiles = [];
       driverOutputFileHandle = null;
       driverDownloadedOutputName = "";
       driverCombinedPdfBytes = null;
-      driverCurrentPhase = "upload";
+      driverLoadingNotes = {};
+      driverResumePhase = null;
+      setDriverPhase("upload", { save:false });
       driverAddressOverrides.clear();
       driverFileInput.value = "";
+      driverReadyRouteInput.value = "";
       driverUploadStatus.style.display = "none";
       driverUploadStatus.innerHTML = "";
       driverRouteCard.style.display = "none";
       driverLoadingCard.hidden = true;
       driverLoadingIndex = 0;
+      driverTransportIndex = 0;
+      driverLoadingPreviewEntries = null;
       driverTransportCard.style.display = "none";
       driverTransportCard.hidden = true;
       driverActiveTransportLoadNumber = null;
@@ -3078,7 +3437,11 @@
       if (driverRouteLayer) { driverRouteLayer.remove(); driverRouteLayer = null; }
       renderDriverFiles();
       updateDriverPdfSaveDestination();
-      deleteDriverSessionRecord();
+      await deleteDriverSessionRecord();
+    }
+
+    document.querySelectorAll("[data-driver-reset]").forEach(button => {
+      button.addEventListener("click", resetDriverWorkflow);
     });
 
     async function restoreDriverSession() {
@@ -3102,24 +3465,18 @@
         driverDownloadedOutputName = saved.downloadedOutputName || "";
         updateDriverPdfSaveDestination();
         driverCurrentPhase = saved.phase || (driverRouteState ? "route" : "upload");
+        driverResumePhase = saved.resumePhase || null;
         renderDriverFiles();
         driverUploadStatus.style.display = "flex";
         const savedTime = saved.updatedAt ? new Intl.DateTimeFormat("fi-FI", { hour: "2-digit", minute: "2-digit" }).format(new Date(saved.updatedAt)) : "";
         driverUploadStatus.innerHTML = `<strong>Edellinen kuljettajan työtila palautettiin.</strong>${savedTime ? ` Tallennettu klo ${escapeHtml(savedTime)}.` : ""}`;
-        driverRouteCard.style.display = "none";
-        driverLoadingCard.hidden = true;
-        driverTransportCard.style.display = "none";
-        driverTransportCard.hidden = true;
+        setDriverPhase(driverCurrentPhase, { save:false, scroll:false });
         if (driverRouteState) {
           if (driverCurrentPhase === "loading") {
-            driverLoadingCard.hidden = false;
             renderDriverLoading();
           } else if (driverCurrentPhase === "transport") {
-            driverTransportCard.hidden = false;
-            driverTransportCard.style.display = "block";
             await renderDriverTransportList();
-          } else {
-            driverRouteCard.style.display = "block";
+          } else if (driverCurrentPhase === "route") {
             if (driverRouteState.manualSelecting) renderDriverManualSelection();
             else renderDriverRouteResult(true);
           }
@@ -3703,7 +4060,7 @@
           if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
           lastGeoRequest = Date.now();
           const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.54 (Teemu H. Fingerroos)" }
+            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.62 (Teemu H. Fingerroos)" }
           });
           if (!response.ok) return [];
           return await response.json();
@@ -3841,6 +4198,15 @@
         if (photonPoint) { stop.geo = photonPoint; return photonPoint; }
         const p = await nominatimAddressSearch(street, postal, cityHint, stop.recipient || "", stop.address || "");
         if (p) { stop.geo = p; return p; }
+        // Väärä tai vanhentunut postinumero ei saa estää oikean kadun löytymistä.
+        // Kokeile lopuksi ilman postinumeroa, mutta vain kun kaupungin nimi tunnetaan.
+        if (cityHint) {
+          const cityAddress = `${street}, ${cityHint}, Finland`;
+          const relaxedPhoton = await photonAddressSearch(street, "", cityHint, cityAddress);
+          if (relaxedPhoton) { stop.geo = relaxedPhoton; return relaxedPhoton; }
+          const relaxedNominatim = await nominatimAddressSearch(street, "", cityHint, stop.recipient || "", cityAddress);
+          if (relaxedNominatim) { stop.geo = relaxedNominatim; return relaxedNominatim; }
+        }
         // Älä hyväksy postinumeroalueen keskipistettä katuosoitteen sijasta.
         return null;
       }
@@ -4425,7 +4791,7 @@
       if (!stop) return stop;
       stop.postalCode = String(stop.postalCode || "").trim().replace(/\s/g, "");
       stop.area = getArea(stop.postalCode);
-      stop.capacityUnits = (parseFloat(stop.eur) || 0) + (parseFloat(stop.teho) || 0) * 0.5;
+      stop.capacityUnits = (parseFloat(stop.eur) || 0) + ((parseFloat(stop.teho) || 0) + (parseFloat(stop.rollCages) || 0)) * 0.5;
       const parsedKey = extractStreetKeyFromStop(stop);
       if (parsedKey) stop.streetKey = parsedKey;
       else if (clearStreetIfMissing) stop.streetKey = "";
@@ -4566,25 +4932,31 @@
         uploadStatus.innerHTML = `<span class="spinner"></span> <span>Käsitellään ${i + 1}/${files.length}: ${file.name}</span>`;
         try {
           const extracted = await extractFromPdf(file);
+          const rememberedAddress = correctedExtractedAddress(extracted);
           const stopObj = {
             id: crypto.randomUUID(),
             file,
             fileName: file.name,
             recipient: extracted.recipient || "Ei tunnistettu",
-            address: extracted.address || "",
-            postalCode: extracted.postalCode || "",
-            area: getArea(extracted.postalCode),
+            address: rememberedAddress?.address || extracted.address || "",
+            postalCode: rememberedAddress?.postalCode || extracted.postalCode || "",
+            area: getArea(rememberedAddress?.postalCode || extracted.postalCode),
+            originalExtractedAddress: extracted.address || "",
+            originalExtractedPostalCode: extracted.postalCode || "",
             eur: extracted.eur ?? 0,
             teho: extracted.teho ?? 0,
-            capacityUnits: (extracted.eur ?? 0) + (extracted.teho ?? 0) * 0.5,
+            rollCages: extracted.rollCages ?? 0,
+            packageCount: extracted.packageCount ?? 0,
+            trackingNumber: extracted.trackingNumber || "",
+            capacityUnits: (extracted.eur ?? 0) + ((extracted.teho ?? 0) + (extracted.rollCages ?? 0)) * 0.5,
             orderNumber: extracted.orderNumber || "",
             deliveryNote: extracted.deliveryNote || "",
             customerNumber: extracted.customerNumber || "",
-            streetKey: extracted.streetKey || "",
+            streetKey: rememberedAddress ? "" : (extracted.streetKey || ""),
             weightKg: extracted.weightKg ?? null,
             volumeM3: extracted.volumeM3 ?? null,
             driverIndex: -1,
-            status: extracted.postalCode ? "ok" : "warn",
+            status: (rememberedAddress?.postalCode || extracted.postalCode) ? "ok" : "warn",
             error: extracted.error || null
           };
           applySavedDeliveryVehicleRule(stopObj);
@@ -4601,6 +4973,9 @@
             area: "Tuntematon",
             eur: 0,
             teho: 0,
+            rollCages: 0,
+            packageCount: 0,
+            trackingNumber: "",
             capacityUnits: 0,
             orderNumber: "",
             deliveryNote: "",
@@ -4884,8 +5259,9 @@
 
       // Täysiksi EUR-lavoiksi lasketaan vain nämä Tuotenro-sarakkeen arvot.
       const eur = deliveredQuantityForProductCodes(["EUR", "KEUR", "LAVA"]);
-      // Teho-lavoiksi lasketaan vain nämä Tuotenro-sarakkeen arvot.
-      const teho = deliveredQuantityForProductCodes(["TEHO", "KTEHO", "RUL"]);
+      // Teho-lavat ja rullakot pidetään näkyvissä erillisinä tavaralajeina.
+      const teho = deliveredQuantityForProductCodes(["TEHO", "KTEHO"]);
+      const rollCages = deliveredQuantityForProductCodes(["RUL"]);
 
       // Tilausnumero / lähete / asiakas – sama keikka useassa PDF:ssä
       let orderNumber = "";
@@ -4913,7 +5289,7 @@
 
       // Jos keikalla on lavoja, sitä ei ilmoiteta lisäksi kolleina.
       // Ilman lavoja kollimäärä luetaan Tuotenro=KOL-rivin Toimitettu-sarakkeesta.
-      if (eur <= 0 && teho <= 0) {
+      if (eur <= 0 && teho <= 0 && rollCages <= 0) {
         packageCount = deliveredQuantityForProductCodes(["KOL"]);
         // Vanhempien lähetteiden varatieto, jos KOL-tuoterivi puuttuu kokonaan.
         if (packageCount <= 0) {
@@ -4958,7 +5334,7 @@
 
       // streetKey asetettu vastaanottajablokista yllä (vaatii katu + talonumero)
       return {
-        recipient, address, postalCode, eur, teho,
+        recipient, address, postalCode, eur, teho, rollCages,
         orderNumber, deliveryNote, customerNumber, trackingNumber, packageCount, streetKey,
         weightKg, volumeM3, recipientPhone, customerPhone
       };
@@ -5038,7 +5414,10 @@
         area: s.area || "Tuntematon",
         eur: s.eur || 0,
         teho: s.teho || 0,
-        capacityUnits: (s.eur || 0) + (s.teho || 0) * 0.5,
+        rollCages: s.rollCages || 0,
+        packageCount: s.packageCount || 0,
+        trackingNumber: s.trackingNumber || "",
+        capacityUnits: (s.eur || 0) + ((s.teho || 0) + (s.rollCages || 0)) * 0.5,
         orderNumber: s.orderNumber || "",
         deliveryNote: s.deliveryNote || "",
         customerNumber: s.customerNumber || "",
@@ -5081,7 +5460,10 @@
           area: entry.area || "Tuntematon",
           eur: entry.eur || 0,
           teho: entry.teho || 0,
-          capacityUnits: entry.capacityUnits ?? ((entry.eur || 0) + (entry.teho || 0) * 0.5),
+          rollCages: entry.rollCages || 0,
+          packageCount: entry.packageCount || 0,
+          trackingNumber: entry.trackingNumber || "",
+          capacityUnits: entry.capacityUnits ?? ((entry.eur || 0) + ((entry.teho || 0) + (entry.rollCages || 0)) * 0.5),
           orderNumber: entry.orderNumber || "",
           deliveryNote: entry.deliveryNote || "",
           customerNumber: entry.customerNumber || "",
@@ -5098,7 +5480,10 @@
       // Aggregate from all contained PDFs.
       main.eur = main.files.reduce((sum, f) => sum + (f.eur || 0), 0);
       main.teho = main.files.reduce((sum, f) => sum + (f.teho || 0), 0);
-      main.capacityUnits = main.eur + main.teho * 0.5;
+      main.rollCages = main.files.reduce((sum, f) => sum + (f.rollCages || 0), 0);
+      main.packageCount = main.files.reduce((sum, f) => sum + (f.packageCount || 0), 0);
+      main.trackingNumber = [...new Set(main.files.map(f => f.trackingNumber).filter(Boolean))].join(", ");
+      main.capacityUnits = main.eur + (main.teho + main.rollCages) * 0.5;
       main.orderNumber = main.files.find(f => f.orderNumber)?.orderNumber || main.orderNumber || "";
       main.customerNumber = main.files.find(f => f.customerNumber)?.customerNumber || main.customerNumber || "";
       main.streetKey = main.files.find(f => f.streetKey)?.streetKey || main.streetKey || "";
@@ -5123,7 +5508,10 @@
         area: entry.area || getArea(entry.postalCode || ""),
         eur: entry.eur || 0,
         teho: entry.teho || 0,
-        capacityUnits: (entry.eur || 0) + (entry.teho || 0) * 0.5,
+        rollCages: entry.rollCages || 0,
+        packageCount: entry.packageCount || 0,
+        trackingNumber: entry.trackingNumber || "",
+        capacityUnits: (entry.eur || 0) + ((entry.teho || 0) + (entry.rollCages || 0)) * 0.5,
         orderNumber: entry.orderNumber || "",
         deliveryNote: entry.deliveryNote || "",
         customerNumber: entry.customerNumber || "",
@@ -5174,19 +5562,14 @@
       const hasHouse = (sk) => /\d/.test(sk || "");
       // Jos molemmilla on talonumero TAI molemmat ovat tori/aukio-tyyppisiä ilman numeroa
       if (hasHouse(a.streetKey) !== hasHouse(b.streetKey)) {
-        // toinen numerolla, toinen ilman → vain jos yritys/asiakas vahva
-        if (!(companiesLikelySame(a, b) || (a.customerNumber && a.customerNumber === b.customerNumber))) {
+        // toinen numerolla, toinen ilman → vain jos vastaanottaja/yritys on sama
+        if (!companiesLikelySame(a, b)) {
           return false;
         }
       }
 
-      // 1) Sama asiakasnumero + sama katuosoite
-      const custA = String(a.customerNumber || "").trim();
-      const custB = String(b.customerNumber || "").trim();
-      if (custA && custB && custA === custB) return true;
-
-      // 2) Sama / samankaltainen yritys + sama katuosoite
-      //    (esim. Aava eri osastot, eri asiakasnumero, sama Annankatu 32)
+      // Automaattinen yhdistäminen vaatii aina myös saman vastaanottajan/yrityksen.
+      // Pelkkä osoite tai asiakasnumero ei saa yhdistää eri yrityksiä samaksi keikaksi.
       if (companiesLikelySame(a, b)) return true;
 
       return false;
@@ -5232,7 +5615,7 @@
         ).join("") + (forcedPlate && !fleet.some(vehicle => vehicle.plate === forcedPlate)
           ? `<option value="${escapeHtml(forcedPlate)}" selected>${escapeHtml(forcedPlate)} (poistettu kalustosta)</option>`
           : "");
-        const units = (s.eur || 0) + (s.teho || 0) * 0.5;
+        const units = (s.eur || 0) + ((s.teho || 0) + (s.rollCages || 0)) * 0.5;
         const nFiles = (s.files && s.files.length) || 1;
         const fileLabel = nFiles > 1
           ? `${nFiles} PDF` + (s.orderNumber ? ` · tilaus ${s.orderNumber}` : "")
@@ -5259,6 +5642,7 @@
             <td>${s.area}</td>
             <td><input class="edit-input" data-id="${s.id}" data-field="eur" type="number" min="0" step="1" value="${s.eur}" style="width:50px" /></td>
             <td><input class="edit-input" data-id="${s.id}" data-field="teho" type="number" min="0" step="1" value="${s.teho || 0}" style="width:50px" /></td>
+            <td><input class="edit-input" data-id="${s.id}" data-field="rollCages" type="number" min="0" step="1" value="${s.rollCages || 0}" style="width:58px" /></td>
             <td>${units}</td>
             <td style="min-width:175px;">
               <select class="job-driver-select" data-id="${s.id}" aria-label="Valitse auto keikalle ${idx + 1}" style="width:100%;min-width:165px;padding:0.42rem 0.5rem;font-size:0.78rem;">
@@ -5318,10 +5702,20 @@
           const field = e.target.dataset.field;
           const stop = stops.find(s => s.id === id);
           if (!stop) return;
-          if (field === "eur" || field === "teho") {
+          if (field === "eur" || field === "teho" || field === "rollCages") {
             stop[field] = parseFloat(e.target.value) || 0;
           } else {
             stop[field] = e.target.value;
+          }
+          if (field === "address" || field === "postalCode") {
+            const correctedFullAddress = /\b\d{5}\b/.test(stop.address || "")
+              ? stop.address
+              : `${stop.address || ""}${stop.postalCode ? `, ${stop.postalCode}` : ""}`;
+            rememberAddressCorrection(
+              stop.originalExtractedAddress || stop.address || "",
+              stop.originalExtractedPostalCode || stop.postalCode || "",
+              correctedFullAddress
+            );
           }
           normalizeStop(stop, { clearStreetIfMissing: field === "address" });
           if (drivers.length && stop.driverIndex >= 0 && drivers[stop.driverIndex]) {
@@ -5441,6 +5835,7 @@
           address: representative.address || representative.postalCode || "",
           eur: members.reduce((sum, stop) => sum + (Number(stop.eur) || 0), 0),
           teho: members.reduce((sum, stop) => sum + (Number(stop.teho) || 0), 0),
+          rollCages: members.reduce((sum, stop) => sum + (Number(stop.rollCages) || 0), 0),
           weightKg: members.reduce((sum, stop) => sum + (Number(stop.weightKg) || 0), 0)
         });
       }
@@ -5459,7 +5854,8 @@
         jobs: assignedGroups.length,
         eur: assignedGroups.reduce((sum, group) => sum + group.eur, 0),
         teho: assignedGroups.reduce((sum, group) => sum + group.teho, 0),
-        units: assignedGroups.reduce((sum, group) => sum + group.eur + group.teho * 0.5, 0).toFixed(1),
+        rollCages: assignedGroups.reduce((sum, group) => sum + group.rollCages, 0),
+        units: assignedGroups.reduce((sum, group) => sum + group.eur + (group.teho + group.rollCages) * 0.5, 0).toFixed(1),
         capacity: `${selectedVehicle.capacity} lavapaikkaa`
       };
       const payload = {
@@ -5473,7 +5869,7 @@
           return {
             key: group.key, lat: group.geo.lat, lon: group.geo.lon,
             recipient: escapeHtml(group.recipient), address: escapeHtml(group.address),
-            eur: group.eur, teho: group.teho, weightKg: group.weightKg.toFixed(0),
+            eur: group.eur, teho: group.teho, rollCages: group.rollCages, weightKg: group.weightKg.toFixed(0),
             assignedPlate, shortPlate: assignedPlate ? assignedPlate.slice(0, 3) : "",
             color: vehicleIndex >= 0 ? DRIVER_COLORS[vehicleIndex % DRIVER_COLORS.length] : "#a855f7"
           };
@@ -5711,8 +6107,8 @@
         const balance = v && v.balanceAreas && v.balanceAreas.includes(area);
         const unassigned = !areaAssignedToAnyActive(area);
 
-        let bg = "#475569";
-        let border = "#94a3b8";
+        let bg = "#686d74";
+        let border = "#c0c3c7";
         if (primary) { bg = "#2563eb"; border = "#93c5fd"; }
         else if (balance) { bg = "#7c3aed"; border = "#c4b5fd"; }
         else if (unassigned) { bg = "#b91c1c"; border = "#fca5a5"; }
@@ -5800,7 +6196,7 @@
           s.driverIndex = -1;
           s.loadSlot = 1;
           s.routeOrder = 0;
-          s.capacityUnits = (s.eur || 0) + (s.teho || 0) * 0.5;
+          s.capacityUnits = (s.eur || 0) + ((s.teho || 0) + (s.rollCages || 0)) * 0.5;
           s.geo = null;
         });
 
@@ -6423,7 +6819,7 @@
             iconSize: [26, 26], iconAnchor: [13, 13]
           });
           L.marker([s.geo.lat, s.geo.lon], { icon })
-            .bindTooltip(`<strong>${escapeHtml(drv.name)}</strong><br>${escapeHtml(s.streetKey || s.address || "")}, ${escapeHtml(s.postalCode || "")}<br>EUR ${s.eur || 0} · Teho ${s.teho || 0} · Paino ${(parseFloat(s.weightKg) || 0).toFixed(0)} kg${s.locked ? " · 🔒" : ""}`)
+            .bindTooltip(`<strong>${escapeHtml(drv.name)}</strong><br>${escapeHtml(s.streetKey || s.address || "")}, ${escapeHtml(s.postalCode || "")}<br>EUR ${s.eur || 0} · Teho ${s.teho || 0} · Rullakko ${s.rollCages || 0} · Paino ${(parseFloat(s.weightKg) || 0).toFixed(0)} kg${s.locked ? " · 🔒" : ""}`)
             .addTo(resultMapLayer);
         });
       });
@@ -6466,6 +6862,7 @@
         const over = d.totalUnits > cap + 0.01;
         const eurSum = d.stops.reduce((s, x) => s + (x.eur || 0), 0);
         const tehoSum = d.stops.reduce((s, x) => s + (x.teho || 0), 0);
+        const rollCageSum = d.stops.reduce((s, x) => s + (x.rollCages || 0), 0);
         const weightSum = d.stops.reduce((s, x) => s + (parseFloat(x.weightKg) || 0), 0);
         const stopCount = physicalStopCount(d.stops);
 
@@ -6479,7 +6876,7 @@
             </h3>
             <div class="driver-stats">
               <div>Keikkoja: <strong>${stopCount}</strong></div>
-              <div>EUR: <strong>${eurSum}</strong> · Teho: <strong>${tehoSum}</strong> · Yht. <strong>${d.totalUnits}</strong> / ${d.capacity}${d.doubleLoad ? " ×2" : ""}</div>
+              <div>EUR: <strong>${eurSum}</strong> · Teho: <strong>${tehoSum}</strong> · Rullakko: <strong>${rollCageSum}</strong> · Yht. <strong>${d.totalUnits}</strong> / ${d.capacity}${d.doubleLoad ? " ×2" : ""}</div>
               <div>Paino: <strong>${weightSum.toFixed(0)}</strong> kg · Työmäärä: <strong>${Number(d.workload || 0).toFixed(1)}</strong> p. <span style="opacity:0.7;">(ka. ${avgWorkload.toFixed(1)})</span></div>
               <div class="progress">
                 <div class="progress-bar ${over ? "over" : ""}" style="width:${pct}%"></div>
@@ -6806,18 +7203,20 @@
 
           const eurSum = drv.stops.reduce((s, x) => s + (x.eur || 0), 0);
           const tehoSum = drv.stops.reduce((s, x) => s + (x.teho || 0), 0);
+          const rollCageSum = drv.stops.reduce((s, x) => s + (x.rollCages || 0), 0);
           const summary = [
             `Ajoneuvo: ${drv.name}`,
             `Keikkoja: ${physicalStopCount(drv.stops)}`,
             `EUR-lavoja: ${eurSum}`,
             `Teho-lavoja: ${tehoSum} (à 0,5)`,
+            `Rullakoita: ${rollCageSum} (à 0,5)`,
             `Kapasiteetti: ${drv.totalUnits} / ${drv.capacity}${drv.doubleLoad ? " (2 lastausta)" : ""}`,
             `Työmäärä: ${Number(drv.workload || 0).toFixed(1)} p. · Paino: ${drv.stops.reduce((sum, s) => sum + (parseFloat(s.weightKg) || 0), 0).toFixed(0)} kg`,
             drv.doubleLoad ? "Kuorma ylittää yhden kuorman kapasiteetin" : "Mahtuu yhteen kuormaan",
             "",
             "Autolle jaetut lähetteet (ei ajojärjestys):",
             ...drv.stops.map((s, idx) =>
-              `${idx + 1}. ${s.fileName} | ${s.recipient} | ${s.streetKey || ""} ${s.postalCode} | EUR ${s.eur} · Teho ${s.teho || 0}`
+              `${idx + 1}. ${s.fileName} | ${s.recipient} | ${s.streetKey || ""} ${s.postalCode} | EUR ${s.eur} · Teho ${s.teho || 0} · Rullakko ${s.rollCages || 0}`
             )
           ].join("\n");
           folder.file("_yhteenveto.txt", summary);
@@ -7049,26 +7448,25 @@
       await renderModalPdf();
     }
 
-    async function renderFullDriverPdf(file, container) {
+    async function renderFullDriverPdf(file, container, requestedPage = 1) {
       const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
       container.innerHTML = "";
       container.scrollTop = 0;
       container.style.height = "auto";
-      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-        const page = await pdf.getPage(pageNumber);
-        const viewport = page.getViewport({ scale: 1.5 });
-        const wrapper = document.createElement("div");
-        wrapper.className = "transport-pdf-page";
-        const label = document.createElement("span");
-        label.className = "transport-page-label";
-        label.textContent = `Sivu ${pageNumber} / ${pdf.numPages}`;
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
-        wrapper.append(label, canvas);
-        container.appendChild(wrapper);
-        await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
-      }
+      const pageNumber = Math.max(1, Math.min(pdf.numPages, Number(requestedPage) || 1));
+      const page = await pdf.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const wrapper = document.createElement("div");
+      wrapper.className = "transport-pdf-page";
+      const label = document.createElement("span");
+      label.className = "transport-page-label";
+      label.textContent = `Sivu ${pageNumber} / ${pdf.numPages}`;
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      wrapper.append(label, canvas);
+      container.appendChild(wrapper);
+      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
       await new Promise(resolve => requestAnimationFrame(resolve));
       const firstCanvas = container.querySelector("canvas");
       if (firstCanvas) {
@@ -7076,6 +7474,7 @@
         const viewportLimit = window.innerHeight * 0.68;
         container.style.height = `${Math.max(260, Math.min(halfPageHeight, viewportLimit))}px`;
       }
+      return { pageNumber, pageCount: pdf.numPages };
     }
 
     async function renderPdfCrop(file, container) {
@@ -7149,10 +7548,16 @@
       const postal = modalPostal.value.trim().replace(/\s/g, "");
       const recipient = modalRecipient.value.trim();
       const address = modalAddress.value.trim();
+      const originalAddress = stop.originalExtractedAddress || stop.address || "";
+      const originalPostal = stop.originalExtractedPostalCode || stop.postalCode || "";
 
       if (recipient) stop.recipient = recipient;
       stop.address = address;
       stop.postalCode = postal;
+      if (address && (address !== originalAddress || postal !== originalPostal)) {
+        const correctedFullAddress = /\b\d{5}\b/.test(address) ? address : `${address}${postal ? `, ${postal}` : ""}`;
+        rememberAddressCorrection(originalAddress, originalPostal, correctedFullAddress);
+      }
       normalizeStop(stop, { clearStreetIfMissing: true });
       setDeliveryVehicleRule(stop, stop.preferredDriverPlate || "", stop.forbiddenDriverPlates || []);
 
