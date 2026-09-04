@@ -1,8 +1,83 @@
-# Lähetejako v1.62
+# Lähetejako v1.71
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.71
+
+- Kuljettajan asetuksiin on lisätty Google Drive -yhteys, Google-tilin yhdistäminen ja Drive-kansion valinta.
+- Kansio voidaan valita Omasta Drivesta tai jaetusta Drivesta Google Pickerillä.
+- Yhdistetty päivän PDF luodaan valittuun kansioon. Kuittaukset, varaumat ja lastausmerkinnät päivittävät samaa Drive-tiedostoa tiedostotunnuksen perusteella.
+- Paikallinen pysyvä tallennus tehdään ennen Drive-siirtoa, joten verkkovirhe ei poista tehtyjä merkintöjä.
+- Yhteys käyttää rajattua `drive.file`-oikeutta. Google-kirjautumisavainta ei tallenneta pysyvästi, joten vanhentunut istunto yhdistetään asetuksista uudelleen.
+
+### Google Drive -käyttöönotto
+
+1. Luo tai valitse projekti Google Cloud Consolessa.
+2. Ota käyttöön Google Drive API ja Google Picker API.
+3. Luo Web application -tyyppinen OAuth 2.0 -asiakastunnus ja lisää GitHub Pages -osoitteen alkuosa sallittuihin JavaScript-origineihin.
+4. Luo Google Pickerille API-avain.
+5. Syötä asiakastunnus ja API-avain Kuljettajan asetuksiin, paina **Yhdistä Google Drive** ja valitse kansio.
+
+## Versio 1.70
+
+- Purkurajat täyttävät EUR- ja Teho-lavakeikat korostetaan violetilla jo kuljettajan ajojärjestyslistassa. Yhteenvedossa näkyy purkukelpoisten keikkojen määrä.
+- SLT-584 saa automaattijaossa etusijan Helsingin keskustan ja lähialueiden ravintolakeikkoihin.
+- SLT-584:n kapasiteettiasetuksessa on erillinen pysyvä “Keikka enintään” -raja yksittäisen keikan tilavuudelle.
+- Automaattijako ei tarjoa SLT:lle tilavuusrajan ylittävää keikkaa. Ajojärjestelijän käsin tekemä siirto ja pysyvä autopakotus voivat edelleen ohittaa automaattirajan.
+
+## Versio 1.69
+
+- Tavaraa sisältävät seurantanumerot ovat lastaus- ja kuljetusvaiheessa yhtä suuria ja näkyviä.
+- Lastausvaiheen EUR-, Teho-, rullakko- ja kollimäärät vastaavat kooltaan kuljetusvaiheen tavaramääriä.
+- Seurantanumerot, joiden tavaramäärä on nolla, näytetään molemmissa vaiheissa pieninä ja tiiviinä.
+
+## Versio 1.68
+
+- Kuljetusvaiheen tavaraa sisältävät seurantanumerot näkyvät jälleen suurina ja selvästi erottuvina.
+- Violetti seurantanumeropainike ilmaisee lastausvaiheessa, että lava täyttää asetetut purkurajat. Suositus toimii myös silloin, kun PDF:stä löytyy vain toinen tarvittavista mittaustiedoista.
+- Kuljetusvaihe ei näytä purkusuosituksia. Siellä ilmoitetaan ainoastaan toteutunut purku ja siitä syntynyt kollimäärä.
+
+## Versio 1.67
+
+- Kuljetuksen kuittaukseen tallennetaan päivämäärän lisäksi kuittaushetken kellonaika minuutin tarkkuudella.
+- Päivämäärä ja kellonaika näkyvät kuljetusnäkymän kuittaustilassa ja kirjoitetaan vastaanottajan kuittauksen mukana PDF-lähetteeseen.
+
+## Versio 1.66
+
+- Lastausvaiheessa näkyy aina kaksi rinnakkaista ruutua: seurantanumerot vasemmalla ja alkuperäiset tavaramäärät oikealla.
+- Purettavaksi ehdotettu EUR- tai Teho-lava näkyy violetilla seurantanumeropainikkeella. Painikkeesta kirjataan, että lava on purettu, sekä purkamisesta syntynyt kollimäärä.
+- Kuljetusvaiheessa puretun lähetteen EUR- ja Teho-lavat korvataan tavaramääräruudussa kirjatulla kollimäärällä. Rullakot säilyvät muuttumattomina.
+- EUR-kokoisille lavoille (EUR, KEUR ja LAVA) sekä Teho-kokoisille lavoille (TEHO ja KTEHO) on kuljettajan asetuksissa omat paino- ja tilavuusrajat.
+- Rullakoita ei ehdoteta purettaviksi eikä poisteta kuljetusvaiheen tavaramääristä.
+
+## Versio 1.65
+
+- Purettavien lavojen valinta on lastausvaiheessa, ei kuljetusvaiheessa.
+- Sekä EUR- että Teho-lavat voidaan merkitä purettaviksi ja puretut määrät tallennetaan erikseen.
+- Rullakoita ei merkitä purettaviksi eikä lasketa purkusuositukseen.
+- Kuljettajan asetuksissa voi määrittää purkusuosituksen enimmäispainon ja enimmäistilavuuden lavapaikkaa kohden.
+- Ohjelma merkitsee rajat alittavat lavat automaattisesti purettaviksi. Tyhjäksi jätettyä rajaa ei käytetä vertailussa.
+
+## Versio 1.64
+
+- SLT-584:n kapasiteetti lasketaan lähetteiden Tilavuus-arvojen summana kuutiometreissä (m³).
+- SLT-584:n kuutiometrikapasiteettia voi muuttaa Ajojärjestelijän auton asetuksista; muiden autojen kapasiteetti säilyy lavapaikkoina.
+- SLT:n tilavuus näkyy autokortissa, karttavalinnan yhteenvedossa ja autokohtaisessa yhteenvetotiedostossa.
+- Jos SLT:lle jaetulta lähetteeltä puuttuu tilavuustieto, autokortti näyttää siitä varoituksen.
+
+## Versio 1.63
+
+- Kuljettajan PDF-tallennukset käsitellään järjestyksessä jonossa, joten kuittaus ja heti perään tehtävä varauma eivät voi kirjoittaa toistensa päälle.
+- Epäonnistunutta PDF- tai työtilatallennusta yritetään automaattisesti uudelleen. Virhetilanteessa näkyy Yritä uudelleen -painike.
+- Kuittauksen ja varauman teksti tallennetaan pysyvään työtilaan ennen PDF:n muodostamista.
+- Jokaisesta onnistuneesta PDF-muutoksesta säilytetään enintään viisi sisäistä varmuuskopiota tiedostoa kohden. Puuttuva aktiivinen kopio voidaan palauttaa uusimmasta varmuuskopiosta.
+- Lastausmerkintä tallennetaan automaattisesti kirjoittamisen jälkeen ilman sivunvaihdon odottamista.
+- Toimitusosoitteen tarkistuksessa voi valita korjatun paikan kartasta. Nuppineula pysyy kartan keskellä ja karttaa liikutetaan sen alla. Koordinaatti tallennetaan pysyvästi ja sitä käytetään reitityksessä ilman uutta osoitehakua.
+- Kuljetusnäkymässä tavaraa sisältävää seurantanumeroa voi painaa ja merkitä kuorman purettavaksi. Purettava seurantanumero näkyy violetilla ja sille voi kirjata puretun kolli- tai lavamäärän.
+- Ajojärjestysvaiheen jokaisella keikalla on PDF-esikatselupainike.
+- Ajojärjestelijän vienti muodostaa yhden pää-ZIPin, jonka sisällä on jokaiselle autolle oma ZIP. Auton ZIP sisältää yksittäiset alkuperäiset PDF-lähetteet ja yhteenvedon.
 
 ## Versio 1.62
 
