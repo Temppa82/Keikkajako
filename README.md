@@ -1,8 +1,15 @@
-# Lähetejako v1.71
+# Lähetejako v1.72
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.72
+
+- Korjattu paikallisen IndexedDB-tallennuksen virhe “The database connection is closing”.
+- Ohjelma tunnistaa sulkeutuvan tai vanhentuneen tietokantayhteyden, avaa uuden yhteyden ja yrittää tallennusta automaattisesti uudelleen.
+- Korjaus kattaa kuljettajan työtilan, muokatut PDF:t ja niiden sisäiset varmuuskopiot.
+- Paikallinen tallennus varmistetaan edelleen ennen Google Drive -päivitystä.
 
 ## Versio 1.71
 
