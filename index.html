@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.72</title>
+  <title>Lähetejako v1.73</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -748,7 +748,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.72</div>
+      <div style="font-weight:600; color:var(--text);">v1.73</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -875,6 +875,11 @@
           <div class="modal-file-meta" style="margin-top:.45rem;">Valitse valmiiksi oikeassa ajojärjestyksessä olevat PDF:t tai yksi yhdistetty PDF. Ohjelma siirtyy suoraan lastaus- ja kuljetusvaiheeseen ilman reitin optimointia.</div>
         </div>
         <div class="status-bar" id="driverUploadStatus" style="margin-top: 1rem; display: none;"></div>
+        <label for="driverCustomPdfName" style="display:block;margin-top:1rem;font-weight:700;">
+          Yhdistetyn PDF-tiedoston nimi
+          <input type="text" id="driverCustomPdfName" inputmode="text" autocomplete="off" placeholder="Esimerkiksi Teemun reitti 5.9.2026.pdf" style="display:block;width:100%;margin-top:.4rem;" />
+        </label>
+        <div class="modal-file-meta" style="margin-top:.4rem;">Kirjoita nimi itse. Sama nimi tulee laitteen ja Google Driven PDF-tiedostolle. Jos .pdf-pääte puuttuu, ohjelma lisää sen.</div>
         <div class="driver-pdf-save-destination" id="driverPdfSaveDestination" style="margin-top:.75rem;padding:.7rem .85rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,.38);font-size:.84rem;color:var(--muted);">
           <strong style="color:var(--text);">PDF-tallennus:</strong> Ei vielä valittua kohdetta.
         </div>
@@ -1238,7 +1243,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.72 · Teemu H. Fingerroos · Asennettava PWA · PDF:t lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
+    Lähetejako v1.73 · Teemu H. Fingerroos · Asennettava PWA · PDF:t lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1304,6 +1309,7 @@
     const driverFileInput = document.getElementById("driverFileInput");
     const btnLoadReadyDriverRoute = document.getElementById("btnLoadReadyDriverRoute");
     const driverReadyRouteInput = document.getElementById("driverReadyRouteInput");
+    const driverCustomPdfNameInput = document.getElementById("driverCustomPdfName");
     const driverPdfSaveDestination = document.getElementById("driverPdfSaveDestination");
     const driverUploadCard = document.getElementById("driverUploadCard");
     const driverResumeActions = document.getElementById("driverResumeActions");
@@ -1460,6 +1466,7 @@
     let driverPdfFiles = [];
     let driverOutputFileHandle = null;
     let driverDownloadedOutputName = "";
+    let driverCustomPdfName = "";
     let driverCombinedPdfBytes = null;
     let driverCurrentPhase = "upload";
     let driverResumePhase = null;
@@ -1750,7 +1757,8 @@
         loadingReturnIndex: driverLoadingReturnIndex,
         combinedPdfBytes: driverCombinedPdfBytes,
         outputFileHandle: driverOutputFileHandle,
-        downloadedOutputName: driverDownloadedOutputName
+        downloadedOutputName: driverDownloadedOutputName,
+        customPdfName: driverCustomPdfName
       };
       const write = async () => {
         let lastError;
@@ -1878,11 +1886,38 @@
       window.location.href = url;
     }
 
-    function driverRoutePdfName() {
+    function normalizeDriverPdfFileName(value) {
+      let name = String(value || "").trim().replace(/[\\/:*?"<>|]+/g, "_");
+      if (!name) return "";
+      if (!/\.pdf$/i.test(name)) name += ".pdf";
+      return name;
+    }
+
+    function legacyDriverRoutePdfName() {
       const now = new Date();
       const date = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${now.getFullYear()}`;
       const safeName = (driverName || "Kuljettaja").replace(/[^A-Za-zÅÄÖåäö0-9_-]/g, "");
       return `${safeName || "Kuljettaja"}${date}.pdf`;
+    }
+
+    function driverRoutePdfName() {
+      return normalizeDriverPdfFileName(driverCustomPdfName) || normalizeDriverPdfFileName(driverDownloadedOutputName) || legacyDriverRoutePdfName();
+    }
+
+    function ensureDriverPdfFileName() {
+      const normalized = normalizeDriverPdfFileName(driverCustomPdfNameInput?.value || driverCustomPdfName);
+      if (!normalized) {
+        driverUploadStatus.style.display = "flex";
+        driverUploadStatus.innerHTML = `<strong style="color:var(--danger)">Kirjoita ensin yhdistetyn PDF-tiedoston nimi.</strong>`;
+        driverCustomPdfNameInput?.focus();
+        driverCustomPdfNameInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return false;
+      }
+      driverCustomPdfName = normalized;
+      if (driverCustomPdfNameInput) driverCustomPdfNameInput.value = normalized;
+      updateDriverPdfSaveDestination();
+      queueDriverSessionSave(0);
+      return true;
     }
 
     function saveGoogleDriveSettings() {
@@ -2100,7 +2135,10 @@
 
     function updateDriverPdfSaveDestination() {
       if (!driverPdfSaveDestination) return;
-      let description = "Ei vielä valittua kohdetta. Selain näyttää kohdevalinnan ensimmäisen tallennuksen yhteydessä.";
+      const requestedName = normalizeDriverPdfFileName(driverCustomPdfNameInput?.value || driverCustomPdfName);
+      let description = requestedName
+        ? `Tiedostonimi: <strong style="color:var(--text)">${escapeHtml(requestedName)}</strong>. Selain näyttää kohdevalinnan ensimmäisen tallennuksen yhteydessä.`
+        : "Kirjoita ensin yllä olevaan kenttään PDF-tiedoston nimi.";
       if (driverOutputFileHandle) {
         description = `Valittu tiedosto: <strong style="color:var(--text)">${escapeHtml(driverOutputFileHandle.name || driverRoutePdfName())}</strong>. Sama tiedosto päivitetään jatkossa päälle.`;
       } else if (driverDownloadedOutputName) {
@@ -2117,6 +2155,7 @@
     updateDriverPdfSaveDestination();
 
     async function chooseDriverOutputFile() {
+      if (!ensureDriverPdfFileName()) return false;
       if (driverOutputFileHandle) return true;
       if (typeof window.showSaveFilePicker !== "function") return false;
       try {
@@ -3785,8 +3824,26 @@
       addDriverFiles(event.dataTransfer.files);
     });
     driverFileInput.addEventListener("change", () => addDriverFiles(driverFileInput.files));
-    btnLoadReadyDriverRoute.addEventListener("click", () => driverReadyRouteInput.click());
+    btnLoadReadyDriverRoute.addEventListener("click", () => {
+      if (ensureDriverPdfFileName()) driverReadyRouteInput.click();
+    });
     driverReadyRouteInput.addEventListener("change", () => loadReadyDriverRoute(driverReadyRouteInput.files));
+    driverCustomPdfNameInput.addEventListener("input", () => {
+      const previousName = driverCustomPdfName;
+      driverCustomPdfName = normalizeDriverPdfFileName(driverCustomPdfNameInput.value);
+      if (previousName && driverCustomPdfName && previousName !== driverCustomPdfName) {
+        driverOutputFileHandle = null;
+        driverDownloadedOutputName = "";
+      }
+      updateDriverPdfSaveDestination();
+      queueDriverSessionSave(250);
+    });
+    driverCustomPdfNameInput.addEventListener("change", () => {
+      driverCustomPdfName = normalizeDriverPdfFileName(driverCustomPdfNameInput.value);
+      driverCustomPdfNameInput.value = driverCustomPdfName;
+      updateDriverPdfSaveDestination();
+      queueDriverSessionSave(0);
+    });
     document.getElementById("driverZipImport").addEventListener("click", () => {
       const resolve = driverZipChoiceResolver;
       driverZipChoiceResolver = null;
@@ -4027,6 +4084,7 @@
     document.getElementById("driverUnloadableSave").addEventListener("click", saveDriverUnloadable);
     driverUnloadableModal.addEventListener("click", event => { if (event.target === driverUnloadableModal) closeDriverUnloadable(); });
     btnDownloadCompletedDriverPdf.addEventListener("click", async () => {
+      if (!ensureDriverPdfFileName()) return;
       btnDownloadCompletedDriverPdf.disabled = true;
       btnDownloadCompletedDriverPdf.innerHTML = `<span class="spinner"></span> Kirjoitetaan kuittaukset PDF:iin…`;
       try {
@@ -4042,6 +4100,7 @@
     });
     btnDownloadDriverPdf.addEventListener("click", async () => {
       if (!driverRouteState?.ordered?.length) return;
+      if (!ensureDriverPdfFileName()) return;
       btnDownloadDriverPdf.disabled = true;
       btnDownloadDriverPdf.innerHTML = `<span class="spinner"></span> Yhdistetään PDF:t…`;
       try {
@@ -4167,6 +4226,7 @@
     });
     btnDownloadUpdatedLoadingPdf.addEventListener("click", async () => {
       if (!driverLoadingStops().length) return;
+      if (!ensureDriverPdfFileName()) return;
       btnDownloadUpdatedLoadingPdf.disabled = true;
       btnDownloadUpdatedLoadingPdf.innerHTML = `<span class="spinner"></span> Kirjoitetaan merkinnät PDF:ään…`;
       try {
@@ -4268,6 +4328,8 @@
       driverPdfFiles = [];
       driverOutputFileHandle = null;
       driverDownloadedOutputName = "";
+      driverCustomPdfName = "";
+      driverCustomPdfNameInput.value = "";
       driverCombinedPdfBytes = null;
       driverLoadingNotes = {};
       driverResumePhase = null;
@@ -4324,6 +4386,8 @@
         driverCombinedPdfBytes = saved.combinedPdfBytes || null;
         driverOutputFileHandle = saved.outputFileHandle || null;
         driverDownloadedOutputName = saved.downloadedOutputName || "";
+        driverCustomPdfName = normalizeDriverPdfFileName(saved.customPdfName || saved.downloadedOutputName || saved.outputFileHandle?.name || "");
+        driverCustomPdfNameInput.value = driverCustomPdfName;
         updateDriverPdfSaveDestination();
         driverCurrentPhase = saved.phase || (driverRouteState ? "route" : "upload");
         driverResumePhase = saved.resumePhase || null;

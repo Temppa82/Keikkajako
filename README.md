@@ -1,8 +1,15 @@
-# Lähetejako v1.72
+# Lähetejako v1.73
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.73
+
+- Kuljettaja kirjoittaa yhdistetyn PDF-tiedoston nimen itse ennen tallennusta tai valmiin ajojärjestyksen lataamista.
+- Sama itse valittu nimi käytetään laitteen tallennuksessa ja Google Drivessa. Puuttuva `.pdf`-pääte lisätään automaattisesti.
+- Tiedostonimi säilyy keskeneräisen työtilan mukana, mutta **Aloita alusta** tyhjentää sen seuraavaa ajoa varten.
+- Jos tiedostonimeä muutetaan kesken työn, seuraava tallennus luo tai valitsee uuden nimisen tiedoston eikä kirjoita vanhan nimisen tiedoston päälle.
 
 ## Versio 1.72
 
