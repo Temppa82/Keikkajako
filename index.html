@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.73</title>
+  <title>Lähetejako v1.74</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -509,6 +509,7 @@
       font-size: 1rem;
     }
     .driver-preview-btn:hover { background: rgba(100,127,159,0.28); }
+    .driver-preview-btn.driver-info-button { width:auto; padding:0 .55rem; font-size:.82rem; font-weight:800; }
     .driver-preview-modal {
       width: 100vw;
       max-width: none;
@@ -676,7 +677,7 @@
       white-space:nowrap;
       text-transform:none;
     }
-    .transport-actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0.55rem; margin-top:0.85rem; }
+    .transport-actions { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:0.55rem; margin-top:0.85rem; }
     .transport-actions .btn, .transport-phone-buttons .btn { min-height:64px; justify-content:center; font-size:1.12rem; font-weight:800; padding:.8rem; }
     .transport-status { color:var(--muted); font-size:0.78rem; margin-top:0.45rem; margin-left:2.55rem; }
     .transport-preview { margin-top:0.85rem; min-height:260px; max-height:68vh; display:block; overflow-y:auto; scroll-snap-type:y proximity; }
@@ -686,6 +687,15 @@
     .transport-page-label { position:sticky; top:0.35rem; z-index:2; float:right; margin:0.35rem; padding:0.2rem 0.5rem; border-radius:999px; background:rgba(15,23,42,0.82); color:#fff; font-size:0.72rem; }
     .transport-phone-buttons { display:flex; flex-wrap:wrap; gap:0.55rem; margin-top:0.7rem; }
     .transport-step-nav { display:flex; align-items:center; justify-content:space-between; gap:0.7rem; margin-top:0.9rem; }
+    .gmail-results { max-height:44vh; overflow:auto; display:grid; gap:.45rem; margin-top:.75rem; }
+    .gmail-result { display:grid; grid-template-columns:auto minmax(0,1fr); gap:.65rem; align-items:start; padding:.7rem; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
+    .gmail-result small { display:block; margin-top:.25rem; color:var(--muted); overflow-wrap:anywhere; }
+    .customer-info-list { display:grid; gap:.7rem; margin:.8rem 0; }
+    .customer-info-group { padding:.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
+    .customer-info-group h4 { margin:0 0 .45rem; font-size:.92rem; }
+    .customer-info-entry { padding:.45rem 0; border-top:1px solid var(--border); white-space:pre-wrap; overflow-wrap:anywhere; }
+    .customer-info-entry:first-of-type { border-top:0; }
+    .customer-info-entry small { display:block; color:var(--muted); margin-top:.2rem; }
     .loading-card { max-width:760px; margin-left:auto; margin-right:auto; }
     .loading-progress { height:9px; border-radius:999px; background:var(--border); overflow:hidden; margin:0.75rem 0 1rem; }
     .loading-progress > span { display:block; height:100%; background:var(--success); transition:width .2s; }
@@ -748,7 +758,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.73</div>
+      <div style="font-weight:600; color:var(--text);">v1.74</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -769,6 +779,7 @@
         <p><strong>Raahaa PDF- tai ZIP-tiedostot tähän</strong> tai klikkaa valitaksesi</p>
         <input type="file" id="fileInput" multiple accept=".pdf,.zip,application/pdf,application/zip" hidden />
       </div>
+      <div class="actions" style="margin-top:.8rem;"><button class="btn btn-secondary" id="btnDispatcherGmail" type="button">📧 Hae lähetteet Gmailista</button></div>
       <div class="status-bar" id="uploadStatus" style="margin-top: 1rem; display: none;"></div>
     </div>
 
@@ -869,6 +880,7 @@
           <p><strong>Raahaa omat PDF- tai ZIP-tiedostot tähän</strong> tai klikkaa valitaksesi</p>
           <input type="file" id="driverFileInput" multiple accept=".pdf,.zip,application/pdf,application/zip" hidden />
         </div>
+        <div class="actions" style="margin-top:.8rem;"><button class="btn btn-secondary" id="btnDriverGmail" type="button">📧 Hae lähetteet Gmailista</button></div>
         <div style="margin-top:0.8rem;padding:0.85rem;border:1px solid rgba(100,127,159,.45);border-radius:9px;background:rgba(100,127,159,.09);">
           <button class="btn btn-primary" id="btnLoadReadyDriverRoute" type="button">📥 Lataa valmis ajojärjestys</button>
           <input type="file" id="driverReadyRouteInput" multiple accept=".pdf,application/pdf" hidden />
@@ -935,6 +947,7 @@
           <div id="driverLoadingShipmentBreakdown"></div>
           <button class="btn btn-primary" id="btnOpenDriverTransport" type="button" hidden style="width:100%;justify-content:center;margin-top:1rem;font-size:1.05rem;">🚚 Siirry kuljetusnäkymään</button>
           <button class="btn btn-secondary" id="btnDriverLoadingPreview" type="button" style="width:100%;justify-content:center;margin-top:1rem;">🔍 Esikatselu – koko PDF</button>
+          <button class="btn btn-secondary" id="btnDriverLoadingInfo" type="button" style="width:100%;justify-content:center;margin-top:.55rem;">ℹ️ Kohteen info</button>
           <label for="driverLoadingNote" id="driverLoadingNoteLabel" style="display:block;margin-top:1rem;font-weight:800;">Kuljettajan merkintä PDF:ään</label>
           <textarea class="loading-note" id="driverLoadingNote" placeholder="Kirjoita tähän lastausta tai toimitusta koskeva merkintä…"></textarea>
           <div class="loading-note-status" id="driverLoadingNoteStatus"></div>
@@ -1090,7 +1103,7 @@
         <div>
           <label for="driverFirstName">Kuljettajan nimi</label>
           <input type="text" id="driverFirstName" placeholder="esim. Teemu" autocomplete="given-name" />
-          <div class="modal-file-meta" style="margin-top:0.35rem;">Nimeä käytetään yhdistetyn PDF-tiedoston nimessä, esimerkiksi Teemu01092026.pdf.</div>
+          <div class="modal-file-meta" style="margin-top:0.35rem;">Nimi näkyy lisäämissäsi kohdetiedoissa. PDF-tiedoston nimen kirjoitat itse PDF-listassa.</div>
         </div>
         <div hidden>
           <label for="driverNavigationApp">Navigointisovellus</label>
@@ -1137,14 +1150,15 @@
         </div>
         <div style="padding:.75rem;border:1px solid var(--border);border-radius:8px;">
           <strong>Google Drive -tallennus</strong>
-          <div class="modal-file-meta" style="margin:.2rem 0 .65rem;">Yhdistä Google-tili ja valitse Oma Drive- tai jaettu kansio. Ohjelma päivittää saman päivän PDF-tiedostoa kansiossa.</div>
+          <div class="modal-file-meta" style="margin:.2rem 0 .65rem;">Valitse jaettu <strong>Rahtikirjat</strong>-kansio juurikansioksi. Ohjelma tekee sen alle automaattisesti VVVV/Kuukausi/PPKKVVVV-kansiot sekä AppInfo-kansion.</div>
+          <div class="modal-file-meta" style="margin-bottom:.65rem;">Yhteisten kansioiden ja muiden kuljettajien kohdetietojen käyttöön Google pyytää Driven luku- ja muokkausoikeutta. Googlen lupa on koko Driven laajuinen; ohjelma käsittelee vain valitsemasi juurikansion sisältöä. Hyväksyt luvan Google-kirjautumisessa.</div>
           <label for="googleDriveClientId">Google OAuth -asiakastunnus</label>
           <input type="text" id="googleDriveClientId" placeholder="…apps.googleusercontent.com" autocomplete="off" />
           <label for="googleDriveApiKey" style="display:block;margin-top:.55rem;">Google API-avain</label>
           <input type="password" id="googleDriveApiKey" placeholder="Google Pickerin API-avain" autocomplete="off" />
           <div class="actions" style="margin-top:.7rem;">
             <button class="btn btn-primary" id="btnGoogleDriveConnect" type="button">Yhdistä Google Drive</button>
-            <button class="btn btn-secondary" id="btnGoogleDriveChooseFolder" type="button">Valitse Drive-kansio</button>
+            <button class="btn btn-secondary" id="btnGoogleDriveChooseFolder" type="button">Valitse Rahtikirjat-juurikansio</button>
             <button class="btn btn-secondary" id="btnGoogleDriveDisconnect" type="button">Katkaise yhteys</button>
           </div>
           <div class="status-bar" id="googleDriveStatus" style="display:flex;margin-top:.65rem;">Google Drivea ei ole yhdistetty.</div>
@@ -1155,6 +1169,44 @@
         <button class="btn btn-secondary" id="driverSettingsCancel" type="button">Peruuta</button>
         <button class="btn btn-primary" id="driverSettingsSave" type="button">Tallenna asetukset</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="gmailImportModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="gmailImportTitle" style="max-width:min(760px,96vw);">
+      <h3 id="gmailImportTitle">📧 Hae lähetteet Gmailista</h3>
+      <p class="driver-upload-intro">Valitse päivä. Ohjelma hakee Gmailista vastaanotetut viestit, joissa on PDF-liitteitä. Lähetetyt viestit jätetään pois.</p>
+      <p class="modal-file-meta">Haku käyttää asetuksiin tallennettua Google-asiakastunnusta. Gmail API pitää ottaa käyttöön samassa Google Cloud -projektissa.</p>
+      <button class="btn btn-secondary" id="btnGmailSettings" type="button">⚙️ Google-asetukset</button>
+      <div class="modal-fields"><div><label for="gmailImportDate">Viestien päivämäärä</label><input type="date" id="gmailImportDate" /></div></div>
+      <div class="actions" style="margin-top:.7rem;">
+        <button class="btn btn-primary" id="btnGmailSearch" type="button">Hae PDF-lähetteet</button>
+        <button class="btn btn-secondary" id="btnGmailSelectAll" type="button">Valitse kaikki</button>
+        <button class="btn btn-secondary" id="btnGmailSelectNone" type="button">Poista valinnat</button>
+      </div>
+      <div class="status-bar" id="gmailImportStatus" style="display:flex;margin-top:.7rem;">Valitse päivä ja aloita haku.</div>
+      <div class="gmail-results" id="gmailImportResults"></div>
+      <div class="modal-actions"><button class="btn btn-secondary" id="btnGmailClose" type="button">Sulje</button><button class="btn btn-primary" id="btnGmailImport" type="button" disabled>Tuo valitut PDF:t</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="customerInfoModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="customerInfoTitle" style="max-width:min(700px,96vw);">
+      <h3 id="customerInfoTitle">ℹ️ Kohteen tiedot</h3>
+      <p id="customerInfoStop" class="driver-upload-intro"></p>
+      <div class="status-bar" id="customerInfoStatus" style="display:flex;">Ladataan kohteen tietoja…</div>
+      <div class="customer-info-list" id="customerInfoList"></div>
+      <details id="customerInfoAddPanel" style="margin-top:.8rem;">
+        <summary class="btn btn-primary" style="display:inline-flex;cursor:pointer;">➕ Lisää</summary>
+        <div class="modal-fields" style="margin-top:.8rem;">
+          <div><label for="customerInfoContactName">Yhteyshenkilö / selite</label><input type="text" id="customerInfoContactName" placeholder="Esimerkiksi ravintolapäällikkö" /></div>
+          <div><label for="customerInfoPhone">Puhelinnumero</label><input type="tel" id="customerInfoPhone" placeholder="Esimerkiksi 040 123 4567" /></div>
+          <div><label for="customerInfoDoorCode">Ovikoodi tai kulkuohje</label><input type="text" id="customerInfoDoorCode" placeholder="Esimerkiksi takaovi, koodi 1234" /></div>
+          <div><label for="customerInfoNote">Muu tarpeellinen tieto</label><textarea id="customerInfoNote" rows="4" style="width:100%;resize:vertical;padding:.65rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font:inherit;"></textarea></div>
+        </div>
+        <button class="btn btn-success" id="btnCustomerInfoSave" type="button" style="margin-top:.7rem;">Tallenna AppInfoon</button>
+      </details>
+      <div class="modal-actions"><button class="btn btn-secondary" id="btnCustomerInfoClose" type="button">Sulje</button></div>
     </div>
   </div>
 
@@ -1243,7 +1295,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.73 · Teemu H. Fingerroos · Asennettava PWA · PDF:t lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen · Osoitteita/koordinaatteja käytetään geokoodaukseen ja tieverkkolaskentaan
+    Lähetejako v1.74 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t ja kohdetiedot lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1346,6 +1398,7 @@
     const driverLoadingCargo = document.getElementById("driverLoadingCargo");
     const driverLoadingShipmentBreakdown = document.getElementById("driverLoadingShipmentBreakdown");
     const btnDriverLoadingPreview = document.getElementById("btnDriverLoadingPreview");
+    const btnDriverLoadingInfo = document.getElementById("btnDriverLoadingInfo");
     const driverLoadingPreviewModal = document.getElementById("driverLoadingPreviewModal");
     const driverLoadingPreviewContainer = document.getElementById("driverLoadingPreviewContainer");
     const driverLoadingPreviewFileName = document.getElementById("driverLoadingPreviewFileName");
@@ -1398,6 +1451,22 @@
     const btnGoogleDriveChooseFolder = document.getElementById("btnGoogleDriveChooseFolder");
     const btnGoogleDriveDisconnect = document.getElementById("btnGoogleDriveDisconnect");
     const googleDriveStatus = document.getElementById("googleDriveStatus");
+    const btnDispatcherGmail = document.getElementById("btnDispatcherGmail");
+    const btnDriverGmail = document.getElementById("btnDriverGmail");
+    const gmailImportModal = document.getElementById("gmailImportModal");
+    const gmailImportDate = document.getElementById("gmailImportDate");
+    const gmailImportStatus = document.getElementById("gmailImportStatus");
+    const gmailImportResults = document.getElementById("gmailImportResults");
+    const btnGmailSearch = document.getElementById("btnGmailSearch");
+    const btnGmailImport = document.getElementById("btnGmailImport");
+    const customerInfoModal = document.getElementById("customerInfoModal");
+    const customerInfoStop = document.getElementById("customerInfoStop");
+    const customerInfoStatus = document.getElementById("customerInfoStatus");
+    const customerInfoList = document.getElementById("customerInfoList");
+    const customerInfoContactName = document.getElementById("customerInfoContactName");
+    const customerInfoPhone = document.getElementById("customerInfoPhone");
+    const customerInfoDoorCode = document.getElementById("customerInfoDoorCode");
+    const customerInfoNote = document.getElementById("customerInfoNote");
     const driverPreviewModal = document.getElementById("driverPreviewModal");
     const driverPreviewContainer = document.getElementById("driverPreviewContainer");
     const driverPreviewFileName = document.getElementById("driverPreviewFileName");
@@ -1451,7 +1520,19 @@
     let googleDriveFolderName = "";
     let googleDriveTokenClient = null;
     let googleDriveFileIds = {};
+    let googleDriveFolderIds = {};
     let googleDriveLastSavedAt = "";
+    let gmailAccessToken = "";
+    let gmailTokenExpiresAt = 0;
+    let gmailTokenClient = null;
+    let gmailImportTarget = "driver";
+    let gmailFoundPdfs = [];
+    let customerInfoActiveStop = null;
+    let customerInfoActiveFile = null;
+    let customerInfoRequestId = 0;
+    const googleFolderRequests = new Map();
+    const customerInfoDrafts = new Map();
+    let driverArchiveDate = "";
     let driverLoadingIndex = 0;
     let driverLoadingPreviewFileIndex = 0;
     let driverLoadingPreviewPdfPage = 1;
@@ -1758,7 +1839,8 @@
         combinedPdfBytes: driverCombinedPdfBytes,
         outputFileHandle: driverOutputFileHandle,
         downloadedOutputName: driverDownloadedOutputName,
-        customPdfName: driverCustomPdfName
+        customPdfName: driverCustomPdfName,
+        archiveDate: driverArchiveDate
       };
       const write = async () => {
         let lastError;
@@ -1845,6 +1927,10 @@
         const savedDriveFileIds = JSON.parse(localStorage.getItem("lahetejako_google_drive_file_ids_v1") || "{}");
         if (savedDriveFileIds && typeof savedDriveFileIds === "object" && !Array.isArray(savedDriveFileIds)) googleDriveFileIds = savedDriveFileIds;
       } catch (_) { googleDriveFileIds = {}; }
+      try {
+        const savedDriveFolderIds = JSON.parse(localStorage.getItem("lahetejako_google_drive_folder_ids_v1") || "{}");
+        if (savedDriveFolderIds && typeof savedDriveFolderIds === "object" && !Array.isArray(savedDriveFolderIds)) googleDriveFolderIds = savedDriveFolderIds;
+      } catch (_) { googleDriveFolderIds = {}; }
       const savedLoadingNotes = JSON.parse(localStorage.getItem("lahetejako_driver_loading_notes_v1") || "{}");
       if (savedLoadingNotes && typeof savedLoadingNotes === "object" && !Array.isArray(savedLoadingNotes)) driverLoadingNotes = savedLoadingNotes;
     } catch (_) { /* Google Maps pysyy oletuksena */ }
@@ -1907,6 +1993,7 @@
     function ensureDriverPdfFileName() {
       const normalized = normalizeDriverPdfFileName(driverCustomPdfNameInput?.value || driverCustomPdfName);
       if (!normalized) {
+        openDriverPdfList();
         driverUploadStatus.style.display = "flex";
         driverUploadStatus.innerHTML = `<strong style="color:var(--danger)">Kirjoita ensin yhdistetyn PDF-tiedoston nimi.</strong>`;
         driverCustomPdfNameInput?.focus();
@@ -1927,10 +2014,12 @@
         localStorage.setItem("lahetejako_google_drive_folder_id", googleDriveFolderId);
         localStorage.setItem("lahetejako_google_drive_folder_name", googleDriveFolderName);
         localStorage.setItem("lahetejako_google_drive_file_ids_v1", JSON.stringify(googleDriveFileIds));
+        localStorage.setItem("lahetejako_google_drive_folder_ids_v1", JSON.stringify(googleDriveFolderIds));
       } catch (_) { /* Asetukset toimivat istunnon ajan. */ }
     }
 
     function captureGoogleDriveConfigFromInputs() {
+      if (!driverSettingsModal.classList.contains("open")) return;
       if (googleDriveClientIdInput) googleDriveClientId = googleDriveClientIdInput.value.trim();
       if (googleDriveApiKeyInput) googleDriveApiKey = googleDriveApiKeyInput.value.trim();
       saveGoogleDriveSettings();
@@ -1944,7 +2033,7 @@
       if (!googleDriveStatus) return;
       let text = message;
       if (!text && googleDriveFolderId) {
-        text = `${googleDriveTokenIsValid() ? "✅ Google Drive yhdistetty" : "Drive-kansio valittu – yhdistä tili uudelleen"}: ${googleDriveFolderName || googleDriveFolderId}`;
+        text = `${googleDriveTokenIsValid() ? "✅ Google Drive yhdistetty" : "Rahtikirjat-juurikansio valittu – yhdistä tili uudelleen"}: ${googleDriveFolderName || googleDriveFolderId}`;
         if (googleDriveLastSavedAt) text += ` · PDF päivitetty ${googleDriveLastSavedAt}`;
       } else if (!text && googleDriveTokenIsValid()) {
         text = "✅ Google Drive yhdistetty. Valitse tallennuskansio.";
@@ -1978,7 +2067,7 @@
       await new Promise((resolve, reject) => {
         googleDriveTokenClient = google.accounts.oauth2.initTokenClient({
           client_id: googleDriveClientId,
-          scope: "https://www.googleapis.com/auth/drive.file",
+          scope: "https://www.googleapis.com/auth/drive",
           callback: response => {
             if (response?.error || !response?.access_token) {
               reject(new Error(response?.error_description || response?.error || "Google Drive -käyttöoikeutta ei saatu."));
@@ -2024,6 +2113,10 @@
             if (data.action === google.picker.Action.PICKED) {
               const folder = data.docs?.[0];
               if (!folder?.id) return reject(new Error("Valitusta kansiosta ei saatu tunnistetta."));
+              if (googleDriveFolderId && googleDriveFolderId !== folder.id) {
+                googleDriveFileIds = {};
+                googleDriveFolderIds = {};
+              }
               googleDriveFolderId = folder.id;
               googleDriveFolderName = folder.name || "Valittu Drive-kansio";
               saveGoogleDriveSettings();
@@ -2036,12 +2129,15 @@
         if (appId) builder.setAppId(appId);
         builder.build().setVisible(true);
       });
+      updateGoogleDriveStatus("Luodaan Rahtikirjat-kansion päivämäärä- ja AppInfo-kansiot…");
+      await ensureGoogleDriveDailyFolder();
+      await ensureGoogleDriveAppInfoFolder();
       updateGoogleDriveStatus();
       if (driverCombinedPdfBytes) await uploadDriverPdfToGoogleDrive(new Uint8Array(driverCombinedPdfBytes));
     }
 
-    function googleDriveFileMapKey(fileName = driverRoutePdfName()) {
-      return `${googleDriveFolderId}|${fileName}`;
+    function googleDriveFileMapKey(fileName = driverRoutePdfName(), parentId = googleDriveFolderId) {
+      return `${parentId}|${fileName}`;
     }
 
     function googleDriveQueryEscape(value) {
@@ -2061,18 +2157,78 @@
       return response;
     }
 
-    async function findGoogleDrivePdf(fileName) {
-      const query = `'${googleDriveQueryEscape(googleDriveFolderId)}' in parents and name='${googleDriveQueryEscape(fileName)}' and trashed=false`;
-      const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&spaces=drive&includeItemsFromAllDrives=true&supportsAllDrives=true&fields=files(id,name,modifiedTime,webViewLink)&pageSize=10`;
+    async function findGoogleDriveItem(parentId, name, mimeType = "") {
+      let query = `'${googleDriveQueryEscape(parentId)}' in parents and name='${googleDriveQueryEscape(name)}' and trashed=false`;
+      if (mimeType) query += ` and mimeType='${googleDriveQueryEscape(mimeType)}'`;
+      const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&spaces=drive&includeItemsFromAllDrives=true&supportsAllDrives=true&fields=files(id,name,modifiedTime,webViewLink)&orderBy=createdTime&pageSize=10`;
       const response = await googleDriveFetch(url);
       if (!response.ok) throw new Error(`Drive-tiedoston haku epäonnistui (${response.status}).`);
       const data = await response.json();
       return data.files?.[0] || null;
     }
 
-    async function createGoogleDrivePdf(fileName, bytes) {
+    async function createGoogleDriveFolder(parentId, name) {
+      const response = await googleDriveFetch("https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id,name,webViewLink", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ name, mimeType:"application/vnd.google-apps.folder", parents:[parentId] })
+      });
+      if (!response.ok) throw new Error(`Drive-kansion ${name} luonti epäonnistui (${response.status}): ${await response.text()}`);
+      return await response.json();
+    }
+
+    async function ensureGoogleDriveFolderPath(names) {
+      let parentId = googleDriveFolderId;
+      const traversed = [];
+      for (const name of names) {
+        traversed.push(name);
+        const cacheKey = `${googleDriveFolderId}|${traversed.join("/")}`;
+        if (!googleFolderRequests.has(cacheKey)) {
+          const parent = parentId;
+          const pending = (async () => {
+            const existing = await findGoogleDriveItem(parent, name, "application/vnd.google-apps.folder");
+            return existing?.id || (await createGoogleDriveFolder(parent, name)).id;
+          })();
+          googleFolderRequests.set(cacheKey, pending);
+        }
+        try { parentId = await googleFolderRequests.get(cacheKey); }
+        finally { googleFolderRequests.delete(cacheKey); }
+      }
+      return parentId;
+    }
+
+    const FINNISH_MONTH_NAMES = ["Tammikuu", "Helmikuu", "Maaliskuu", "Huhtikuu", "Toukokuu", "Kesäkuu", "Heinäkuu", "Elokuu", "Syyskuu", "Lokakuu", "Marraskuu", "Joulukuu"];
+
+    function driverArchiveDay() {
+      return driverArchiveDate ? new Date(`${driverArchiveDate}T12:00:00`) : new Date();
+    }
+
+    function googleDriveDailyFolderNames(date = driverArchiveDay()) {
+      const dd = String(date.getDate()).padStart(2, "0");
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const yyyy = String(date.getFullYear());
+      return [yyyy, FINNISH_MONTH_NAMES[date.getMonth()], `${dd}${mm}${yyyy}`];
+    }
+
+    function googleDriveDailyPathText(date = driverArchiveDay()) {
+      return [googleDriveFolderName || "Rahtikirjat", ...googleDriveDailyFolderNames(date)].join("/");
+    }
+
+    async function ensureGoogleDriveDailyFolder(date = driverArchiveDay()) {
+      return await ensureGoogleDriveFolderPath(googleDriveDailyFolderNames(date));
+    }
+
+    async function ensureGoogleDriveAppInfoFolder() {
+      return await ensureGoogleDriveFolderPath(["AppInfo"]);
+    }
+
+    async function findGoogleDrivePdf(fileName, parentId) {
+      return await findGoogleDriveItem(parentId, fileName, "application/pdf");
+    }
+
+    async function createGoogleDrivePdf(fileName, bytes, parentId) {
       const boundary = `lahetejako_${crypto.randomUUID().replace(/-/g, "")}`;
-      const metadata = JSON.stringify({ name:fileName, mimeType:"application/pdf", parents:[googleDriveFolderId] });
+      const metadata = JSON.stringify({ name:fileName, mimeType:"application/pdf", parents:[parentId] });
       const body = new Blob([
         `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
         `--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`,
@@ -2101,14 +2257,15 @@
         updateGoogleDriveStatus("Drive-kansio on valittu, mutta Google-istunto pitää yhdistää uudelleen ennen verkkotallennusta.");
         return false;
       }
-      const fileName = driverRoutePdfName();
-      const mapKey = googleDriveFileMapKey(fileName);
-      updateGoogleDriveStatus(`Tallennetaan ${fileName} Google Driveen…`);
       try {
+        const fileName = driverRoutePdfName();
+        const dailyFolderId = await ensureGoogleDriveDailyFolder();
+        const mapKey = googleDriveFileMapKey(fileName, dailyFolderId);
+        updateGoogleDriveStatus(`Tallennetaan ${googleDriveDailyPathText()}/${fileName}…`);
         let fileId = googleDriveFileIds[mapKey] || "";
-        if (!fileId) fileId = (await findGoogleDrivePdf(fileName))?.id || "";
+        if (!fileId) fileId = (await findGoogleDrivePdf(fileName, dailyFolderId))?.id || "";
         let saved = fileId ? await updateGoogleDrivePdf(fileId, bytes) : null;
-        if (!saved) saved = await createGoogleDrivePdf(fileName, bytes);
+        if (!saved) saved = await createGoogleDrivePdf(fileName, bytes, dailyFolderId);
         googleDriveFileIds[mapKey] = saved.id;
         googleDriveLastSavedAt = new Intl.DateTimeFormat("fi-FI", { hour:"2-digit", minute:"2-digit" }).format(new Date());
         saveGoogleDriveSettings();
@@ -2121,15 +2278,265 @@
       }
     }
 
+    function gmailTokenIsValid() {
+      return !!gmailAccessToken && Date.now() < gmailTokenExpiresAt - 60000;
+    }
+
+    async function connectGmail() {
+      captureGoogleDriveConfigFromInputs();
+      if (!googleDriveClientId || !googleDriveClientId.endsWith(".apps.googleusercontent.com")) {
+        throw new Error("Lisää Google OAuth -asiakastunnus Kuljettajan asetuksiin.");
+      }
+      if (!/^https:$/i.test(location.protocol) && !/^http:$/.test(location.protocol)) {
+        throw new Error("Gmail-kirjautuminen toimii julkaistulla HTTPS-sivulla, ei suoraan tiedostosta avattuna.");
+      }
+      await waitForGoogleGlobal(() => !!window.google?.accounts?.oauth2, "Google-kirjautuminen");
+      await new Promise((resolve, reject) => {
+        gmailTokenClient = google.accounts.oauth2.initTokenClient({
+          client_id:googleDriveClientId,
+          scope:"https://www.googleapis.com/auth/gmail.readonly",
+          include_granted_scopes:false,
+          callback:response => {
+            if (response?.error || !response?.access_token) return reject(new Error(response?.error_description || response?.error || "Gmail-lukuoikeutta ei saatu."));
+            gmailAccessToken = response.access_token;
+            gmailTokenExpiresAt = Date.now() + Math.max(60, Number(response.expires_in) || 3600) * 1000;
+            resolve();
+          },
+          error_callback:error => reject(new Error(error?.message || error?.type || "Gmail-kirjautuminen keskeytyi."))
+        });
+        gmailTokenClient.requestAccessToken({ prompt:gmailAccessToken ? "" : "consent" });
+      });
+    }
+
+    async function gmailApi(path) {
+      if (!gmailTokenIsValid()) await connectGmail();
+      const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, { headers:{ Authorization:`Bearer ${gmailAccessToken}` } });
+      if (response.status === 401) { gmailAccessToken = ""; gmailTokenExpiresAt = 0; }
+      if (!response.ok) throw new Error(`Gmail-haku epäonnistui (${response.status}): ${await response.text()}`);
+      return await response.json();
+    }
+
+    function gmailDateEpochs(dateString) {
+      const start = new Date(`${dateString}T00:00:00`);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      return { after:Math.floor(start.getTime() / 1000), before:Math.floor(end.getTime() / 1000) };
+    }
+
+    function gmailHeader(headers, name) {
+      return headers?.find(header => String(header.name).toLowerCase() === name.toLowerCase())?.value || "";
+    }
+
+    function collectGmailPdfParts(part, target, message) {
+      if (!part) return;
+      const fileName = part.filename || "";
+      if (/\.pdf$/i.test(fileName) && (part.body?.attachmentId || part.body?.data)) {
+        target.push({ messageId:message.id, attachmentId:part.body.attachmentId || "", inlineData:part.body.data || "", fileName, from:gmailHeader(message.payload?.headers, "From"), subject:gmailHeader(message.payload?.headers, "Subject") });
+      }
+      (part.parts || []).forEach(child => collectGmailPdfParts(child, target, message));
+    }
+
+    async function searchGmailPdfs(dateString) {
+      const { after, before } = gmailDateEpochs(dateString);
+      const ids = [];
+      let pageToken = "";
+      do {
+        const params = new URLSearchParams({ q:`after:${after} before:${before} has:attachment filename:pdf -in:sent`, maxResults:"500" });
+        if (pageToken) params.set("pageToken", pageToken);
+        const data = await gmailApi(`messages?${params}`);
+        (data.messages || []).forEach(message => ids.push(message.id));
+        pageToken = data.nextPageToken || "";
+      } while (pageToken);
+      const found = [];
+      for (let start = 0; start < ids.length; start += 8) {
+        gmailImportStatus.textContent = `Luetaan viestejä ${Math.min(start + 8, ids.length)}/${ids.length}…`;
+        const messages = await Promise.all(ids.slice(start, start + 8).map(id => gmailApi(`messages/${id}?format=full`)));
+        messages.forEach(message => collectGmailPdfParts(message.payload, found, message));
+      }
+      return found;
+    }
+
+    function renderGmailImportResults() {
+      gmailImportResults.innerHTML = gmailFoundPdfs.length ? gmailFoundPdfs.map((item, index) => `
+        <label class="gmail-result"><input type="checkbox" data-gmail-result="${index}" checked><span><strong>${escapeHtml(item.fileName)}</strong><small>Lähettäjä: ${escapeHtml(item.from || "–")}<br>Aihe: ${escapeHtml(item.subject || "–")}</small></span></label>
+      `).join("") : `<div class="modal-file-meta">Valitulta päivältä ei löytynyt PDF-liitteitä.</div>`;
+      btnGmailImport.disabled = !gmailFoundPdfs.length;
+    }
+
+    function openGmailImport(target) {
+      gmailImportTarget = target;
+      gmailFoundPdfs = [];
+      gmailImportResults.innerHTML = "";
+      const today = new Date();
+      gmailImportDate.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      gmailImportStatus.textContent = "Valitse päivä ja aloita haku.";
+      btnGmailImport.disabled = true;
+      gmailImportModal.classList.add("open");
+    }
+
+    function gmailBase64UrlToBytes(value) {
+      const base64 = String(value || "").replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(String(value || "").length / 4) * 4, "=");
+      const binary = atob(base64);
+      return Uint8Array.from(binary, character => character.charCodeAt(0));
+    }
+
+    async function downloadGmailPdf(item) {
+      const encoded = item.inlineData || (await gmailApi(`messages/${item.messageId}/attachments/${item.attachmentId}`)).data;
+      return new File([gmailBase64UrlToBytes(encoded)], item.fileName, { type:"application/pdf" });
+    }
+
+    function stableInfoHash(value) {
+      let hash = 2166136261;
+      for (const character of value) { hash ^= character.codePointAt(0); hash = Math.imul(hash, 16777619); }
+      return (hash >>> 0).toString(16).padStart(8, "0");
+    }
+
+    function customerInfoIdentity(stop) {
+      const address = String(stop?.address || stop?.postalCode || "").trim();
+      const recipient = String(stop?.recipient || "Tuntematon kohde").trim();
+      const key = `${address}|${recipient}`.normalize("NFC").toLocaleLowerCase("fi-FI").replace(/[,;]+/g, " ").replace(/\s+/g, " ").trim();
+      const base = key.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 55) || "kohde";
+      return { key, address, recipient, fileName:`${base}-${stableInfoHash(key)}.json` };
+    }
+
+    async function readCustomerInfoFile(fileId) {
+      const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`);
+      if (!response.ok) throw new Error(`Kohdetietojen lataus epäonnistui (${response.status}).`);
+      const data = await response.json();
+      if (!Array.isArray(data.entries)) data.entries = [];
+      return data;
+    }
+
+    async function writeCustomerInfoFile(parentId, fileName, data, fileId = "") {
+      const bytes = new TextEncoder().encode(JSON.stringify(data, null, 2));
+      if (fileId) {
+        const response = await googleDriveFetch(`https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(fileId)}?uploadType=media&supportsAllDrives=true&fields=id,name,modifiedTime`, { method:"PATCH", headers:{ "Content-Type":"application/json; charset=UTF-8" }, body:bytes });
+        if (!response.ok) throw new Error(`Kohdetietojen päivitys epäonnistui (${response.status}): ${await response.text()}`);
+        return await response.json();
+      }
+      const boundary = `appinfo_${crypto.randomUUID().replace(/-/g, "")}`;
+      const metadata = JSON.stringify({ name:fileName, mimeType:"application/json", parents:[parentId] });
+      const body = new Blob([`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,bytes,`\r\n--${boundary}--`], { type:`multipart/related; boundary=${boundary}` });
+      const response = await googleDriveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,modifiedTime", { method:"POST", headers:{ "Content-Type":`multipart/related; boundary=${boundary}` }, body });
+      if (!response.ok) throw new Error(`Kohdetiedoston luonti epäonnistui (${response.status}): ${await response.text()}`);
+      return await response.json();
+    }
+
+    function renderCustomerInfo(data) {
+      const entries = Array.isArray(data?.entries) ? data.entries : [];
+      customerInfoList.innerHTML = entries.length ? entries.slice().reverse().map(entry => `<div class="customer-info-group">
+        ${entry.contactName ? `<h4>${escapeHtml(entry.contactName)}</h4>` : ""}
+        ${entry.phone ? `<div class="customer-info-entry"><strong>Puhelin:</strong> <a href="tel:${escapeHtml(String(entry.phone).replace(/[^+\d]/g, ""))}">${escapeHtml(entry.phone)}</a></div>` : ""}
+        ${entry.doorCode ? `<div class="customer-info-entry"><strong>Ovikoodi / kulku:</strong> ${escapeHtml(entry.doorCode)}</div>` : ""}
+        ${entry.note ? `<div class="customer-info-entry"><strong>Lisätieto:</strong> ${escapeHtml(entry.note)}</div>` : ""}
+        <small>${escapeHtml(entry.createdBy || "Käyttäjä")} · ${escapeHtml(entry.createdAt ? new Date(entry.createdAt).toLocaleString("fi-FI") : "")}</small>
+      </div>`).join("") : `<div class="modal-file-meta">Tälle kohteelle ei ole vielä lisätietoja.</div>`;
+    }
+
+    async function openCustomerInfo(stop) {
+      rememberCustomerInfoDraft();
+      const requestId = ++customerInfoRequestId;
+      const rootId = googleDriveFolderId;
+      customerInfoActiveStop = stop;
+      customerInfoActiveFile = null;
+      const identity = customerInfoIdentity(stop);
+      const draft = customerInfoDrafts.get(`${rootId}|${identity.key}`) || {};
+      customerInfoContactName.value = draft.contactName || "";
+      customerInfoPhone.value = draft.phone || "";
+      customerInfoDoorCode.value = draft.doorCode || "";
+      customerInfoNote.value = draft.note || "";
+      document.getElementById("customerInfoAddPanel").open = false;
+      document.getElementById("btnCustomerInfoSave").disabled = true;
+      customerInfoStop.textContent = `${identity.recipient} · ${identity.address || "Osoite puuttuu"}`;
+      customerInfoStatus.textContent = "Ladataan kohteen tietoja…";
+      customerInfoList.innerHTML = "";
+      customerInfoModal.classList.add("open");
+      try {
+        if (!stop?.address?.trim()) throw new Error("Tarkista ensin kohteen toimitusosoite esikatselussa.");
+        if (!googleDriveFolderId) throw new Error("Valitse ensin Kuljettajan asetuksista Rahtikirjat-juurikansio.");
+        if (!googleDriveTokenIsValid()) await connectGoogleDrive();
+        const appInfoFolderId = await ensureGoogleDriveAppInfoFolder();
+        const data = await loadCustomerInfoEntries(appInfoFolderId, identity);
+        if (requestId !== customerInfoRequestId || rootId !== googleDriveFolderId) return;
+        customerInfoActiveFile = { parentId:appInfoFolderId, rootId, fileName:identity.fileName, identity, data };
+        renderCustomerInfo(data);
+        customerInfoStatus.textContent = `${googleDriveFolderName || "Rahtikirjat"}/AppInfo · yhteiset kohdetiedot`;
+        document.getElementById("btnCustomerInfoSave").disabled = false;
+      } catch (error) {
+        if (requestId !== customerInfoRequestId) return;
+        customerInfoStatus.innerHTML = `<strong style="color:var(--danger)">${escapeHtml(error.message || String(error))}</strong>`;
+      }
+    }
+
+    function rememberCustomerInfoDraft() {
+      if (!customerInfoActiveStop) return;
+      const identity = customerInfoIdentity(customerInfoActiveStop);
+      const key = `${customerInfoActiveFile?.rootId || googleDriveFolderId}|${identity.key}`;
+      customerInfoDrafts.set(key, { contactName:customerInfoContactName.value, phone:customerInfoPhone.value, doorCode:customerInfoDoorCode.value, note:customerInfoNote.value });
+    }
+
+    async function loadCustomerInfoEntries(parentId, identity) {
+      const prefix = identity.fileName.replace(/\.json$/, "");
+      const q = `'${googleDriveQueryEscape(parentId)}' in parents and trashed=false and mimeType='application/json' and name contains '${googleDriveQueryEscape(prefix)}'`;
+      const files = [];
+      let pageToken = "";
+      do {
+        const params = new URLSearchParams({q, pageSize:"1000", spaces:"drive", supportsAllDrives:"true", includeItemsFromAllDrives:"true", fields:"nextPageToken,files(id,name)"});
+        if (pageToken) params.set("pageToken", pageToken);
+        const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files?${params}`);
+        if (!response.ok) throw new Error(`Kohdetietojen haku epäonnistui (${response.status}).`);
+        const data = await response.json();
+        files.push(...(data.files || []));
+        pageToken = data.nextPageToken || "";
+      } while (pageToken);
+      const entries = [];
+      for (const file of files) {
+        const data = await readCustomerInfoFile(file.id);
+        if (data.key === identity.key) entries.push(...data.entries);
+      }
+      const unique = new Map(entries.map(entry => [entry.id || JSON.stringify(entry), entry]));
+      return {version:2, key:identity.key, address:identity.address, recipient:identity.recipient, entries:[...unique.values()].sort((a,b) => String(a.createdAt).localeCompare(String(b.createdAt)))};
+    }
+
+    async function saveCustomerInfo() {
+      if (!customerInfoActiveStop || !customerInfoActiveFile) return;
+      const target = customerInfoActiveFile;
+      if (target.rootId !== googleDriveFolderId) return;
+      const entry = { id:crypto.randomUUID(), contactName:customerInfoContactName.value.trim(), phone:customerInfoPhone.value.trim(), doorCode:customerInfoDoorCode.value.trim(), note:customerInfoNote.value.trim(), createdAt:new Date().toISOString(), createdBy:[driverName, driverPlate].filter(Boolean).join(" / ") || "Kuljettaja" };
+      if (!entry.contactName && !entry.phone && !entry.doorCode && !entry.note) return alert("Kirjoita vähintään yksi lisätieto.");
+      const button = document.getElementById("btnCustomerInfoSave");
+      button.disabled = true;
+      customerInfoStatus.textContent = "Tallennetaan kohdetietoa…";
+      try {
+        // Jokainen lisäys on oma tiedosto: samanaikaiset käyttäjät eivät korvaa toistensa tietoja.
+        const data = {version:2, ...target.identity, entries:[entry]};
+        const fileName = target.fileName.replace(/\.json$/, `-${entry.id}.json`);
+        await writeCustomerInfoFile(target.parentId, fileName, data);
+        target.data.entries.push(entry);
+        if (customerInfoActiveFile !== target) return;
+        [customerInfoContactName, customerInfoPhone, customerInfoDoorCode, customerInfoNote].forEach(input => { input.value = ""; });
+        customerInfoDrafts.delete(`${target.rootId}|${target.identity.key}`);
+        renderCustomerInfo(target.data);
+        customerInfoStatus.textContent = `Tallennettu Rahtikirjat/AppInfo-kansioon klo ${new Intl.DateTimeFormat("fi-FI", { hour:"2-digit", minute:"2-digit" }).format(new Date())}.`;
+      } catch (error) {
+        if (customerInfoActiveFile !== target) return;
+        customerInfoStatus.innerHTML = `<strong style="color:var(--danger)">${escapeHtml(error.message || String(error))}</strong>`;
+      } finally { if (customerInfoActiveFile === target) button.disabled = false; }
+    }
+
     function disconnectGoogleDrive() {
       const token = googleDriveAccessToken;
+      const gmailToken = gmailAccessToken;
       googleDriveAccessToken = "";
       googleDriveTokenExpiresAt = 0;
+      gmailAccessToken = "";
+      gmailTokenExpiresAt = 0;
       googleDriveFolderId = "";
       googleDriveFolderName = "";
       googleDriveLastSavedAt = "";
       saveGoogleDriveSettings();
       if (token && window.google?.accounts?.oauth2?.revoke) google.accounts.oauth2.revoke(token, () => {});
+      if (gmailToken && gmailToken !== token && window.google?.accounts?.oauth2?.revoke) google.accounts.oauth2.revoke(gmailToken, () => {});
       updateGoogleDriveStatus();
     }
 
@@ -2147,7 +2554,7 @@
         description = `Sovelluksen pysyvä laitetallennus: <strong style="color:var(--text)">${escapeHtml(driverRoutePdfName())}</strong>. Ulkoista kansiota ei ole vielä valittu.`;
       }
       if (googleDriveFolderId) {
-        description += ` Google Drive: <strong style="color:var(--text)">${escapeHtml(googleDriveFolderName || googleDriveFolderId)}</strong>${googleDriveTokenIsValid() ? " (yhdistetty)" : " (yhdistä tili uudelleen)"}.`;
+        description += ` Google Drive: <strong style="color:var(--text)">${escapeHtml(googleDriveDailyPathText())}/${escapeHtml(requestedName || driverRoutePdfName())}</strong>${googleDriveTokenIsValid() ? " (yhdistetty)" : " (yhdistä tili uudelleen)"}.`;
       }
       const content = `<strong style="color:var(--text)">PDF-tallennus:</strong> ${description}<div style="margin-top:.25rem;font-size:.75rem;">Selain ei turvallisuussyistä näytä valitun kansion koko polkua.</div>`;
       document.querySelectorAll(".driver-pdf-save-destination").forEach(element => { element.innerHTML = content; });
@@ -2176,6 +2583,11 @@
     async function writeDriverOutputFile(bytes, { downloadFallback = false } = {}) {
       const normalized = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
       driverCombinedPdfBytes = normalized.buffer.slice(normalized.byteOffset, normalized.byteOffset + normalized.byteLength);
+      if (!driverArchiveDate) {
+        const today = new Date();
+        driverArchiveDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      }
+      await saveDriverSessionNow();
       let writtenOver = false;
       if (driverOutputFileHandle) {
         try {
@@ -2232,6 +2644,7 @@
           <span class="driver-file-name">📄 ${escapeHtml(file.name)}</span>
           <span class="driver-file-meta">
             <span class="driver-file-size">${formatDriverFileSize(file.size)}</span>
+            <button type="button" class="driver-preview-btn driver-info-button" data-driver-info-index="${index}" title="Näytä kohteen lisätiedot">ℹ️ Info</button>
             <button type="button" class="driver-preview-btn" data-driver-preview-index="${index}" title="Tarkista osoite PDF:stä" aria-label="Tarkista osoite tiedostosta ${escapeHtml(file.name)}">🔍</button>
           </span>
         </div>
@@ -2385,7 +2798,7 @@
     }
 
     function findDriverRouteStop(stopId) {
-      return [...(driverRouteState?.ordered || []), ...(driverRouteState?.unresolved || [])]
+      return [...(driverRouteState?.ordered || []), ...(driverRouteState?.unresolved || []), ...(driverRouteState?.manualCandidates || [])]
         .find(item => item.id === stopId);
     }
 
@@ -2589,6 +3002,7 @@
           </div>
           <div class="transport-actions">
             <button class="btn btn-secondary" type="button" data-transport-action="preview">🔍 Esikatselu</button>
+            <button class="btn btn-secondary" type="button" data-transport-action="info">ℹ️ Kohteen info</button>
             <button class="btn btn-primary" type="button" data-transport-action="navigate">🧭 Navigointi</button>
             <button class="btn btn-secondary" type="button" data-transport-action="confirmation">✍️ Kuittaus</button>
             <button class="btn btn-secondary" type="button" data-transport-action="reservations">📝 Varaumat</button>
@@ -2871,6 +3285,7 @@
         driverLoadingCargoLabel.textContent = "Seuraava vaihe";
         driverLoadingCargo.textContent = item.nextLoadNumber ? `Kuorma ${item.nextLoadNumber}` : "Päivä valmis";
         btnDriverLoadingPreview.style.display = "none";
+        btnDriverLoadingInfo.style.display = "none";
         driverLoadingNoteLabel.style.display = "none";
         driverLoadingNote.style.display = "none";
         driverLoadingNoteStatus.style.display = "none";
@@ -2887,6 +3302,7 @@
         driverLoadingCargoLabel.textContent = "Seuraava vaihe";
         driverLoadingCargo.textContent = "Tallenna päivitetty PDF";
         btnDriverLoadingPreview.style.display = "none";
+        btnDriverLoadingInfo.style.display = "none";
         driverLoadingNoteLabel.style.display = "none";
         driverLoadingNote.style.display = "none";
         driverLoadingNoteStatus.style.display = "none";
@@ -2911,6 +3327,7 @@
       driverLoadingTracking.innerHTML = driverLoadingTrackingHtml(stop);
       driverLoadingShipmentBreakdown.innerHTML = "";
       btnDriverLoadingPreview.style.display = "flex";
+      btnDriverLoadingInfo.style.display = "flex";
       driverLoadingNoteLabel.style.display = "block";
       driverLoadingNote.style.display = "block";
       driverLoadingNoteStatus.style.display = "block";
@@ -3507,14 +3924,14 @@
         <div class="driver-route-stop${driverStopUnloadRecommendation(stop).recommended ? " unloadable" : ""}" draggable="true" data-driver-stop-id="${escapeHtml(stop.id)}" ${stop.geo ? "" : 'style="border-color:rgba(245,158,11,0.55)"'} title="Raahaa pysähdys uuteen kohtaan">
           <span class="driver-route-number" ${stop.geo ? "" : 'style="background:var(--warning)"'}>${index + 1}</span>
           <div><strong>${escapeHtml(stop.recipient)}</strong><div class="driver-route-address">${stop.geo ? "" : "Ei karttapistettä · "}${escapeHtml(stop.address || stop.postalCode)}</div>${driverRouteUnloadBadgeHtml(stop)}</div>
-          <span class="driver-route-tools"><span class="driver-route-pdfs">☰ &nbsp;${stop.pdfCount} PDF</span><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-preview="${escapeHtml(stop.id)}" title="Esikatsele tämän keikan PDF">🔍</button></span>
+          <span class="driver-route-tools"><span class="driver-route-pdfs">☰ &nbsp;${stop.pdfCount} PDF</span><button type="button" class="driver-preview-btn driver-info-button" draggable="false" data-driver-route-info="${escapeHtml(stop.id)}" title="Näytä kohteen lisätiedot">ℹ️ Info</button><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-preview="${escapeHtml(stop.id)}" title="Esikatsele tämän keikan PDF">🔍</button></span>
         </div>
         ${breakByAfter.has(index + 1) ? (() => { const loadBreak = breakByAfter.get(index + 1); return `<div class="driver-route-stop" style="border-color:rgba(168,85,247,0.7);background:rgba(168,85,247,0.08)"><span class="driver-route-number" style="background:#a855f7">L${loadBreak.loadNumber}</span><div><strong>Lastaus ${loadBreak.loadNumber}</strong><div class="driver-route-address">Palaa lähtö-/lastausosoitteeseen: ${escapeHtml(driverStartAddress.value.trim())}</div></div><span class="driver-route-pdfs">${loadBreak.forced ? "Kapasiteetti" : "Käsin"}</span></div>`; })() : ""}
       `).join("") + unresolved.map(stop => `
         <div class="driver-route-stop${driverStopUnloadRecommendation(stop).recommended ? " unloadable" : ""}" draggable="true" data-driver-stop-id="${escapeHtml(stop.id)}" style="border-color:rgba(245,158,11,0.55)" title="Karttapiste puuttuu – raahaa keikka haluamaasi kohtaan ajojärjestyksessä">
           <span class="driver-route-number" style="background:var(--warning)">!</span>
           <div><strong>${escapeHtml(stop.recipient)}</strong><div class="driver-route-address">Osoitetta ei löytynyt kartalta: ${escapeHtml(stop.address || stop.postalCode || "puuttuu")} · raahaa ajojärjestykseen</div>${driverRouteUnloadBadgeHtml(stop)}</div>
-          <span class="driver-route-tools"><span class="driver-route-pdfs">☰ &nbsp;${stop.pdfCount} PDF</span><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-preview="${escapeHtml(stop.id)}" title="Esikatsele tämän keikan PDF">🔍</button></span>
+          <span class="driver-route-tools"><span class="driver-route-pdfs">☰ &nbsp;${stop.pdfCount} PDF</span><button type="button" class="driver-preview-btn driver-info-button" draggable="false" data-driver-route-info="${escapeHtml(stop.id)}" title="Näytä kohteen lisätiedot">ℹ️ Info</button><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-preview="${escapeHtml(stop.id)}" title="Esikatsele tämän keikan PDF">🔍</button></span>
         </div>
       `).join("");
       driverManualActions.style.display = "none";
@@ -3542,11 +3959,11 @@
         <div class="driver-route-stop${driverStopUnloadRecommendation(stop).recommended ? " unloadable" : ""}">
           <span class="driver-route-number">${index + 1}</span>
           <div><strong>${escapeHtml(stop.recipient)}</strong><div class="driver-route-address">${escapeHtml(stop.address || stop.postalCode)}</div>${driverRouteUnloadBadgeHtml(stop)}</div>
-          <span class="driver-route-tools"><span class="driver-route-pdfs">${stop.pdfCount} PDF</span><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-preview="${escapeHtml(stop.id)}" title="Esikatsele tämän keikan PDF">🔍</button></span>
+          <span class="driver-route-tools"><span class="driver-route-pdfs">${stop.pdfCount} PDF</span><button type="button" class="driver-preview-btn driver-info-button" draggable="false" data-driver-route-info="${escapeHtml(stop.id)}" title="Näytä kohteen lisätiedot">ℹ️ Info</button><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-preview="${escapeHtml(stop.id)}" title="Esikatsele tämän keikan PDF">🔍</button></span>
         </div>
         ${breakByAfter.has(index + 1) ? (() => { const loadBreak = breakByAfter.get(index + 1); return `<div class="driver-route-stop" style="border-color:rgba(168,85,247,0.7);background:rgba(168,85,247,0.08)"><span class="driver-route-number" style="background:#a855f7">L${loadBreak.loadNumber}</span><div><strong>Lastaus ${loadBreak.loadNumber}</strong><div class="driver-route-address">Paluu lastausosoitteeseen</div></div><span class="driver-route-pdfs">${loadBreak.forced ? "Pakotettu" : "Käsin"}</span></div>`; })() : ""}
       `).join("") + (remaining.length ? `<div style="color:var(--muted);padding:0.65rem 0;">${remaining.length} pysähdystä odottaa valintaa kartalta.</div>` : "") +
-        unresolved.map(stop => `<div style="color:var(--warning);padding:0.35rem 0;">⚠️ ${escapeHtml(stop.recipient)} – osoitetta ei voitu sijoittaa kartalle</div>`).join("");
+        unresolved.map(stop => `<div class="driver-route-stop" style="border-color:rgba(245,158,11,.55);"><span class="driver-route-number" style="background:var(--warning)">!</span><div style="color:var(--warning)">⚠️ ${escapeHtml(stop.recipient)} – osoitetta ei voitu sijoittaa kartalle</div><button type="button" class="driver-preview-btn driver-info-button" data-driver-route-info="${escapeHtml(stop.id)}" title="Näytä kohteen lisätiedot">ℹ️ Info</button></div>`).join("");
       driverManualActions.style.display = remaining.length || ordered.length ? "flex" : "none";
       btnOptimizeDriverRemainder.disabled = !ordered.length || !remaining.length;
       const manualBreaks = activeBreaks.filter(item => !item.forced);
@@ -3937,7 +4354,19 @@
     driverSettingsModal.addEventListener("click", event => {
       if (event.target === driverSettingsModal) driverSettingsModal.classList.remove("open");
     });
-    driverFileList.addEventListener("click", event => {
+    driverFileList.addEventListener("click", async event => {
+      const infoButton = event.target.closest("[data-driver-info-index]");
+      if (infoButton) {
+        const file = driverPdfFiles[Number(infoButton.dataset.driverInfoIndex)];
+        if (!file) return;
+        infoButton.disabled = true;
+        try {
+          const extracted = await extractFromPdf(file);
+          await openCustomerInfo({...extracted, address:driverAddressOverrides.get(driverFileKey(file)) || correctedExtractedAddress(extracted)?.address || extracted.address || ""});
+        } catch (error) { alert("Kohdetietojen avaaminen epäonnistui: " + error.message); }
+        finally { infoButton.disabled = false; }
+        return;
+      }
       const button = event.target.closest("[data-driver-preview-index]");
       if (!button) return;
       driverPreviewIndex = Number(button.dataset.driverPreviewIndex) || 0;
@@ -4063,6 +4492,8 @@
         driverLoadingPreviewFileIndex = 0;
         driverLoadingPreviewPdfPage = 1;
         renderDriverLoadingPreview();
+      } else if (action === "info") {
+        openCustomerInfo(stop);
       } else if (action === "navigate") {
         const destination = stop.geo?.manual
           ? `${Number(stop.geo.lat).toFixed(6)},${Number(stop.geo.lon).toFixed(6)}`
@@ -4143,6 +4574,10 @@
       driverLoadingPreviewFileIndex = 0;
       driverLoadingPreviewPdfPage = 1;
       renderDriverLoadingPreview();
+    });
+    btnDriverLoadingInfo.addEventListener("click", () => {
+      const item = driverLoadingItems()[driverLoadingIndex];
+      if (item?.kind === "stop") openCustomerInfo(item.stop);
     });
     driverLoadingTracking.addEventListener("click", event => {
       const button = event.target.closest("[data-loading-unloadable]");
@@ -4253,6 +4688,12 @@
       await saveDriverSessionNow();
     });
     driverRouteList.addEventListener("click", event => {
+      const infoButton = event.target.closest("[data-driver-route-info]");
+      if (infoButton) {
+        const infoStop = findDriverRouteStop(infoButton.dataset.driverRouteInfo);
+        if (infoStop) openCustomerInfo(infoStop);
+        return;
+      }
       const previewButton = event.target.closest("[data-driver-route-preview]");
       if (!previewButton) return;
       const stop = findDriverRouteStop(previewButton.dataset.driverRoutePreview);
@@ -4263,7 +4704,7 @@
       renderDriverLoadingPreview();
     });
     driverRouteList.addEventListener("dragstart", event => {
-      if (event.target.closest("[data-driver-route-preview]")) return event.preventDefault();
+      if (event.target.closest("[data-driver-route-preview], [data-driver-route-info]")) return event.preventDefault();
       const row = event.target.closest("[data-driver-stop-id]");
       if (!row || !driverRouteState) return;
       draggedDriverStopId = row.dataset.driverStopId;
@@ -4310,6 +4751,58 @@
       draggedDriverStopId = null;
       driverRouteList.querySelectorAll(".dragging, .drag-target").forEach(item => item.classList.remove("dragging", "drag-target"));
     });
+
+    btnDispatcherGmail.addEventListener("click", () => openGmailImport("dispatcher"));
+    document.getElementById("btnGmailSettings").addEventListener("click", () => {gmailImportModal.classList.remove("open"); btnDriverSettings.click();});
+    btnDriverGmail.addEventListener("click", () => openGmailImport("driver"));
+    document.getElementById("btnGmailClose").addEventListener("click", () => gmailImportModal.classList.remove("open"));
+    gmailImportModal.addEventListener("click", event => { if (event.target === gmailImportModal) gmailImportModal.classList.remove("open"); });
+    btnGmailSearch.addEventListener("click", async () => {
+      if (!gmailImportDate.value) return alert("Valitse ensin päivämäärä.");
+      btnGmailSearch.disabled = true;
+      btnGmailImport.disabled = true;
+      gmailImportResults.innerHTML = "";
+      gmailImportStatus.textContent = "Avataan Google-kirjautuminen ja haetaan viestejä…";
+      try {
+        gmailFoundPdfs = await searchGmailPdfs(gmailImportDate.value);
+        gmailImportStatus.textContent = `Löytyi ${gmailFoundPdfs.length} PDF-liitettä.`;
+        renderGmailImportResults();
+      } catch (error) {
+        gmailImportStatus.innerHTML = `<strong style="color:var(--danger)">${escapeHtml(error.message || String(error))}</strong>`;
+      } finally { btnGmailSearch.disabled = false; }
+    });
+    document.getElementById("btnGmailSelectAll").addEventListener("click", () => { gmailImportResults.querySelectorAll("[data-gmail-result]").forEach(input => { input.checked = true; }); btnGmailImport.disabled = !gmailFoundPdfs.length; });
+    document.getElementById("btnGmailSelectNone").addEventListener("click", () => { gmailImportResults.querySelectorAll("[data-gmail-result]").forEach(input => { input.checked = false; }); btnGmailImport.disabled = true; });
+    gmailImportResults.addEventListener("change", () => { btnGmailImport.disabled = !gmailImportResults.querySelector("[data-gmail-result]:checked"); });
+    btnGmailImport.addEventListener("click", async () => {
+      const indexes = [...gmailImportResults.querySelectorAll("[data-gmail-result]:checked")].map(input => Number(input.dataset.gmailResult));
+      if (!indexes.length) return;
+      btnGmailImport.disabled = true;
+      try {
+        const files = [];
+        for (let index = 0; index < indexes.length; index++) {
+          gmailImportStatus.textContent = `Ladataan PDF-liitteitä ${index + 1}/${indexes.length}…`;
+          files.push(await downloadGmailPdf(gmailFoundPdfs[indexes[index]]));
+        }
+        gmailImportModal.classList.remove("open");
+        if (gmailImportTarget === "dispatcher") await handleFiles(files);
+        else await addDriverFiles(files);
+      } catch (error) {
+        gmailImportStatus.innerHTML = `<strong style="color:var(--danger)">${escapeHtml(error.message || String(error))}</strong>`;
+        btnGmailImport.disabled = false;
+      }
+    });
+
+    const closeCustomerInfo = () => { rememberCustomerInfoDraft(); customerInfoRequestId++; customerInfoModal.classList.remove("open"); };
+    document.getElementById("btnCustomerInfoClose").addEventListener("click", closeCustomerInfo);
+    document.getElementById("btnCustomerInfoSave").addEventListener("click", saveCustomerInfo);
+    customerInfoModal.addEventListener("click", event => { if (event.target === customerInfoModal) closeCustomerInfo(); });
+    document.addEventListener("keydown", event => {
+      if (event.key !== "Escape") return;
+      if (customerInfoModal.classList.contains("open")) closeCustomerInfo();
+      if (gmailImportModal.classList.contains("open")) gmailImportModal.classList.remove("open");
+    });
+
     async function resetDriverWorkflow() {
       if ((driverPdfFiles.length || driverRouteState) && !confirm("Aloitetaanko alusta? Kaikki ladatut PDF-tiedostot sekä nykyinen reitti-, lastaus- ja kuljetustila poistetaan ohjelmasta.")) return;
       clearTimeout(driverLoadingNotePdfTimer);
@@ -4330,6 +4823,7 @@
       driverDownloadedOutputName = "";
       driverCustomPdfName = "";
       driverCustomPdfNameInput.value = "";
+      driverArchiveDate = "";
       driverCombinedPdfBytes = null;
       driverLoadingNotes = {};
       driverResumePhase = null;
@@ -4388,6 +4882,7 @@
         driverDownloadedOutputName = saved.downloadedOutputName || "";
         driverCustomPdfName = normalizeDriverPdfFileName(saved.customPdfName || saved.downloadedOutputName || saved.outputFileHandle?.name || "");
         driverCustomPdfNameInput.value = driverCustomPdfName;
+        driverArchiveDate = /^\d{4}-\d{2}-\d{2}$/.test(saved.archiveDate || "") ? saved.archiveDate : "";
         updateDriverPdfSaveDestination();
         driverCurrentPhase = saved.phase || (driverRouteState ? "route" : "upload");
         driverResumePhase = saved.resumePhase || null;
@@ -4910,7 +5405,7 @@
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=fi&limit=1&q=${encodeURIComponent(query)}`;
         const res = await fetch(url, {
-          headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.1 (Teemu H. Fingerroos)" }
+          headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.74 (Teemu H. Fingerroos)" }
         });
         if (!res.ok) return null;
         const data = await res.json();
@@ -5035,7 +5530,7 @@
           if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
           lastGeoRequest = Date.now();
           const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.70 (Teemu H. Fingerroos)" }
+            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.74 (Teemu H. Fingerroos)" }
           });
           if (!response.ok) return [];
           return await response.json();

@@ -1,8 +1,16 @@
-# Lähetejako v1.73
+# Lähetejako v1.74
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.74
+
+- Mukana ovat julkiset `privacy.html`-tietosuojaseloste ja `terms.html`-käyttöehdot Google OAuthin sovelluslinkkejä varten.
+- Käyttäjä valitsee Google Drivestä Rahtikirjat-juurikansion. PDF tallennetaan automaattisesti polkuun `VVVV/Kuukausi/PPKKVVVV/tiedosto.pdf`.
+- Jokaisella kuljettajan keikalla on Kohteen info -painike. Yhteyshenkilöt, puhelinnumerot, ovikoodit, kulkuohjeet ja muut lisätiedot tallennetaan juurikansion `AppInfo`-alikansioon.
+- Gmailista voi hakea valitun päivän vastaanotetut PDF-liitteet sekä ajojärjestelijän että kuljettajan näkymään. Lähetetyt viestit jätetään pois ja käyttäjä valitsee tuotavat liitteet.
+- Gmail käyttää vain `gmail.readonly`-lukuoikeutta. Käsin tehtävä PDF- ja ZIP-tuonti toimii edelleen ennallaan.
 
 ## Versio 1.73
 
@@ -29,10 +37,25 @@ Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettaji
 ### Google Drive -käyttöönotto
 
 1. Luo tai valitse projekti Google Cloud Consolessa.
-2. Ota käyttöön Google Drive API ja Google Picker API.
+2. Ota käyttöön Google Drive API, Google Picker API ja Gmail API.
 3. Luo Web application -tyyppinen OAuth 2.0 -asiakastunnus ja lisää GitHub Pages -osoitteen alkuosa sallittuihin JavaScript-origineihin.
 4. Luo Google Pickerille API-avain.
-5. Syötä asiakastunnus ja API-avain Kuljettajan asetuksiin, paina **Yhdistä Google Drive** ja valitse kansio.
+5. Lisää OAuth-suostumusnäyttöön oikeudet `https://www.googleapis.com/auth/drive` ja `https://www.googleapis.com/auth/gmail.readonly`. Testaustilassa lisää käyttäjät testikäyttäjiksi. Drive-lupa laajenee versiosta 1.73: yhteinen AppInfo ja aiemmin luodut alikansiot tarvitsevat näkyvyyden muidenkin käyttäjien tiedostoihin. Googlen lupa kattaa koko Driven, sovelluksen toiminnot on rajattu valittuun juurikansioon.
+6. Syötä asiakastunnus ja API-avain Kuljettajan asetuksiin, paina **Yhdistä Google Drive** ja valitse jaettu **Rahtikirjat**-kansio juurikansioksi.
+7. OAuthin kotisivuksi voi antaa GitHub Pages -osoitteen. Tietosuojaseloste löytyy osoitteesta `privacy.html` ja käyttöehdot osoitteesta `terms.html`.
+
+### v1.74 käyttöön vaiheittain
+
+1. Pura ZIP ja lataa lahete-jako-app-kansion sisältö GitHub-repositorion juureen. Erillistä v1.73-päivitystä ei tarvita. Poista GitHubissa oleva vanha irrallinen PDF erikseen, jos et halua sitä julkiseksi; päivityspaketti ei poista repositorion muita tiedostoja.
+2. Tarkista, että sovelluksessa näkyy v1.74. OAuth-sivut toimivat julkaisemisen jälkeen osoitteissa `https://temppa82.github.io/Keikkajako/privacy.html` ja `https://temppa82.github.io/Keikkajako/terms.html`. Lue tekstit ja varmista ylläpitäjän tiedot ennen niiden käyttöä.
+3. Ota samassa Google Cloud -projektissa käyttöön Gmail API, Google Drive API ja Google Picker API. Käytä samaa OAuth-asiakastunnusta kaikilla kuljettajilla. JavaScript-origin on `https://temppa82.github.io` ilman polkua. Rajaa Pickerin API-avain sivustolle `https://temppa82.github.io/*` ja Google Picker API:lle.
+4. Drive- ja Gmail-luvat kuuluvat Googlen restricted scope -luokkaan. Julkinen käyttö voi vaatia Googlen OAuth-tarkistuksen. Testaustilassa käytä lisättyjä testikäyttäjiä; pelkkä HTML-sivujen julkaisu ei takaa Googlen hyväksyntää.
+5. Yhdistä Drive uudelleen asetuksista, hyväksy muuttunut lupa ja valitse Rahtikirjat-kansio. Jokainen käyttäjä tarvitsee kansion kirjoitusoikeuden. Ohjelma ei muuta kansion jakamisasetuksia.
+6. Anna PDF:lle nimi. Ensimmäinen tallennus määrää päiväkansion, esimerkiksi `Rahtikirjat/2026/Syyskuu/05092026/Teemu05092026.pdf`. Saman työn myöhemmät tallennukset pysyvät tässä kansiossa myös yön yli. Aloita alusta aloittaa uuden työn.
+7. Kohteen Info löytyy PDF-listasta, reittilistasta, lastauksesta ja kuljetuksesta. Tiedot yhdistetään vastaanottajan ja osoitteen perusteella. Samassa osoitteessa olevat eri asiakkaat pidetään erillään. Korjaa ensin virheellinen osoite tai vastaanottajan nimi. Jokainen Lisää-tallennus luo oman JSON-tiedoston AppInfoon, jotta rinnakkaiset lisäykset eivät korvaa toisiaan. Käyttäjälle ne näytetään yhtenä listana. Virheellisen tai vanhan tiedon voi poistaa Drivessä poistamalla vastaavan JSON-tiedoston.
+8. Hae Gmailista valitsee viestien vastaanottopäivän (ei lähetteen toimituspäivää). Rastita halutut PDF-liitteet ja paina Tuo valitut. Lähetetyt viestit ohitetaan. Sähköposteja ei muuteta eikä poisteta. Gmail-kirjautuminen tehdään erikseen; tili voi olla eri kuin Drive-tili.
+
+Google-tilien välisiä oikeuksia ja julkaistua OAuth-kirjautumista on testattava omilla tileillä käyttöönotossa. Paketissa ei ole asiakkaiden PDF:iä, palveluavaimia eikä ovikoodeja.
 
 ## Versio 1.70
 
