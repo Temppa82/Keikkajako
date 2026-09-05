@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.74</title>
+  <title>Lähetejako v1.77</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -758,7 +758,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.74</div>
+      <div style="font-weight:600; color:var(--text);">v1.77</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -887,6 +887,11 @@
           <div class="modal-file-meta" style="margin-top:.45rem;">Valitse valmiiksi oikeassa ajojärjestyksessä olevat PDF:t tai yksi yhdistetty PDF. Ohjelma siirtyy suoraan lastaus- ja kuljetusvaiheeseen ilman reitin optimointia.</div>
         </div>
         <div class="status-bar" id="driverUploadStatus" style="margin-top: 1rem; display: none;"></div>
+        <label for="driverServiceDate" style="display:block;margin-top:1rem;font-weight:700;">
+          Ajopäivä
+          <input type="date" id="driverServiceDate" style="display:block;width:min(100%,22rem);margin-top:.4rem;" />
+        </label>
+        <div class="modal-file-meta" id="driverServiceDateHelp" style="margin-top:.4rem;">Valitse päivä, jonka keikkoja järjestät. Päivä määrää Google Driven VVVV/Kuukausi/PPKKVVVV-kansion ja lukitaan, kun PDF tallennetaan ensimmäisen kerran.</div>
         <label for="driverCustomPdfName" style="display:block;margin-top:1rem;font-weight:700;">
           Yhdistetyn PDF-tiedoston nimi
           <input type="text" id="driverCustomPdfName" inputmode="text" autocomplete="off" placeholder="Esimerkiksi Teemun reitti 5.9.2026.pdf" style="display:block;width:100%;margin-top:.4rem;" />
@@ -1081,11 +1086,11 @@
 
   <div class="modal-overlay" id="driverZipModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="driverZipTitle" style="max-width:min(560px,96vw);">
-      <h3 id="driverZipTitle">📦 Valitse oma kansio ZIP-paketista</h3>
-      <p class="driver-upload-intro">ZIP sisältää useita kansioita. Valitse oman auton tai kuljettajan kansio.</p>
+      <h3 id="driverZipTitle">📦 Valitse oma aineisto ZIP-paketista</h3>
+      <p class="driver-upload-intro">ZIP sisältää useita kansioita tai autokohtaisia ZIP-paketteja. Valitse oma auto tai kuljettaja.</p>
       <div class="modal-fields">
         <div>
-          <label for="driverZipFolder">Kansio</label>
+          <label for="driverZipFolder">Auto tai kansio</label>
           <select id="driverZipFolder" style="width:100%; padding:0.6rem 0.7rem; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text);"></select>
         </div>
       </div>
@@ -1150,7 +1155,7 @@
         </div>
         <div style="padding:.75rem;border:1px solid var(--border);border-radius:8px;">
           <strong>Google Drive -tallennus</strong>
-          <div class="modal-file-meta" style="margin:.2rem 0 .65rem;">Valitse jaettu <strong>Rahtikirjat</strong>-kansio juurikansioksi. Ohjelma tekee sen alle automaattisesti VVVV/Kuukausi/PPKKVVVV-kansiot sekä AppInfo-kansion.</div>
+          <div class="modal-file-meta" style="margin:.2rem 0 .65rem;">Yhdistämisen jälkeen ohjelma etsii automaattisesti käytettävissä olevan täsmälleen <strong>Rahtikirjat</strong>-nimisen kansion ja muistaa sen tällä laitteella. Ohjelma tekee sen alle valitun ajopäivän mukaiset VVVV/Kuukausi/PPKKVVVV-kansiot sekä AppInfo-kansion. Myös käsin korjatut osoitteet ja nuppineulalla valitut purkupaikat jaetaan AppInfo-kansion kautta kaikille samaa juurikansiota käyttäville.</div>
           <div class="modal-file-meta" style="margin-bottom:.65rem;">Yhteisten kansioiden ja muiden kuljettajien kohdetietojen käyttöön Google pyytää Driven luku- ja muokkausoikeutta. Googlen lupa on koko Driven laajuinen; ohjelma käsittelee vain valitsemasi juurikansion sisältöä. Hyväksyt luvan Google-kirjautumisessa.</div>
           <label for="googleDriveClientId">Google OAuth -asiakastunnus</label>
           <input type="text" id="googleDriveClientId" placeholder="…apps.googleusercontent.com" autocomplete="off" />
@@ -1158,7 +1163,7 @@
           <input type="password" id="googleDriveApiKey" placeholder="Google Pickerin API-avain" autocomplete="off" />
           <div class="actions" style="margin-top:.7rem;">
             <button class="btn btn-primary" id="btnGoogleDriveConnect" type="button">Yhdistä Google Drive</button>
-            <button class="btn btn-secondary" id="btnGoogleDriveChooseFolder" type="button">Valitse Rahtikirjat-juurikansio</button>
+            <button class="btn btn-secondary" id="btnGoogleDriveChooseFolder" type="button">Valitse toinen juurikansio</button>
             <button class="btn btn-secondary" id="btnGoogleDriveDisconnect" type="button">Katkaise yhteys</button>
           </div>
           <div class="status-bar" id="googleDriveStatus" style="display:flex;margin-top:.65rem;">Google Drivea ei ole yhdistetty.</div>
@@ -1175,18 +1180,19 @@
   <div class="modal-overlay" id="gmailImportModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="gmailImportTitle" style="max-width:min(760px,96vw);">
       <h3 id="gmailImportTitle">📧 Hae lähetteet Gmailista</h3>
-      <p class="driver-upload-intro">Valitse päivä. Ohjelma hakee Gmailista vastaanotetut viestit, joissa on PDF-liitteitä. Lähetetyt viestit jätetään pois.</p>
+      <p class="driver-upload-intro" id="gmailImportIntro">Valitse päivä. Ohjelma hakee Gmailista vastaanotetut viestit, joissa on PDF- tai ZIP-liitteitä. Lähetetyt viestit jätetään pois.</p>
+      <div id="gmailImportGuide" style="margin:.65rem 0;padding:.75rem;border:1px solid rgba(100,127,159,.45);border-radius:8px;background:rgba(100,127,159,.09);font-size:.86rem;line-height:1.5;"></div>
       <p class="modal-file-meta">Haku käyttää asetuksiin tallennettua Google-asiakastunnusta. Gmail API pitää ottaa käyttöön samassa Google Cloud -projektissa.</p>
       <button class="btn btn-secondary" id="btnGmailSettings" type="button">⚙️ Google-asetukset</button>
       <div class="modal-fields"><div><label for="gmailImportDate">Viestien päivämäärä</label><input type="date" id="gmailImportDate" /></div></div>
       <div class="actions" style="margin-top:.7rem;">
-        <button class="btn btn-primary" id="btnGmailSearch" type="button">Hae PDF-lähetteet</button>
+        <button class="btn btn-primary" id="btnGmailSearch" type="button">Hae PDF- ja ZIP-liitteet</button>
         <button class="btn btn-secondary" id="btnGmailSelectAll" type="button">Valitse kaikki</button>
         <button class="btn btn-secondary" id="btnGmailSelectNone" type="button">Poista valinnat</button>
       </div>
       <div class="status-bar" id="gmailImportStatus" style="display:flex;margin-top:.7rem;">Valitse päivä ja aloita haku.</div>
       <div class="gmail-results" id="gmailImportResults"></div>
-      <div class="modal-actions"><button class="btn btn-secondary" id="btnGmailClose" type="button">Sulje</button><button class="btn btn-primary" id="btnGmailImport" type="button" disabled>Tuo valitut PDF:t</button></div>
+      <div class="modal-actions"><button class="btn btn-secondary" id="btnGmailClose" type="button">Sulje</button><button class="btn btn-primary" id="btnGmailImport" type="button" disabled>Tuo valitut tiedostot</button></div>
     </div>
   </div>
 
@@ -1295,7 +1301,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.74 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t ja kohdetiedot lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
+    Lähetejako v1.77 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1361,6 +1367,8 @@
     const driverFileInput = document.getElementById("driverFileInput");
     const btnLoadReadyDriverRoute = document.getElementById("btnLoadReadyDriverRoute");
     const driverReadyRouteInput = document.getElementById("driverReadyRouteInput");
+    const driverServiceDateInput = document.getElementById("driverServiceDate");
+    const driverServiceDateHelp = document.getElementById("driverServiceDateHelp");
     const driverCustomPdfNameInput = document.getElementById("driverCustomPdfName");
     const driverPdfSaveDestination = document.getElementById("driverPdfSaveDestination");
     const driverUploadCard = document.getElementById("driverUploadCard");
@@ -1457,6 +1465,8 @@
     const gmailImportDate = document.getElementById("gmailImportDate");
     const gmailImportStatus = document.getElementById("gmailImportStatus");
     const gmailImportResults = document.getElementById("gmailImportResults");
+    const gmailImportIntro = document.getElementById("gmailImportIntro");
+    const gmailImportGuide = document.getElementById("gmailImportGuide");
     const btnGmailSearch = document.getElementById("btnGmailSearch");
     const btnGmailImport = document.getElementById("btnGmailImport");
     const customerInfoModal = document.getElementById("customerInfoModal");
@@ -1532,6 +1542,7 @@
     let customerInfoRequestId = 0;
     const googleFolderRequests = new Map();
     const customerInfoDrafts = new Map();
+    let driverServiceDate = "";
     let driverArchiveDate = "";
     let driverLoadingIndex = 0;
     let driverLoadingPreviewFileIndex = 0;
@@ -1600,6 +1611,9 @@
 
     const ADDRESS_CORRECTIONS_STORAGE_KEY = "lahetejako_address_corrections_v1";
     let savedAddressCorrections = {};
+    const sharedAddressCorrectionCache = new Map();
+    const sharedAddressCorrectionRequests = new Map();
+    const sharedAddressCorrectionWrites = new Map();
     try {
       const stored = JSON.parse(localStorage.getItem(ADDRESS_CORRECTIONS_STORAGE_KEY) || "{}");
       if (stored && typeof stored === "object" && !Array.isArray(stored)) savedAddressCorrections = stored;
@@ -1625,11 +1639,30 @@
         || null;
     }
 
+    function persistAddressCorrections() {
+      try { localStorage.setItem(ADDRESS_CORRECTIONS_STORAGE_KEY, JSON.stringify(savedAddressCorrections)); } catch (_) {}
+    }
+
+    function sharedAddressCorrectionKey(address, postalCode = "") {
+      const postal = String(postalCode || address || "").match(/\b\d{5}\b/)?.[0] || "";
+      const streetOnly = String(address || "").replace(/\b\d{5}\b.*$/i, "").trim();
+      return addressCorrectionKey(streetOnly || address, postal);
+    }
+
     function rememberAddressCorrection(originalAddress, originalPostalCode, correctedAddress, correctedGeo = null) {
       const corrected = String(correctedAddress || "").trim();
-      if (!corrected) return;
+      if (!corrected) return { correction:null, sharedPromise:Promise.resolve(false) };
       const correctedPostal = corrected.match(/\b\d{5}\b/)?.[0] || "";
-      const value = { address: corrected, postalCode: correctedPostal, savedAt: new Date().toISOString() };
+      const lookupKey = sharedAddressCorrectionKey(originalAddress, originalPostalCode);
+      const value = {
+        address: corrected,
+        postalCode: correctedPostal,
+        originalAddress:String(originalAddress || "").trim(),
+        originalPostalCode:String(originalPostalCode || "").match(/\b\d{5}\b/)?.[0] || "",
+        lookupKey,
+        savedAt: new Date().toISOString(),
+        pendingShared:true
+      };
       if (Number.isFinite(Number(correctedGeo?.lat)) && Number.isFinite(Number(correctedGeo?.lon))) {
         value.lat = Number(correctedGeo.lat);
         value.lon = Number(correctedGeo.lon);
@@ -1639,7 +1672,23 @@
       const streetOnly = original.replace(/\b\d{5}\b.*$/i, "").trim();
       [addressCorrectionKey(original, originalPostalCode), addressCorrectionKey(streetOnly, originalPostalCode), addressCorrectionKey(streetOnly, "")]
         .filter(Boolean).forEach(key => { savedAddressCorrections[key] = value; });
-      try { localStorage.setItem(ADDRESS_CORRECTIONS_STORAGE_KEY, JSON.stringify(savedAddressCorrections)); } catch (_) {}
+      persistAddressCorrections();
+      return { correction:value, sharedPromise:saveSharedAddressCorrection(value) };
+    }
+
+    async function resolvedAddressCorrection(address, postalCode = "") {
+      const local = findSavedAddressCorrection(address, postalCode);
+      if (local?.pendingShared && googleDriveFolderId && googleDriveTokenIsValid()) await saveSharedAddressCorrection(local);
+      const shared = await loadSharedAddressCorrection(address, postalCode);
+      const newest = shared && (!local || String(shared.savedAt || "") > String(local.savedAt || "")) ? shared : local;
+      if (newest === shared) {
+        const original = String(address || "").trim();
+        const streetOnly = original.replace(/\b\d{5}\b.*$/i, "").trim();
+        [addressCorrectionKey(original, postalCode), addressCorrectionKey(streetOnly, postalCode), addressCorrectionKey(streetOnly, "")]
+          .filter(Boolean).forEach(key => { savedAddressCorrections[key] = {...shared, pendingShared:false, sharedAt:new Date().toISOString(), sharedRootIds:[googleDriveFolderId]}; });
+        persistAddressCorrections();
+      }
+      return newest || null;
     }
 
     function correctedExtractedAddress(extracted) {
@@ -1840,6 +1889,7 @@
         outputFileHandle: driverOutputFileHandle,
         downloadedOutputName: driverDownloadedOutputName,
         customPdfName: driverCustomPdfName,
+        serviceDate: driverServiceDate,
         archiveDate: driverArchiveDate
       };
       const write = async () => {
@@ -1934,6 +1984,8 @@
       const savedLoadingNotes = JSON.parse(localStorage.getItem("lahetejako_driver_loading_notes_v1") || "{}");
       if (savedLoadingNotes && typeof savedLoadingNotes === "object" && !Array.isArray(savedLoadingNotes)) driverLoadingNotes = savedLoadingNotes;
     } catch (_) { /* Google Maps pysyy oletuksena */ }
+    driverServiceDate = localIsoDate();
+    updateDriverServiceDateControl();
 
     async function openDriverNavigation(destination) {
       const encoded = encodeURIComponent(destination);
@@ -1979,8 +2031,45 @@
       return name;
     }
 
+    function localIsoDate(date = new Date()) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    function isValidIsoDate(value) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return false;
+      const [year, month, day] = value.split("-").map(Number);
+      const parsed = new Date(year, month - 1, day, 12);
+      return parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day;
+    }
+
+    function updateDriverServiceDateControl() {
+      if (!driverServiceDate) driverServiceDate = localIsoDate();
+      if (driverServiceDateInput) {
+        driverServiceDateInput.value = driverArchiveDate || driverServiceDate;
+        driverServiceDateInput.disabled = !!driverArchiveDate;
+      }
+      if (driverServiceDateHelp) {
+        driverServiceDateHelp.textContent = driverArchiveDate
+          ? `Ajopäivä ${new Intl.DateTimeFormat("fi-FI").format(new Date(`${driverArchiveDate}T12:00:00`))} on lukittu, koska PDF on jo tallennettu. Aloita uusi työtila, jos haluat vaihtaa päivän.`
+          : "Valitse päivä, jonka keikkoja järjestät. Päivä määrää Google Driven VVVV/Kuukausi/PPKKVVVV-kansion ja lukitaan, kun PDF tallennetaan ensimmäisen kerran.";
+      }
+    }
+
+    function ensureDriverServiceDate() {
+      const selected = driverServiceDateInput?.value || driverServiceDate;
+      if (isValidIsoDate(selected)) {
+        driverServiceDate = selected;
+        return true;
+      }
+      openDriverPdfList();
+      driverUploadStatus.style.display = "flex";
+      driverUploadStatus.innerHTML = `<strong style="color:var(--danger)">Valitse ensin kelvollinen ajopäivä.</strong>`;
+      driverServiceDateInput?.focus();
+      return false;
+    }
+
     function legacyDriverRoutePdfName() {
-      const now = new Date();
+      const now = driverArchiveDay();
       const date = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${now.getFullYear()}`;
       const safeName = (driverName || "Kuljettaja").replace(/[^A-Za-zÅÄÖåäö0-9_-]/g, "");
       return `${safeName || "Kuljettaja"}${date}.pdf`;
@@ -1991,6 +2080,7 @@
     }
 
     function ensureDriverPdfFileName() {
+      if (!ensureDriverServiceDate()) return false;
       const normalized = normalizeDriverPdfFileName(driverCustomPdfNameInput?.value || driverCustomPdfName);
       if (!normalized) {
         openDriverPdfList();
@@ -2081,7 +2171,12 @@
         });
         googleDriveTokenClient.requestAccessToken({ prompt: googleDriveAccessToken ? "" : "consent" });
       });
-      updateGoogleDriveStatus();
+      const rootFolder = await autoAttachGoogleDriveRoot();
+      if (rootFolder) {
+        await ensureGoogleDriveAppInfoFolder();
+        await flushPendingAddressCorrections();
+        updateGoogleDriveStatus();
+      }
       return true;
     }
 
@@ -2113,13 +2208,7 @@
             if (data.action === google.picker.Action.PICKED) {
               const folder = data.docs?.[0];
               if (!folder?.id) return reject(new Error("Valitusta kansiosta ei saatu tunnistetta."));
-              if (googleDriveFolderId && googleDriveFolderId !== folder.id) {
-                googleDriveFileIds = {};
-                googleDriveFolderIds = {};
-              }
-              googleDriveFolderId = folder.id;
-              googleDriveFolderName = folder.name || "Valittu Drive-kansio";
-              saveGoogleDriveSettings();
+              setGoogleDriveRootFolder(folder);
               resolve();
             } else if (data.action === google.picker.Action.CANCEL) {
               reject(Object.assign(new Error("Kansion valinta peruutettiin."), { name:"AbortError" }));
@@ -2129,9 +2218,9 @@
         if (appId) builder.setAppId(appId);
         builder.build().setVisible(true);
       });
-      updateGoogleDriveStatus("Luodaan Rahtikirjat-kansion päivämäärä- ja AppInfo-kansiot…");
-      await ensureGoogleDriveDailyFolder();
+      updateGoogleDriveStatus("Valmistellaan Rahtikirjat/AppInfo-kansiota…");
       await ensureGoogleDriveAppInfoFolder();
+      await flushPendingAddressCorrections();
       updateGoogleDriveStatus();
       if (driverCombinedPdfBytes) await uploadDriverPdfToGoogleDrive(new Uint8Array(driverCombinedPdfBytes));
     }
@@ -2155,6 +2244,76 @@
         updateGoogleDriveStatus();
       }
       return response;
+    }
+
+    function setGoogleDriveRootFolder(folder) {
+      if (!folder?.id) throw new Error("Rahtikirjat-kansiosta ei saatu tunnistetta.");
+      if (googleDriveFolderId && googleDriveFolderId !== folder.id) {
+        googleDriveFileIds = {};
+        googleDriveFolderIds = {};
+      }
+      googleDriveFolderId = folder.id;
+      googleDriveFolderName = folder.name || "Rahtikirjat";
+      saveGoogleDriveSettings();
+      updateDriverPdfSaveDestination();
+      return folder;
+    }
+
+    async function getGoogleDriveFolder(folderId) {
+      if (!folderId) return null;
+      const fields = "id,name,mimeType,trashed,capabilities(canAddChildren)";
+      const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(folderId)}?supportsAllDrives=true&fields=${encodeURIComponent(fields)}`);
+      if (response.status === 404 || response.status === 403) return null;
+      if (!response.ok) throw new Error(`Drive-kansion tarkistus epäonnistui (${response.status}).`);
+      const folder = await response.json();
+      return folder?.mimeType === "application/vnd.google-apps.folder" && !folder.trashed && folder.capabilities?.canAddChildren !== false ? folder : null;
+    }
+
+    async function findAutomaticGoogleDriveRoots() {
+      const roots = [];
+      let pageToken = "";
+      do {
+        const params = new URLSearchParams({
+          q: "name='Rahtikirjat' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+          spaces: "drive",
+          pageSize: "100",
+          includeItemsFromAllDrives: "true",
+          supportsAllDrives: "true",
+          fields: "nextPageToken,files(id,name,driveId,capabilities(canAddChildren))"
+        });
+        if (pageToken) params.set("pageToken", pageToken);
+        const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files?${params}`);
+        if (!response.ok) throw new Error(`Rahtikirjat-kansion automaattinen haku epäonnistui (${response.status}).`);
+        const data = await response.json();
+        roots.push(...(data.files || []).filter(folder => folder.capabilities?.canAddChildren !== false));
+        pageToken = data.nextPageToken || "";
+      } while (pageToken);
+      return roots;
+    }
+
+    async function autoAttachGoogleDriveRoot() {
+      updateGoogleDriveStatus("Etsitään Rahtikirjat-kansiota…");
+      if (googleDriveFolderId) {
+        const remembered = await getGoogleDriveFolder(googleDriveFolderId);
+        if (remembered) return setGoogleDriveRootFolder(remembered);
+        googleDriveFolderId = "";
+        googleDriveFolderName = "";
+        googleDriveFileIds = {};
+        googleDriveFolderIds = {};
+        saveGoogleDriveSettings();
+      }
+      const roots = await findAutomaticGoogleDriveRoots();
+      if (roots.length === 1) {
+        const selected = setGoogleDriveRootFolder(roots[0]);
+        updateGoogleDriveStatus(`✅ Rahtikirjat-kansio löytyi automaattisesti: ${selected.name}`);
+        return selected;
+      }
+      if (!roots.length) {
+        updateGoogleDriveStatus("Google Drive yhdistetty, mutta täsmälleen Rahtikirjat-nimistä muokattavaa kansiota ei löytynyt. Valitse kansio käsin.");
+      } else {
+        updateGoogleDriveStatus(`Google Drive yhdistetty. Löytyi ${roots.length} Rahtikirjat-nimistä kansiota – valitse oikea käsin.`);
+      }
+      return null;
     }
 
     async function findGoogleDriveItem(parentId, name, mimeType = "") {
@@ -2200,7 +2359,8 @@
     const FINNISH_MONTH_NAMES = ["Tammikuu", "Helmikuu", "Maaliskuu", "Huhtikuu", "Toukokuu", "Kesäkuu", "Heinäkuu", "Elokuu", "Syyskuu", "Lokakuu", "Marraskuu", "Joulukuu"];
 
     function driverArchiveDay() {
-      return driverArchiveDate ? new Date(`${driverArchiveDate}T12:00:00`) : new Date();
+      const selected = driverArchiveDate || driverServiceDate;
+      return isValidIsoDate(selected) ? new Date(`${selected}T12:00:00`) : new Date();
     }
 
     function googleDriveDailyFolderNames(date = driverArchiveDay()) {
@@ -2329,9 +2489,14 @@
 
     function collectGmailPdfParts(part, target, message) {
       if (!part) return;
-      const fileName = part.filename || "";
-      if (/\.pdf$/i.test(fileName) && (part.body?.attachmentId || part.body?.data)) {
-        target.push({ messageId:message.id, attachmentId:part.body.attachmentId || "", inlineData:part.body.data || "", fileName, from:gmailHeader(message.payload?.headers, "From"), subject:gmailHeader(message.payload?.headers, "Subject") });
+      const originalName = String(part.filename || "").trim();
+      const mimeType = String(part.mimeType || "").toLowerCase();
+      const isPdf = /\.pdf$/i.test(originalName) || mimeType === "application/pdf";
+      const knownJobZipName = /^fwd(?:insi)?finge\d{1,2}[_-]\d{1,2}(?:[_-]\d{2,4})?$/i.test(originalName);
+      const isZip = /\.zip$/i.test(originalName) || /application\/(?:zip|x-zip-compressed)/i.test(mimeType) || (mimeType === "application/octet-stream" && knownJobZipName);
+      if ((isPdf || isZip) && (part.body?.attachmentId || part.body?.data)) {
+        const fileName = originalName ? (isZip && !/\.zip$/i.test(originalName) ? `${originalName}.zip` : originalName) : `gmail-${message.id}.${isZip ? "zip" : "pdf"}`;
+        target.push({ messageId:message.id, attachmentId:part.body.attachmentId || "", inlineData:part.body.data || "", fileName, mimeType:isZip ? "application/zip" : "application/pdf", kind:isZip ? "zip" : "pdf", from:gmailHeader(message.payload?.headers, "From"), subject:gmailHeader(message.payload?.headers, "Subject") });
       }
       (part.parts || []).forEach(child => collectGmailPdfParts(child, target, message));
     }
@@ -2341,7 +2506,9 @@
       const ids = [];
       let pageToken = "";
       do {
-        const params = new URLSearchParams({ q:`after:${after} before:${before} has:attachment filename:pdf -in:sent`, maxResults:"500" });
+        // Hae kaikki päivän liiteviestit ja suodata vasta viestin MIME-rakenteesta PDF:t ja ZIPit.
+        // Näin myös ZIP löytyy, vaikka sähköpostiohjelma olisi jättänyt tiedostopäätteen piiloon.
+        const params = new URLSearchParams({ q:`after:${after} before:${before} has:attachment -in:sent`, maxResults:"500" });
         if (pageToken) params.set("pageToken", pageToken);
         const data = await gmailApi(`messages?${params}`);
         (data.messages || []).forEach(message => ids.push(message.id));
@@ -2358,8 +2525,8 @@
 
     function renderGmailImportResults() {
       gmailImportResults.innerHTML = gmailFoundPdfs.length ? gmailFoundPdfs.map((item, index) => `
-        <label class="gmail-result"><input type="checkbox" data-gmail-result="${index}" checked><span><strong>${escapeHtml(item.fileName)}</strong><small>Lähettäjä: ${escapeHtml(item.from || "–")}<br>Aihe: ${escapeHtml(item.subject || "–")}</small></span></label>
-      `).join("") : `<div class="modal-file-meta">Valitulta päivältä ei löytynyt PDF-liitteitä.</div>`;
+        <label class="gmail-result"><input type="checkbox" data-gmail-result="${index}" checked><span><strong>${item.kind === "zip" ? "📦 ZIP" : "📄 PDF"} · ${escapeHtml(item.fileName)}</strong><small>Lähettäjä: ${escapeHtml(item.from || "–")}<br>Aihe: ${escapeHtml(item.subject || "–")}</small></span></label>
+      `).join("") : `<div class="modal-file-meta">Valitulta päivältä ei löytynyt PDF- tai ZIP-liitteitä.</div>`;
       btnGmailImport.disabled = !gmailFoundPdfs.length;
     }
 
@@ -2367,6 +2534,10 @@
       gmailImportTarget = target;
       gmailFoundPdfs = [];
       gmailImportResults.innerHTML = "";
+      gmailImportIntro.textContent = "Valitse päivä. Ohjelma hakee Gmailista vastaanotetut viestit, joissa on PDF- tai ZIP-liitteitä. Lähetetyt viestit jätetään pois.";
+      gmailImportGuide.innerHTML = target === "dispatcher"
+        ? `<strong>Ajojärjestelijän saapuvat keikat:</strong> Haku tunnistaa myös ZIP-paketit, kuten <code>fwdfinge13_8.zip</code> ja <code>fwdInsifinge13_8.zip</code>. Nimen lopun numerot voivat kuvata päivämäärää; haku rajataan yllä valitun viestin vastaanottopäivän mukaan. ZIP puretaan ja sen PDF-lähetteet tuodaan automaattisesti.`
+        : `<strong>Ajojärjestelijältä kuljettajalle:</strong> Ajojärjestelijän <em>Lataa ZIP</em> tekee tiedoston <code>lahetejako_VVVV-KK-PP.zip</code>, jonka sisällä on jokaiselle autolle oma ZIP, esimerkiksi <code>SLT-584.zip</code>. Sähköpostiin voidaan liittää oman auton ZIP tai koko lahetejako-ZIP. Jos paketissa on useita autoja, ohjelma pyytää valitsemaan oman auton. ZIP puretaan PDF-lähetteiksi automaattisesti; myös suoraan liitetyt PDF:t voidaan valita.`;
       const today = new Date();
       gmailImportDate.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
       gmailImportStatus.textContent = "Valitse päivä ja aloita haku.";
@@ -2382,7 +2553,8 @@
 
     async function downloadGmailPdf(item) {
       const encoded = item.inlineData || (await gmailApi(`messages/${item.messageId}/attachments/${item.attachmentId}`)).data;
-      return new File([gmailBase64UrlToBytes(encoded)], item.fileName, { type:"application/pdf" });
+      const isZip = item.kind === "zip" || /\.zip$/i.test(item.fileName) || /application\/(?:zip|x-zip-compressed)/i.test(item.mimeType || "");
+      return new File([gmailBase64UrlToBytes(encoded)], item.fileName, { type:isZip ? "application/zip" : "application/pdf" });
     }
 
     function stableInfoHash(value) {
@@ -2420,6 +2592,143 @@
       const response = await googleDriveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,modifiedTime", { method:"POST", headers:{ "Content-Type":`multipart/related; boundary=${boundary}` }, body });
       if (!response.ok) throw new Error(`Kohdetiedoston luonti epäonnistui (${response.status}): ${await response.text()}`);
       return await response.json();
+    }
+
+    function canonicalStoredCorrectionLookupKey(storedKey, correction = null) {
+      if (correction?.lookupKey) return correction.lookupKey;
+      const parts = String(storedKey || "").split("|");
+      const postal = parts.pop() || "";
+      let normalizedAddress = parts.join("|").trim();
+      if (postal) normalizedAddress = normalizedAddress.replace(new RegExp(`\\s${postal}\\b.*$`), "").trim();
+      return normalizedAddress ? `${normalizedAddress}|${postal}` : "";
+    }
+
+    function markAddressCorrectionShared(lookupKey, correction) {
+      const sharedAt = new Date().toISOString();
+      Object.entries(savedAddressCorrections).forEach(([storedKey, value]) => {
+        if (canonicalStoredCorrectionLookupKey(storedKey, value) !== lookupKey) return;
+        if (String(value?.address || "") !== String(correction?.address || "")) return;
+        value.lookupKey = lookupKey;
+        value.pendingShared = false;
+        value.sharedAt = sharedAt;
+        value.sharedRootIds = [...new Set([...(Array.isArray(value.sharedRootIds) ? value.sharedRootIds : []), googleDriveFolderId])];
+      });
+      persistAddressCorrections();
+    }
+
+    async function saveSharedAddressCorrection(correction) {
+      if (!correction?.lookupKey || !googleDriveFolderId || !googleDriveTokenIsValid()) return false;
+      const signature = `${googleDriveFolderId}|${correction.lookupKey}|${correction.address}|${correction.lat ?? ""}|${correction.lon ?? ""}`;
+      if (sharedAddressCorrectionWrites.has(signature)) return await sharedAddressCorrectionWrites.get(signature);
+      const operation = (async () => {
+        try {
+          const appInfoFolderId = await ensureGoogleDriveAppInfoFolder();
+          const id = crypto.randomUUID();
+          const record = {
+            version:1,
+            type:"address-correction",
+            lookupKey:correction.lookupKey,
+            originalAddress:correction.originalAddress || "",
+            originalPostalCode:correction.originalPostalCode || "",
+            correctedAddress:correction.address || "",
+            correctedPostalCode:correction.postalCode || "",
+            lat:Number.isFinite(Number(correction.lat)) ? Number(correction.lat) : null,
+            lon:Number.isFinite(Number(correction.lon)) ? Number(correction.lon) : null,
+            coordinateSelected:!!correction.coordinateSelected,
+            savedAt:correction.savedAt || new Date().toISOString(),
+            createdBy:[driverName, driverPlate].filter(Boolean).join(" / ") || "Käyttäjä"
+          };
+          const fileName = `address-correction-${stableInfoHash(correction.lookupKey)}-${id}.json`;
+          await writeCustomerInfoFile(appInfoFolderId, fileName, record);
+          markAddressCorrectionShared(correction.lookupKey, correction);
+          sharedAddressCorrectionCache.set(`${googleDriveFolderId}|${correction.lookupKey}`, { value:{...correction, pendingShared:false}, loadedAt:Date.now() });
+          return true;
+        } catch (error) {
+          console.warn("Yhteisen osoitekorjauksen tallennus epäonnistui:", error);
+          return false;
+        } finally {
+          sharedAddressCorrectionWrites.delete(signature);
+        }
+      })();
+      sharedAddressCorrectionWrites.set(signature, operation);
+      return await operation;
+    }
+
+    async function readGoogleDriveJsonFile(fileId) {
+      const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`);
+      if (!response.ok) throw new Error(`AppInfo-tiedoston lataus epäonnistui (${response.status}).`);
+      return await response.json();
+    }
+
+    async function loadSharedAddressCorrection(address, postalCode = "") {
+      if (!googleDriveFolderId || !googleDriveTokenIsValid()) return null;
+      const lookupKey = sharedAddressCorrectionKey(address, postalCode);
+      if (!lookupKey) return null;
+      const rootKey = `${googleDriveFolderId}|${lookupKey}`;
+      const cached = sharedAddressCorrectionCache.get(rootKey);
+      if (cached && Date.now() - cached.loadedAt < 60000) return cached.value;
+      if (sharedAddressCorrectionRequests.has(rootKey)) return await sharedAddressCorrectionRequests.get(rootKey);
+      const operation = (async () => {
+        try {
+          const appInfoFolderId = await ensureGoogleDriveAppInfoFolder();
+          const prefix = `address-correction-${stableInfoHash(lookupKey)}-`;
+          const q = `'${googleDriveQueryEscape(appInfoFolderId)}' in parents and trashed=false and mimeType='application/json' and name contains '${googleDriveQueryEscape(prefix)}'`;
+          const files = [];
+          let pageToken = "";
+          do {
+            const params = new URLSearchParams({q, pageSize:"1000", spaces:"drive", supportsAllDrives:"true", includeItemsFromAllDrives:"true", fields:"nextPageToken,files(id,name,modifiedTime)"});
+            if (pageToken) params.set("pageToken", pageToken);
+            const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files?${params}`);
+            if (!response.ok) throw new Error(`Yhteisten osoitekorjausten haku epäonnistui (${response.status}).`);
+            const data = await response.json();
+            files.push(...(data.files || []));
+            pageToken = data.nextPageToken || "";
+          } while (pageToken);
+          const candidates = [];
+          for (const file of files) {
+            try {
+              const data = await readGoogleDriveJsonFile(file.id);
+              if (data?.type !== "address-correction" || data.lookupKey !== lookupKey || !data.correctedAddress) continue;
+              candidates.push({
+                address:data.correctedAddress,
+                postalCode:data.correctedPostalCode || data.correctedAddress.match(/\b\d{5}\b/)?.[0] || "",
+                originalAddress:data.originalAddress || address,
+                originalPostalCode:data.originalPostalCode || postalCode,
+                lookupKey,
+                lat:Number.isFinite(Number(data.lat)) ? Number(data.lat) : undefined,
+                lon:Number.isFinite(Number(data.lon)) ? Number(data.lon) : undefined,
+                coordinateSelected:!!data.coordinateSelected,
+                savedAt:data.savedAt || file.modifiedTime || "",
+                pendingShared:false
+              });
+            } catch (error) { console.warn("Virheellinen osoitekorjaus ohitettiin:", file.name, error); }
+          }
+          const newest = candidates.sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)))[0] || null;
+          sharedAddressCorrectionCache.set(rootKey, { value:newest, loadedAt:Date.now() });
+          return newest;
+        } catch (error) {
+          console.warn("Yhteisten osoitekorjausten lataus epäonnistui:", error);
+          return null;
+        } finally {
+          sharedAddressCorrectionRequests.delete(rootKey);
+        }
+      })();
+      sharedAddressCorrectionRequests.set(rootKey, operation);
+      return await operation;
+    }
+
+    async function flushPendingAddressCorrections() {
+      if (!googleDriveFolderId || !googleDriveTokenIsValid()) return;
+      const pending = new Map();
+      Object.entries(savedAddressCorrections).forEach(([storedKey, value]) => {
+        if (!value?.address || (Array.isArray(value.sharedRootIds) && value.sharedRootIds.includes(googleDriveFolderId))) return;
+        const lookupKey = canonicalStoredCorrectionLookupKey(storedKey, value);
+        if (!lookupKey) return;
+        const candidate = {...value, lookupKey, originalAddress:value.originalAddress || storedKey.split("|")[0], originalPostalCode:value.originalPostalCode || storedKey.split("|").pop() || ""};
+        const old = pending.get(lookupKey);
+        if (!old || String(candidate.savedAt || "") > String(old.savedAt || "")) pending.set(lookupKey, candidate);
+      });
+      for (const correction of pending.values()) await saveSharedAddressCorrection(correction);
     }
 
     function renderCustomerInfo(data) {
@@ -2584,8 +2893,10 @@
       const normalized = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
       driverCombinedPdfBytes = normalized.buffer.slice(normalized.byteOffset, normalized.byteOffset + normalized.byteLength);
       if (!driverArchiveDate) {
-        const today = new Date();
-        driverArchiveDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        if (!ensureDriverServiceDate()) throw new Error("Valitse ajopäivä ennen PDF:n tallentamista.");
+        driverArchiveDate = driverServiceDate;
+        updateDriverServiceDateControl();
+        updateDriverPdfSaveDestination();
       }
       await saveDriverSessionNow();
       let writtenOver = false;
@@ -2678,8 +2989,10 @@
         driverPreviewPdfPagePosition.textContent = `${driverPreviewPdfPage} / ${driverPreviewPdfPageCount}`;
         driverPreviewPdfPagePrev.disabled = driverPreviewPdfPage <= 1;
         driverPreviewPdfPageNext.disabled = driverPreviewPdfPage >= driverPreviewPdfPageCount;
+        const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "");
         if (previewedIndex === driverPreviewIndex && !driverAddressOverrides.has(driverFileKey(file))) {
-          driverPreviewAddress.value = correctedExtractedAddress(extracted)?.address || extracted.address || "";
+          driverPreviewAddress.value = rememberedAddress?.address || extracted.address || "";
+          if (rememberedAddress && googleDriveTokenIsValid()) driverPreviewAddressStatus.textContent = "Käytössä on yhteisestä AppInfo-kansiosta tarkistettu osoitekorjaus.";
         }
         driverPreviewAddress.placeholder = "Katuosoite, postinumero ja kaupunki";
       } catch (error) {
@@ -2715,11 +3028,13 @@
       }
       driverAddressOverrides.set(driverFileKey(file), address);
       driverCoordinateOverrides.delete(driverFileKey(file));
+      let shared = false;
       try {
         const extracted = await extractFromPdf(file);
-        rememberAddressCorrection(extracted.address || "", extracted.postalCode || "", address);
+        const saved = rememberAddressCorrection(extracted.address || "", extracted.postalCode || "", address);
+        shared = await saved.sharedPromise;
       } catch (_) { /* Tiedostokohtainen korjaus jää silti voimaan. */ }
-      driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Osoite tallennettu pysyvästi ja käytetään myös tulevissa lähetteissä.</span>`;
+      driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Osoite tallennettu pysyvästi${shared ? " tälle laitteelle ja yhteiseen Rahtikirjat/AppInfo-kansioon" : " tälle laitteelle"}. ${shared ? "Se päivittyy muille Drive-käyttäjille." : "Yhteinen tallennus tehdään seuraavan Drive-yhdistämisen yhteydessä."}</span>`;
       queueDriverSessionSave();
     }
 
@@ -2740,7 +3055,7 @@
       const fileKey = driverFileKey(file);
       let extracted = null;
       try { extracted = await extractFromPdf(file); } catch (_) {}
-      const remembered = correctedExtractedAddress(extracted);
+      const remembered = await resolvedAddressCorrection(extracted?.address || "", extracted?.postalCode || "");
       const storedGeo = driverCoordinateOverrides.get(fileKey) || correctionGeo(remembered);
       const address = driverPreviewAddress.value.trim() || remembered?.address || extracted?.address || "";
       driverCoordinateTarget = {
@@ -2780,9 +3095,10 @@
       const correctedAddress = target.address || `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`;
       driverAddressOverrides.set(target.fileKey, correctedAddress);
       driverCoordinateOverrides.set(target.fileKey, geo);
-      rememberAddressCorrection(target.originalAddress, target.originalPostalCode, correctedAddress, geo);
+      const saved = rememberAddressCorrection(target.originalAddress, target.originalPostalCode, correctedAddress, geo);
       driverPreviewAddress.value = correctedAddress;
-      driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Kartalta valittu paikka tallennettu pysyvästi: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}.</span>`;
+      const shared = await saved.sharedPromise;
+      driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Kartalta valittu paikka tallennettu pysyvästi: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}. ${shared ? "Koordinaatti tallennettiin myös yhteiseen Rahtikirjat/AppInfo-kansioon." : "Yhteinen tallennus tehdään seuraavan Drive-yhdistämisen yhteydessä."}</span>`;
       closeDriverCoordinatePicker();
       await saveDriverSessionNow();
     }
@@ -3425,8 +3741,28 @@
     async function extractDriverPdfsFromZip(zipFile) {
       if (typeof JSZip === "undefined") throw new Error("ZIP-tuki ei ole latautunut");
       const zip = await JSZip.loadAsync(zipFile);
-      const pdfEntries = Object.values(zip.files).filter(entry => !entry.dir && entry.name.toLowerCase().endsWith(".pdf"));
-      if (!pdfEntries.length) throw new Error(`${zipFile.name}: ZIP ei sisällä PDF-tiedostoja`);
+      let sourceZip = zip;
+      let pdfEntries = Object.values(sourceZip.files).filter(entry => !entry.dir && entry.name.toLowerCase().endsWith(".pdf"));
+      if (!pdfEntries.length) {
+        // Ajojärjestelijän vienti on pää-ZIP, jonka sisällä on yksi ZIP jokaista autoa varten.
+        const nestedCandidates = [];
+        const nestedEntries = Object.values(zip.files).filter(entry => !entry.dir && entry.name.toLowerCase().endsWith(".zip"));
+        for (const entry of nestedEntries) {
+          try {
+            const nestedZip = await JSZip.loadAsync(await entry.async("uint8array"));
+            const nestedPdfs = Object.values(nestedZip.files).filter(item => !item.dir && item.name.toLowerCase().endsWith(".pdf"));
+            if (nestedPdfs.length) nestedCandidates.push({ name:entry.name, zip:nestedZip, pdfEntries:nestedPdfs });
+          } catch (_) { /* Vaurioitunut sisäkkäinen ZIP ohitetaan. */ }
+        }
+        if (!nestedCandidates.length) throw new Error(`${zipFile.name}: ZIP ei sisällä PDF-tiedostoja eikä autokohtaisia ZIP-paketteja`);
+        const selectedName = nestedCandidates.length > 1
+          ? await chooseDriverZipFolder(nestedCandidates.map(item => item.name))
+          : nestedCandidates[0].name;
+        if (!selectedName) return [];
+        const selected = nestedCandidates.find(item => item.name === selectedName);
+        sourceZip = selected.zip;
+        pdfEntries = selected.pdfEntries;
+      }
       const folderFor = entry => entry.name.includes("/") ? entry.name.split("/")[0] : "ZIP:n juuri";
       const folders = [...new Set(pdfEntries.map(folderFor))];
       const selectedFolder = folders.length > 1 ? await chooseDriverZipFolder(folders) : folders[0];
@@ -3497,7 +3833,7 @@
 
     async function createReadyDriverStop(file) {
       const extracted = await extractFromPdf(file);
-      const rememberedAddress = correctedExtractedAddress(extracted);
+      const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "");
       const originalKey = driverFileKey(file);
       const savedPdf = await readSavedDriverPdf(originalKey);
       const activeFile = savedPdf?.annotatedBytes
@@ -4128,7 +4464,7 @@
           const activeFile = savedPdf?.annotatedBytes
             ? new File([savedPdf.annotatedBytes], file.name, { type: "application/pdf", lastModified: file.lastModified })
             : file;
-          const rememberedAddress = correctedExtractedAddress(extracted);
+          const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "");
           const fileKey = driverFileKey(file);
           const correctedAddress = driverAddressOverrides.get(fileKey) || rememberedAddress?.address || "";
           const correctedGeo = driverCoordinateOverrides.get(fileKey) || correctionGeo(rememberedAddress);
@@ -4245,6 +4581,19 @@
       if (ensureDriverPdfFileName()) driverReadyRouteInput.click();
     });
     driverReadyRouteInput.addEventListener("change", () => loadReadyDriverRoute(driverReadyRouteInput.files));
+    driverServiceDateInput.addEventListener("change", () => {
+      if (driverArchiveDate) {
+        updateDriverServiceDateControl();
+        return;
+      }
+      if (!isValidIsoDate(driverServiceDateInput.value)) {
+        driverServiceDateInput.value = driverServiceDate || localIsoDate();
+        return;
+      }
+      driverServiceDate = driverServiceDateInput.value;
+      updateDriverPdfSaveDestination();
+      queueDriverSessionSave(0);
+    });
     driverCustomPdfNameInput.addEventListener("input", () => {
       const previousName = driverCustomPdfName;
       driverCustomPdfName = normalizeDriverPdfFileName(driverCustomPdfNameInput.value);
@@ -4362,7 +4711,8 @@
         infoButton.disabled = true;
         try {
           const extracted = await extractFromPdf(file);
-          await openCustomerInfo({...extracted, address:driverAddressOverrides.get(driverFileKey(file)) || correctedExtractedAddress(extracted)?.address || extracted.address || ""});
+          const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "");
+          await openCustomerInfo({...extracted, address:driverAddressOverrides.get(driverFileKey(file)) || rememberedAddress?.address || extracted.address || ""});
         } catch (error) { alert("Kohdetietojen avaaminen epäonnistui: " + error.message); }
         finally { infoButton.disabled = false; }
         return;
@@ -4765,7 +5115,9 @@
       gmailImportStatus.textContent = "Avataan Google-kirjautuminen ja haetaan viestejä…";
       try {
         gmailFoundPdfs = await searchGmailPdfs(gmailImportDate.value);
-        gmailImportStatus.textContent = `Löytyi ${gmailFoundPdfs.length} PDF-liitettä.`;
+        const pdfCount = gmailFoundPdfs.filter(item => item.kind !== "zip").length;
+        const zipCount = gmailFoundPdfs.filter(item => item.kind === "zip").length;
+        gmailImportStatus.textContent = `Löytyi ${gmailFoundPdfs.length} liitettä · PDF ${pdfCount} · ZIP ${zipCount}.`;
         renderGmailImportResults();
       } catch (error) {
         gmailImportStatus.innerHTML = `<strong style="color:var(--danger)">${escapeHtml(error.message || String(error))}</strong>`;
@@ -4781,7 +5133,7 @@
       try {
         const files = [];
         for (let index = 0; index < indexes.length; index++) {
-          gmailImportStatus.textContent = `Ladataan PDF-liitteitä ${index + 1}/${indexes.length}…`;
+          gmailImportStatus.textContent = `Ladataan liitteitä ${index + 1}/${indexes.length}…`;
           files.push(await downloadGmailPdf(gmailFoundPdfs[indexes[index]]));
         }
         gmailImportModal.classList.remove("open");
@@ -4824,6 +5176,8 @@
       driverCustomPdfName = "";
       driverCustomPdfNameInput.value = "";
       driverArchiveDate = "";
+      driverServiceDate = localIsoDate();
+      updateDriverServiceDateControl();
       driverCombinedPdfBytes = null;
       driverLoadingNotes = {};
       driverResumePhase = null;
@@ -4882,7 +5236,11 @@
         driverDownloadedOutputName = saved.downloadedOutputName || "";
         driverCustomPdfName = normalizeDriverPdfFileName(saved.customPdfName || saved.downloadedOutputName || saved.outputFileHandle?.name || "");
         driverCustomPdfNameInput.value = driverCustomPdfName;
-        driverArchiveDate = /^\d{4}-\d{2}-\d{2}$/.test(saved.archiveDate || "") ? saved.archiveDate : "";
+        driverArchiveDate = isValidIsoDate(saved.archiveDate) ? saved.archiveDate : "";
+        driverServiceDate = isValidIsoDate(saved.serviceDate)
+          ? saved.serviceDate
+          : (driverArchiveDate || localIsoDate());
+        updateDriverServiceDateControl();
         updateDriverPdfSaveDestination();
         driverCurrentPhase = saved.phase || (driverRouteState ? "route" : "upload");
         driverResumePhase = saved.resumePhase || null;
@@ -5390,13 +5748,14 @@
     } catch (_) { /* Vaurioitunut välimuisti ei saa estää koko ohjelman käynnistymistä. */ }
     let lastGeoRequest = 0;
     let lastPhotonRequest = 0;
+    const GEOCODER_VERSION = "v5-city-postal-verified";
 
     function saveGeoCache() {
       try { localStorage.setItem("lahetejako_geo", JSON.stringify(geoCache)); } catch (_) {}
     }
 
     async function nominatimSearch(query) {
-      const cacheKey = "v2:q:" + query.toLowerCase().replace(/\s+/g, " ").trim();
+      const cacheKey = "v3:q:" + query.toLowerCase().replace(/\s+/g, " ").trim();
       if (geoCache[cacheKey]) return geoCache[cacheKey];
       const now = Date.now();
       const wait = 1100 - (now - lastGeoRequest);
@@ -5405,12 +5764,12 @@
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=fi&limit=1&q=${encodeURIComponent(query)}`;
         const res = await fetch(url, {
-          headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.74 (Teemu H. Fingerroos)" }
+          headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.76 (Teemu H. Fingerroos)" }
         });
         if (!res.ok) return null;
         const data = await res.json();
         if (!data || !data.length) return null;
-        const point = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        const point = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), geocodeVersion:GEOCODER_VERSION, source:"nominatim" };
         geoCache[cacheKey] = point;
         saveGeoCache();
         return point;
@@ -5425,7 +5784,7 @@
       const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
       const normalizedCity = String(cityHint || "").trim();
       if (!normalizedStreet) return null;
-      const cacheKey = `mml:v2:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
+      const cacheKey = `mml:v3:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
       if (geoCache[cacheKey]) return geoCache[cacheKey];
       try {
         const params = new URLSearchParams({
@@ -5451,7 +5810,7 @@
         });
         const coordinates = matching?.geometry?.coordinates;
         if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
-        const point = { lat: Number(coordinates[1]), lon: Number(coordinates[0]) };
+        const point = { lat: Number(coordinates[1]), lon: Number(coordinates[0]), geocodeVersion:GEOCODER_VERSION, source:"mml" };
         if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon) || point.lat < 59 || point.lat > 71 || point.lon < 19 || point.lon > 32) return null;
         geoCache[cacheKey] = point;
         saveGeoCache();
@@ -5486,6 +5845,28 @@
       return Number.isFinite(result) && wanted === result;
     }
 
+    function locationNameMatches(wantedCity, candidateNames = []) {
+      const wanted = normalizeText(wantedCity).replace(/\b(?:kaupunki|stad)\b/g, " ").replace(/\s+/g, " ").trim();
+      if (!wanted) return false;
+      return candidateNames.some(value => {
+        const candidate = normalizeText(value).replace(/\b(?:kaupunki|stad)\b/g, " ").replace(/\s+/g, " ").trim();
+        return !!candidate && (candidate === wanted || candidate.includes(wanted) || wanted.includes(candidate));
+      });
+    }
+
+    function locationEvidenceMatches(postalCode, cityHint, resultPostalCode, candidateNames = []) {
+      const wantedPostal = String(postalCode || "").replace(/\s/g, "");
+      const resultPostal = String(resultPostalCode || "").replace(/\s/g, "");
+      const hasCandidateCity = candidateNames.some(value => String(value || "").trim());
+      const cityMatches = locationNameMatches(cityHint, candidateNames);
+      if (wantedPostal && resultPostal) return wantedPostal === resultPostal;
+      if (cityHint && hasCandidateCity && !cityMatches) return false;
+      if (wantedPostal && !resultPostal) return !!cityHint && cityMatches;
+      if (cityHint) return cityMatches;
+      // Pelkkä samanniminen katu ilman postinumero- tai paikkakuntavarmistusta on liian epävarma.
+      return false;
+    }
+
     function nominatimResultScore(result, street, postalCode, cityHint = "") {
       const details = result?.address || {};
       const wanted = parseStreetAddressLine(street, { allowGeneric: true });
@@ -5507,12 +5888,12 @@
 
       const wantedPostal = String(postalCode || "").replace(/\s/g, "");
       const resultPostal = String(details.postcode || "").replace(/\s/g, "");
-      if (wantedPostal && resultPostal && wantedPostal !== resultPostal) return -Infinity;
+      const resultCities = [details.city, details.town, details.municipality, details.village, details.county, details.state_district];
+      if (!locationEvidenceMatches(wantedPostal, cityHint, resultPostal, resultCities)) return -Infinity;
       if (wantedPostal && resultPostal === wantedPostal) score += 5;
 
       const wantedCity = normalizeText(cityHint);
-      const resultCity = normalizeText(details.city || details.town || details.municipality || details.village || details.county || "");
-      if (wantedCity && resultCity && (resultCity.includes(wantedCity) || wantedCity.includes(resultCity))) score += 2;
+      if (wantedCity && locationNameMatches(wantedCity, resultCities)) score += 2;
       return score;
     }
 
@@ -5521,7 +5902,7 @@
       const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
       if (!normalizedStreet) return null;
       const normalizedCity = String(cityHint || "").trim();
-      const cacheKey = `v4:a:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
+      const cacheKey = `v5:a:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
       if (geoCache[cacheKey]) return geoCache[cacheKey];
       try {
         const fetchNominatim = async params => {
@@ -5530,7 +5911,7 @@
           if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
           lastGeoRequest = Date.now();
           const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.74 (Teemu H. Fingerroos)" }
+            headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.76 (Teemu H. Fingerroos)" }
           });
           if (!response.ok) return [];
           return await response.json();
@@ -5569,7 +5950,7 @@
         }
         const matching = best?.result;
         if (!matching) return null;
-        const point = { lat: parseFloat(matching.lat), lon: parseFloat(matching.lon) };
+        const point = { lat: parseFloat(matching.lat), lon: parseFloat(matching.lon), geocodeVersion:GEOCODER_VERSION, source:"nominatim" };
         if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon)) return null;
         geoCache[cacheKey] = point;
         saveGeoCache();
@@ -5584,7 +5965,7 @@
       const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
       const normalizedCity = String(cityHint || "").trim();
       if (!normalizedStreet) return null;
-      const cacheKey = `photon:v1:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
+      const cacheKey = `photon:v2:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
       if (geoCache[cacheKey]) return geoCache[cacheKey];
       try {
         const now = Date.now();
@@ -5607,20 +5988,20 @@
           const resultRoad = normalizeText(properties.street || properties.name || "");
           const resultHouse = String(properties.housenumber || "");
           const resultPostal = String(properties.postcode || "").replace(/\s/g, "");
-          const resultCity = normalizeText(properties.city || properties.county || properties.state || "");
+          const resultCities = [properties.city, properties.district, properties.county, properties.state];
           if (wantedRoad && (!resultRoad || (!resultRoad.includes(wantedRoad) && !wantedRoad.includes(resultRoad)))) return null;
           if (wantedHouse && resultHouse && !houseNumberMatches(wantedHouse, resultHouse)) return null;
-          if (normalizedPostal && resultPostal && normalizedPostal !== resultPostal) return null;
+          if (!locationEvidenceMatches(normalizedPostal, normalizedCity, resultPostal, resultCities)) return null;
           let score = 4;
           if (wantedHouse && houseNumberMatches(wantedHouse, resultHouse)) score += 5;
           else if (wantedHouse) score += 1;
           if (normalizedPostal && resultPostal === normalizedPostal) score += 5;
-          if (wantedCity && resultCity && (resultCity.includes(wantedCity) || wantedCity.includes(resultCity))) score += 2;
+          if (wantedCity && locationNameMatches(wantedCity, resultCities)) score += 2;
           return { feature, score };
         }).filter(Boolean).sort((a, b) => b.score - a.score);
         const coordinates = candidates[0]?.feature?.geometry?.coordinates;
         if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
-        const point = { lat: Number(coordinates[1]), lon: Number(coordinates[0]) };
+        const point = { lat: Number(coordinates[1]), lon: Number(coordinates[0]), geocodeVersion:GEOCODER_VERSION, source:"photon" };
         if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon) || point.lat < 59 || point.lat > 71 || point.lon < 19 || point.lon > 32) return null;
         geoCache[cacheKey] = point;
         saveGeoCache();
@@ -5657,7 +6038,25 @@
     }
 
     async function geocodeStop(stop) {
-      if (stop.geo) return stop.geo;
+      const originalAddress = stop.originalExtractedAddress || stop.address || "";
+      const originalPostal = stop.originalExtractedPostalCode || stop.postalCode || "";
+      const correction = await resolvedAddressCorrection(originalAddress, originalPostal);
+      if (correction) {
+        const correctedGeo = correctionGeo(correction);
+        if (correction.address && correction.address !== stop.address) {
+          stop.address = correction.address;
+          stop.postalCode = correction.postalCode || correction.address.match(/\b\d{5}\b/)?.[0] || "";
+          stop.streetKey = "";
+          stop.area = getArea(stop.postalCode);
+          if (!correctedGeo) stop.geo = null;
+          normalizeStop(stop, { preserveGeo:!!correctedGeo, clearStreetIfMissing:true });
+        }
+        if (correctedGeo) stop.geo = correctedGeo;
+      }
+      if (stop.geo?.manual) return stop.geo;
+      if (stop.geo?.geocodeVersion === GEOCODER_VERSION) return stop.geo;
+      // Vanhat automaattiset osumat tarkistetaan uudelleen, jotta väärä välimuistitulos ei jää käyttöön.
+      stop.geo = null;
       const street = stop.streetKey || stop.address || "";
       const postal = String(stop.postalCode || "").replace(/\s/g, "");
       if (street && postal) {
@@ -6402,7 +6801,7 @@
         uploadStatus.innerHTML = `<span class="spinner"></span> <span>Käsitellään ${i + 1}/${files.length}: ${file.name}</span>`;
         try {
           const extracted = await extractFromPdf(file);
-          const rememberedAddress = correctedExtractedAddress(extracted);
+          const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "");
           const stopObj = {
             id: crypto.randomUUID(),
             file,
