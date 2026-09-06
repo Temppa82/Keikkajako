@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.78</title>
+  <title>Lähetejako v1.79</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -759,7 +759,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.78</div>
+      <div style="font-weight:600; color:var(--text);">v1.79</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -1302,7 +1302,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.78 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
+    Lähetejako v1.79 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1611,10 +1611,20 @@
     }
 
     const ADDRESS_CORRECTIONS_STORAGE_KEY = "lahetejako_address_corrections_v1";
+    const APP_INFO_CACHE_STORAGE_KEY = "lahetejako_appinfo_customers_cache_v1";
+    const APP_INFO_PENDING_STORAGE_KEY = "lahetejako_appinfo_pending_mutations_v1";
+    const APP_INFO_FILE_NAME = "asiakkaat.json";
     let savedAddressCorrections = {};
-    const sharedAddressCorrectionCache = new Map();
-    const sharedAddressCorrectionRequests = new Map();
     const sharedAddressCorrectionWrites = new Map();
+    let appInfoDatabase = { version:1, customers:{}, appliedMutationIds:[], migrations:{} };
+    let appInfoCacheRootId = "";
+    let appInfoFileId = "";
+    let appInfoFileVersion = "";
+    let appInfoFileEtag = "";
+    let appInfoLoadedAt = 0;
+    let appInfoLoadPromise = null;
+    let appInfoSyncPromise = Promise.resolve();
+    let appInfoPendingMutations = [];
     try {
       const stored = JSON.parse(localStorage.getItem(ADDRESS_CORRECTIONS_STORAGE_KEY) || "{}");
       if (stored && typeof stored === "object" && !Array.isArray(stored)) savedAddressCorrections = stored;
@@ -1650,18 +1660,30 @@
       return addressCorrectionKey(streetOnly || address, postal);
     }
 
-    function rememberAddressCorrection(originalAddress, originalPostalCode, correctedAddress, correctedGeo = null) {
+    function rememberAddressCorrection(originalAddress, originalPostalCode, correctedAddress, correctedGeo = null, identitySource = null) {
       const corrected = String(correctedAddress || "").trim();
       if (!corrected) return { correction:null, sharedPromise:Promise.resolve(false) };
       const correctedPostal = corrected.match(/\b\d{5}\b/)?.[0] || "";
       const lookupKey = sharedAddressCorrectionKey(originalAddress, originalPostalCode);
+      const identity = customerInfoIdentity({
+        ...(identitySource || {}),
+        originalExtractedAddress:String(originalAddress || "").trim(),
+        originalExtractedPostalCode:String(originalPostalCode || "").match(/\b\d{5}\b/)?.[0] || "",
+        address:corrected
+      });
       const value = {
         address: corrected,
         postalCode: correctedPostal,
         originalAddress:String(originalAddress || "").trim(),
         originalPostalCode:String(originalPostalCode || "").match(/\b\d{5}\b/)?.[0] || "",
         lookupKey,
+        customerKey:identity.key,
+        identityAliases:identity.aliases,
+        company:identity.company,
+        customerNumber:identity.customerNumber,
+        originalCity:identity.originalCity,
         savedAt: new Date().toISOString(),
+        pendingMutationId:crypto.randomUUID(),
         pendingShared:true
       };
       if (Number.isFinite(Number(correctedGeo?.lat)) && Number.isFinite(Number(correctedGeo?.lon))) {
@@ -1677,10 +1699,10 @@
       return { correction:value, sharedPromise:saveSharedAddressCorrection(value) };
     }
 
-    async function resolvedAddressCorrection(address, postalCode = "") {
+    async function resolvedAddressCorrection(address, postalCode = "", identitySource = null) {
       const local = findSavedAddressCorrection(address, postalCode);
       if (local?.pendingShared && googleDriveFolderId && googleDriveTokenIsValid()) await saveSharedAddressCorrection(local);
-      const shared = await loadSharedAddressCorrection(address, postalCode);
+      const shared = await loadSharedAddressCorrection(address, postalCode, identitySource);
       const newest = shared && (!local || String(shared.savedAt || "") > String(local.savedAt || "")) ? shared : local;
       if (newest === shared) {
         const original = String(address || "").trim();
@@ -1985,6 +2007,7 @@
       const savedLoadingNotes = JSON.parse(localStorage.getItem("lahetejako_driver_loading_notes_v1") || "{}");
       if (savedLoadingNotes && typeof savedLoadingNotes === "object" && !Array.isArray(savedLoadingNotes)) driverLoadingNotes = savedLoadingNotes;
     } catch (_) { /* Google Maps pysyy oletuksena */ }
+    loadAppInfoLocalState(googleDriveFolderId);
     driverServiceDate = localIsoDate();
     updateDriverServiceDateControl();
 
@@ -2174,8 +2197,9 @@
       });
       const rootFolder = await autoAttachGoogleDriveRoot();
       if (rootFolder) {
-        await ensureGoogleDriveAppInfoFolder();
+        await loadAppInfoDatabase({force:true, migrate:true});
         await flushPendingAddressCorrections();
+        await syncPendingAppInfoMutations();
         updateGoogleDriveStatus();
       }
       return true;
@@ -2220,8 +2244,9 @@
         builder.build().setVisible(true);
       });
       updateGoogleDriveStatus("Valmistellaan Rahtikirjat/AppInfo-kansiota…");
-      await ensureGoogleDriveAppInfoFolder();
+      await loadAppInfoDatabase({force:true, migrate:true});
       await flushPendingAddressCorrections();
+      await syncPendingAppInfoMutations();
       updateGoogleDriveStatus();
       if (driverCombinedPdfBytes) await uploadDriverPdfToGoogleDrive(new Uint8Array(driverCombinedPdfBytes));
     }
@@ -2255,6 +2280,7 @@
       }
       googleDriveFolderId = folder.id;
       googleDriveFolderName = folder.name || "Rahtikirjat";
+      loadAppInfoLocalState(googleDriveFolderId);
       saveGoogleDriveSettings();
       updateDriverPdfSaveDestination();
       return folder;
@@ -2564,35 +2590,315 @@
       return (hash >>> 0).toString(16).padStart(8, "0");
     }
 
+    function normalizedCustomerText(value) {
+      return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fi-FI").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+    }
+
     function customerInfoIdentity(stop) {
-      const address = String(stop?.address || stop?.postalCode || "").trim();
-      const recipient = String(stop?.recipient || "Tuntematon kohde").trim();
-      const key = `${address}|${recipient}`.normalize("NFC").toLocaleLowerCase("fi-FI").replace(/[,;]+/g, " ").replace(/\s+/g, " ").trim();
-      const base = key.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 55) || "kohde";
-      return { key, address, recipient, fileName:`${base}-${stableInfoHash(key)}.json` };
+      const company = String(stop?.company || stop?.recipient || "Tuntematon kohde").trim();
+      const customerNumber = String(stop?.customerNumber || stop?.customerNo || stop?.customerId || "").trim();
+      const originalAddress = String(stop?.originalExtractedAddress || stop?.originalAddress || stop?.address || "").trim();
+      const originalPostalCode = String(stop?.originalExtractedPostalCode || stop?.originalPostalCode || stop?.postalCode || originalAddress.match(/\b\d{5}\b/)?.[0] || "").match(/\b\d{5}\b/)?.[0] || "";
+      const originalCity = String(stop?.originalCity || stop?.city || (originalAddress.match(/\b\d{5}\b\s+(.+)$/)?.[1] || "")).trim();
+      const originalStreet = originalAddress.replace(/\b\d{5}\b.*$/i, "").replace(/[,;]+$/g, "").trim();
+      const address = String(stop?.address || originalAddress || originalPostalCode).trim();
+      const nCompany = normalizedCustomerText(company);
+      const nCustomer = normalizedCustomerText(customerNumber);
+      const nStreet = normalizedCustomerText(originalStreet || originalAddress);
+      const nPostal = normalizedCustomerText(originalPostalCode);
+      const aliases = [];
+      if (nCustomer && nStreet) aliases.push(`customer-address:${nCustomer}|${nStreet}|${nPostal}`);
+      if (nCompany && nStreet) aliases.push(`company-address:${nCompany}|${nStreet}|${nPostal}`);
+      if (nStreet) aliases.push(`address:${nStreet}|${nPostal}`);
+      if (nCustomer && nCompany) aliases.push(`customer-company:${nCustomer}|${nCompany}`);
+      const currentStreet = normalizedCustomerText(address.replace(/\b\d{5}\b.*$/i, ""));
+      const currentPostal = normalizedCustomerText(address.match(/\b\d{5}\b/)?.[0] || "");
+      if (currentStreet && (currentStreet !== nStreet || currentPostal !== nPostal)) aliases.push(`address:${currentStreet}|${currentPostal}`);
+      const uniqueAliases = [...new Set(aliases.filter(Boolean))];
+      const keyMaterial = uniqueAliases[0] || (nCompany ? `company:${nCompany}` : "") || (nStreet ? `address:${nStreet}|${nPostal}` : "") || "tuntematon-kohde";
+      return {
+        key:`customer-${stableInfoHash(keyMaterial)}`,
+        address,
+        recipient:company,
+        company,
+        customerNumber,
+        originalAddress,
+        originalPostalCode,
+        originalCity,
+        aliases:uniqueAliases,
+        fileName:APP_INFO_FILE_NAME
+      };
     }
 
-    async function readCustomerInfoFile(fileId) {
+    function emptyAppInfoDatabase() {
+      return { version:1, updatedAt:"", customers:{}, appliedMutationIds:[], migrations:{} };
+    }
+
+    function normalizeAppInfoDatabase(data) {
+      const normalized = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+      normalized.version = 1;
+      if (!normalized.customers || typeof normalized.customers !== "object" || Array.isArray(normalized.customers)) normalized.customers = {};
+      if (!Array.isArray(normalized.appliedMutationIds)) normalized.appliedMutationIds = [];
+      if (!normalized.migrations || typeof normalized.migrations !== "object" || Array.isArray(normalized.migrations)) normalized.migrations = {};
+      Object.entries(normalized.customers).forEach(([key, customer]) => {
+        if (!customer || typeof customer !== "object" || Array.isArray(customer)) { delete normalized.customers[key]; return; }
+        customer.id = customer.id || key;
+        customer.identityAliases = [...new Set(Array.isArray(customer.identityAliases) ? customer.identityAliases.filter(Boolean) : [])];
+        customer.infoEntries = Array.isArray(customer.infoEntries) ? customer.infoEntries : (Array.isArray(customer.entries) ? customer.entries : []);
+      });
+      return normalized;
+    }
+
+    function loadAppInfoLocalState(rootId = googleDriveFolderId) {
+      appInfoCacheRootId = rootId || "";
+      appInfoDatabase = emptyAppInfoDatabase();
+      appInfoFileId = "";
+      appInfoFileVersion = "";
+      appInfoFileEtag = "";
+      appInfoLoadedAt = 0;
+      try {
+        const cached = JSON.parse(localStorage.getItem(APP_INFO_CACHE_STORAGE_KEY) || "null");
+        if (cached?.rootId === appInfoCacheRootId) {
+          appInfoDatabase = normalizeAppInfoDatabase(cached.data);
+          appInfoFileId = cached.fileId || "";
+          appInfoFileVersion = String(cached.fileVersion || "");
+          appInfoLoadedAt = Number(cached.loadedAt) || 0;
+        }
+      } catch (_) {}
+      try {
+        const pending = JSON.parse(localStorage.getItem(APP_INFO_PENDING_STORAGE_KEY) || "[]");
+        appInfoPendingMutations = Array.isArray(pending) ? pending.filter(item => item?.id && item?.type) : [];
+      } catch (_) { appInfoPendingMutations = []; }
+      appInfoPendingMutations.filter(item => !item.rootId || item.rootId === appInfoCacheRootId).forEach(item => applyAppInfoMutation(appInfoDatabase, item));
+      persistAppInfoLocalState();
+      return appInfoDatabase;
+    }
+
+    function persistAppInfoLocalState() {
+      try {
+        localStorage.setItem(APP_INFO_CACHE_STORAGE_KEY, JSON.stringify({rootId:appInfoCacheRootId, fileId:appInfoFileId, fileVersion:appInfoFileVersion, loadedAt:appInfoLoadedAt, data:appInfoDatabase}));
+        localStorage.setItem(APP_INFO_PENDING_STORAGE_KEY, JSON.stringify(appInfoPendingMutations));
+      } catch (error) { console.warn("AppInfo-välimuistin tallennus epäonnistui:", error); }
+    }
+
+    function customerRecordMatchScore(customer, identity) {
+      if (!customer || !identity) return 0;
+      if (customer.id === identity.key) return 1000;
+      const stored = new Set(Array.isArray(customer.identityAliases) ? customer.identityAliases : []);
+      const storedCompany = normalizedCustomerText(customer.company || "");
+      const incomingCompany = normalizedCustomerText(identity.company || "");
+      let score = 0;
+      for (const alias of identity.aliases || []) {
+        if (!stored.has(alias)) continue;
+        if (alias.startsWith("customer-address:")) score = Math.max(score, 950);
+        else if (alias.startsWith("company-address:")) score = Math.max(score, 900);
+        else if (alias.startsWith("address:") && (!storedCompany || !incomingCompany || storedCompany === incomingCompany)) score = Math.max(score, 750);
+        else if (alias.startsWith("customer-company:")) score = Math.max(score, 500);
+      }
+      return score;
+    }
+
+    function findAppInfoCustomer(data, identity) {
+      const customers = normalizeAppInfoDatabase(data).customers;
+      if (customers[identity.key]) return customers[identity.key];
+      let best = null;
+      let bestScore = 0;
+      Object.values(customers).forEach(customer => {
+        const score = customerRecordMatchScore(customer, identity);
+        if (score > bestScore) { best = customer; bestScore = score; }
+      });
+      return bestScore >= 650 ? best : null;
+    }
+
+    function ensureAppInfoCustomer(data, identity) {
+      const database = normalizeAppInfoDatabase(data);
+      let customer = findAppInfoCustomer(database, identity);
+      if (!customer) {
+        customer = { id:identity.key, company:identity.company || "", customerNumber:identity.customerNumber || "", originalAddress:identity.originalAddress || "", originalPostalCode:identity.originalPostalCode || "", originalCity:identity.originalCity || "", correctedAddress:"", correctedPostalCode:"", latitude:null, longitude:null, coordinateSelected:false, info:"", phone:"", doorCode:"", contactPerson:"", unloadingInstructions:"", identityAliases:[], infoEntries:[], updatedAt:"" };
+        database.customers[identity.key] = customer;
+      }
+      customer.identityAliases = [...new Set([...(customer.identityAliases || []), ...(identity.aliases || [])])];
+      customer.company ||= identity.company || "";
+      customer.customerNumber ||= identity.customerNumber || "";
+      customer.originalAddress ||= identity.originalAddress || "";
+      customer.originalPostalCode ||= identity.originalPostalCode || "";
+      customer.originalCity ||= identity.originalCity || "";
+      customer.infoEntries = Array.isArray(customer.infoEntries) ? customer.infoEntries : [];
+      return customer;
+    }
+
+    function applyAppInfoMutation(data, mutation) {
+      const database = normalizeAppInfoDatabase(data);
+      if (!mutation?.id || database.appliedMutationIds.includes(mutation.id)) return database;
+      if (mutation.type === "migration-complete") {
+        database.migrations.legacyAppInfoV1 = mutation.payload;
+      } else {
+        const customer = ensureAppInfoCustomer(database, mutation.identity || {});
+        if (mutation.type === "address") {
+          const update = mutation.payload || {};
+          if (!customer.addressUpdatedAt || String(update.savedAt || "") >= String(customer.addressUpdatedAt || "")) {
+            customer.originalAddress = update.originalAddress || customer.originalAddress || "";
+            customer.originalPostalCode = update.originalPostalCode || customer.originalPostalCode || "";
+            customer.originalCity = update.originalCity || customer.originalCity || "";
+            customer.correctedAddress = update.correctedAddress || customer.correctedAddress || "";
+            customer.correctedPostalCode = update.correctedPostalCode || customer.correctedPostalCode || "";
+            if (Number.isFinite(Number(update.latitude)) && Number.isFinite(Number(update.longitude))) {
+              customer.latitude = Number(update.latitude);
+              customer.longitude = Number(update.longitude);
+              customer.coordinateSelected = !!update.coordinateSelected;
+            }
+            customer.addressUpdatedAt = update.savedAt || mutation.createdAt || new Date().toISOString();
+          }
+        } else if (mutation.type === "info") {
+          const entry = mutation.payload?.entry;
+          if (entry && !customer.infoEntries.some(item => item.id === entry.id)) customer.infoEntries.push(entry);
+          const fields = mutation.payload?.fields || {};
+          ["info", "phone", "doorCode", "contactPerson", "unloadingInstructions"].forEach(field => { if (fields[field] != null) customer[field] = fields[field]; });
+        }
+        customer.updatedAt = [customer.updatedAt, mutation.createdAt].filter(Boolean).sort().pop() || new Date().toISOString();
+        customer.updatedBy = mutation.createdBy || customer.updatedBy || "";
+      }
+      database.appliedMutationIds.push(mutation.id);
+      if (database.appliedMutationIds.length > 3000) database.appliedMutationIds = database.appliedMutationIds.slice(-3000);
+      database.updatedAt = [database.updatedAt, mutation.createdAt].filter(Boolean).sort().pop() || new Date().toISOString();
+      return database;
+    }
+
+    function queueAppInfoMutation(type, identity, payload, options = {}) {
+      const mutation = {
+        id:options.id || crypto.randomUUID(),
+        rootId:options.rootId ?? googleDriveFolderId ?? "",
+        type,
+        identity,
+        payload,
+        createdAt:options.createdAt || new Date().toISOString(),
+        createdBy:options.createdBy || [driverName, driverPlate].filter(Boolean).join(" / ") || "Käyttäjä"
+      };
+      if (!appInfoPendingMutations.some(item => item.id === mutation.id)) appInfoPendingMutations.push(mutation);
+      applyAppInfoMutation(appInfoDatabase, mutation);
+      persistAppInfoLocalState();
+      return mutation;
+    }
+
+    async function readGoogleDriveJsonFile(fileId) {
       const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`);
-      if (!response.ok) throw new Error(`Kohdetietojen lataus epäonnistui (${response.status}).`);
-      const data = await response.json();
-      if (!Array.isArray(data.entries)) data.entries = [];
-      return data;
+      if (!response.ok) throw new Error(`AppInfo-tiedoston lataus epäonnistui (${response.status}).`);
+      return await response.json();
     }
 
-    async function writeCustomerInfoFile(parentId, fileName, data, fileId = "") {
-      const bytes = new TextEncoder().encode(JSON.stringify(data, null, 2));
-      if (fileId) {
-        const response = await googleDriveFetch(`https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(fileId)}?uploadType=media&supportsAllDrives=true&fields=id,name,modifiedTime`, { method:"PATCH", headers:{ "Content-Type":"application/json; charset=UTF-8" }, body:bytes });
-        if (!response.ok) throw new Error(`Kohdetietojen päivitys epäonnistui (${response.status}): ${await response.text()}`);
-        return await response.json();
+    async function getAppInfoFileMetadata(fileId) {
+      const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?supportsAllDrives=true&fields=id,name,version,modifiedTime`);
+      if (!response.ok) throw new Error(`AppInfo-version tarkistus epäonnistui (${response.status}).`);
+      return { ...(await response.json()), etag:response.headers.get("ETag") || "" };
+    }
+
+    async function readAppInfoSnapshot(fileId, retries = 3) {
+      for (let attempt = 0; attempt < retries; attempt++) {
+        const before = await getAppInfoFileMetadata(fileId);
+        const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`);
+        if (!response.ok) throw new Error(`asiakkaat.json-tiedoston lataus epäonnistui (${response.status}).`);
+        const data = normalizeAppInfoDatabase(await response.json());
+        const after = await getAppInfoFileMetadata(fileId);
+        if (String(before.version || "") === String(after.version || "")) return {data, fileId, version:String(after.version || ""), etag:response.headers.get("ETag") || after.etag || before.etag || ""};
+      }
+      throw Object.assign(new Error("asiakkaat.json muuttui lukemisen aikana. Yritä uudelleen."), {code:"APPINFO_CONFLICT"});
+    }
+
+    async function writeAppInfoFile(parentId, data, snapshot = null) {
+      const bytes = new TextEncoder().encode(JSON.stringify(normalizeAppInfoDatabase(data), null, 2));
+      if (snapshot?.fileId) {
+        const current = await getAppInfoFileMetadata(snapshot.fileId);
+        if (snapshot.version && String(current.version || "") !== String(snapshot.version)) throw Object.assign(new Error("AppInfo muuttui toisella käyttäjällä."), {code:"APPINFO_CONFLICT"});
+        const headers = {"Content-Type":"application/json; charset=UTF-8"};
+        if (snapshot.etag) headers["If-Match"] = snapshot.etag;
+        const response = await googleDriveFetch(`https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(snapshot.fileId)}?uploadType=media&supportsAllDrives=true&fields=id,name,version,modifiedTime`, {method:"PATCH", headers, body:bytes});
+        if (response.status === 409 || response.status === 412) throw Object.assign(new Error("AppInfo muuttui toisella käyttäjällä."), {code:"APPINFO_CONFLICT"});
+        if (!response.ok) throw new Error(`asiakkaat.json-tiedoston päivitys epäonnistui (${response.status}): ${await response.text()}`);
+        const saved = await response.json();
+        return {fileId:saved.id || snapshot.fileId, version:String(saved.version || "")};
       }
       const boundary = `appinfo_${crypto.randomUUID().replace(/-/g, "")}`;
-      const metadata = JSON.stringify({ name:fileName, mimeType:"application/json", parents:[parentId] });
-      const body = new Blob([`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,bytes,`\r\n--${boundary}--`], { type:`multipart/related; boundary=${boundary}` });
-      const response = await googleDriveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,modifiedTime", { method:"POST", headers:{ "Content-Type":`multipart/related; boundary=${boundary}` }, body });
-      if (!response.ok) throw new Error(`Kohdetiedoston luonti epäonnistui (${response.status}): ${await response.text()}`);
-      return await response.json();
+      const metadata = JSON.stringify({name:APP_INFO_FILE_NAME, mimeType:"application/json", parents:[parentId]});
+      const body = new Blob([`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,bytes,`\r\n--${boundary}--`], {type:`multipart/related; boundary=${boundary}`});
+      const response = await googleDriveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,version,modifiedTime", {method:"POST", headers:{"Content-Type":`multipart/related; boundary=${boundary}`}, body});
+      if (!response.ok) throw new Error(`asiakkaat.json-tiedoston luonti epäonnistui (${response.status}): ${await response.text()}`);
+      const saved = await response.json();
+      return {fileId:saved.id, version:String(saved.version || "")};
+    }
+
+    async function loadAppInfoDatabase({force = false, migrate = false} = {}) {
+      if (!googleDriveFolderId) return appInfoDatabase;
+      if (appInfoCacheRootId !== googleDriveFolderId) loadAppInfoLocalState(googleDriveFolderId);
+      if (!googleDriveTokenIsValid()) return appInfoDatabase;
+      if (!force && appInfoLoadedAt && Date.now() - appInfoLoadedAt < 60000) return appInfoDatabase;
+      if (appInfoLoadPromise) return await appInfoLoadPromise;
+      appInfoLoadPromise = (async () => {
+        const parentId = await ensureGoogleDriveAppInfoFolder();
+        const file = await findGoogleDriveItem(parentId, APP_INFO_FILE_NAME, "application/json");
+        let remote = emptyAppInfoDatabase();
+        if (file?.id) {
+          const snapshot = await readAppInfoSnapshot(file.id);
+          remote = snapshot.data;
+          appInfoFileId = snapshot.fileId;
+          appInfoFileVersion = snapshot.version;
+          appInfoFileEtag = snapshot.etag;
+        } else {
+          appInfoFileId = "";
+          appInfoFileVersion = "";
+          appInfoFileEtag = "";
+        }
+        appInfoDatabase = remote;
+        appInfoPendingMutations.filter(item => !item.rootId || item.rootId === googleDriveFolderId).forEach(item => applyAppInfoMutation(appInfoDatabase, item));
+        appInfoLoadedAt = Date.now();
+        persistAppInfoLocalState();
+        if (migrate && !appInfoDatabase.migrations?.legacyAppInfoV1?.completedAt) await migrateLegacyAppInfoFiles(parentId);
+        return appInfoDatabase;
+      })();
+      try { return await appInfoLoadPromise; }
+      finally { appInfoLoadPromise = null; }
+    }
+
+    async function performAppInfoSync() {
+      if (!googleDriveFolderId || !googleDriveTokenIsValid()) return false;
+      const rootId = googleDriveFolderId;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const pending = appInfoPendingMutations.filter(item => !item.rootId || item.rootId === rootId);
+        if (!pending.length) return true;
+        try {
+          const parentId = await ensureGoogleDriveAppInfoFolder();
+          const file = await findGoogleDriveItem(parentId, APP_INFO_FILE_NAME, "application/json");
+          const snapshot = file?.id ? await readAppInfoSnapshot(file.id) : {data:emptyAppInfoDatabase(), fileId:"", version:"", etag:""};
+          pending.forEach(item => applyAppInfoMutation(snapshot.data, item));
+          const saved = await writeAppInfoFile(parentId, snapshot.data, snapshot.fileId ? snapshot : null);
+          const verified = await readAppInfoSnapshot(saved.fileId);
+          const missing = pending.filter(item => !verified.data.appliedMutationIds.includes(item.id));
+          if (missing.length) throw Object.assign(new Error("AppInfo-muutoksen vahvistus epäonnistui."), {code:"APPINFO_CONFLICT"});
+          appInfoPendingMutations = appInfoPendingMutations.filter(item => !pending.some(done => done.id === item.id));
+          appInfoDatabase = verified.data;
+          appInfoFileId = verified.fileId;
+          appInfoFileVersion = verified.version;
+          appInfoFileEtag = verified.etag;
+          appInfoCacheRootId = rootId;
+          appInfoLoadedAt = Date.now();
+          pending.filter(item => item.type === "address").forEach(item => markAddressCorrectionShared(item.payload?.lookupKey || "", {address:item.payload?.correctedAddress || ""}));
+          persistAppInfoLocalState();
+          return true;
+        } catch (error) {
+          if (error?.code !== "APPINFO_CONFLICT" || attempt === 4) {
+            console.warn("AppInfo-synkronointi jäi odottamaan:", error);
+            persistAppInfoLocalState();
+            return false;
+          }
+          await new Promise(resolve => setTimeout(resolve, 200 + attempt * 250));
+        }
+      }
+      return false;
+    }
+
+    function syncPendingAppInfoMutations() {
+      const operation = appInfoSyncPromise.then(performAppInfoSync, performAppInfoSync);
+      appInfoSyncPromise = operation.catch(() => false);
+      return operation;
     }
 
     function canonicalStoredCorrectionLookupKey(storedKey, correction = null) {
@@ -2618,32 +2924,16 @@
     }
 
     async function saveSharedAddressCorrection(correction) {
-      if (!correction?.lookupKey || !googleDriveFolderId || !googleDriveTokenIsValid()) return false;
-      const signature = `${googleDriveFolderId}|${correction.lookupKey}|${correction.address}|${correction.lat ?? ""}|${correction.lon ?? ""}`;
+      if (!correction?.lookupKey) return false;
+      const signature = `${googleDriveFolderId}|${correction.pendingMutationId || correction.lookupKey}|${correction.address}|${correction.lat ?? ""}|${correction.lon ?? ""}`;
       if (sharedAddressCorrectionWrites.has(signature)) return await sharedAddressCorrectionWrites.get(signature);
       const operation = (async () => {
         try {
-          const appInfoFolderId = await ensureGoogleDriveAppInfoFolder();
-          const id = crypto.randomUUID();
-          const record = {
-            version:1,
-            type:"address-correction",
-            lookupKey:correction.lookupKey,
-            originalAddress:correction.originalAddress || "",
-            originalPostalCode:correction.originalPostalCode || "",
-            correctedAddress:correction.address || "",
-            correctedPostalCode:correction.postalCode || "",
-            lat:Number.isFinite(Number(correction.lat)) ? Number(correction.lat) : null,
-            lon:Number.isFinite(Number(correction.lon)) ? Number(correction.lon) : null,
-            coordinateSelected:!!correction.coordinateSelected,
-            savedAt:correction.savedAt || new Date().toISOString(),
-            createdBy:[driverName, driverPlate].filter(Boolean).join(" / ") || "Käyttäjä"
-          };
-          const fileName = `address-correction-${stableInfoHash(correction.lookupKey)}-${id}.json`;
-          await writeCustomerInfoFile(appInfoFolderId, fileName, record);
-          markAddressCorrectionShared(correction.lookupKey, correction);
-          sharedAddressCorrectionCache.set(`${googleDriveFolderId}|${correction.lookupKey}`, { value:{...correction, pendingShared:false}, loadedAt:Date.now() });
-          return true;
+          const identity = {key:correction.customerKey || `customer-${stableInfoHash(correction.lookupKey)}`, company:correction.company || "", customerNumber:correction.customerNumber || "", originalAddress:correction.originalAddress || "", originalPostalCode:correction.originalPostalCode || "", originalCity:correction.originalCity || "", aliases:Array.isArray(correction.identityAliases) ? correction.identityAliases : [`address:${correction.lookupKey}`]};
+          const mutationId = correction.pendingMutationId || crypto.randomUUID();
+          if (!appInfoPendingMutations.some(item => item.id === mutationId)) queueAppInfoMutation("address", identity, {lookupKey:correction.lookupKey, originalAddress:correction.originalAddress || "", originalPostalCode:correction.originalPostalCode || "", originalCity:correction.originalCity || "", correctedAddress:correction.address || "", correctedPostalCode:correction.postalCode || "", latitude:Number.isFinite(Number(correction.lat)) ? Number(correction.lat) : null, longitude:Number.isFinite(Number(correction.lon)) ? Number(correction.lon) : null, coordinateSelected:!!correction.coordinateSelected, savedAt:correction.savedAt || new Date().toISOString()}, {id:mutationId});
+          if (!googleDriveFolderId || !googleDriveTokenIsValid()) return false;
+          return await syncPendingAppInfoMutations();
         } catch (error) {
           console.warn("Yhteisen osoitekorjauksen tallennus epäonnistui:", error);
           return false;
@@ -2655,81 +2945,77 @@
       return await operation;
     }
 
-    async function readGoogleDriveJsonFile(fileId) {
-      const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`);
-      if (!response.ok) throw new Error(`AppInfo-tiedoston lataus epäonnistui (${response.status}).`);
-      return await response.json();
-    }
-
-    async function loadSharedAddressCorrection(address, postalCode = "") {
-      if (!googleDriveFolderId || !googleDriveTokenIsValid()) return null;
+    async function loadSharedAddressCorrection(address, postalCode = "", identitySource = null) {
       const lookupKey = sharedAddressCorrectionKey(address, postalCode);
       if (!lookupKey) return null;
-      const rootKey = `${googleDriveFolderId}|${lookupKey}`;
-      const cached = sharedAddressCorrectionCache.get(rootKey);
-      if (cached && Date.now() - cached.loadedAt < 60000) return cached.value;
-      if (sharedAddressCorrectionRequests.has(rootKey)) return await sharedAddressCorrectionRequests.get(rootKey);
-      const operation = (async () => {
-        try {
-          const appInfoFolderId = await ensureGoogleDriveAppInfoFolder();
-          const prefix = `address-correction-${stableInfoHash(lookupKey)}-`;
-          const q = `'${googleDriveQueryEscape(appInfoFolderId)}' in parents and trashed=false and mimeType='application/json' and name contains '${googleDriveQueryEscape(prefix)}'`;
-          const files = [];
-          let pageToken = "";
-          do {
-            const params = new URLSearchParams({q, pageSize:"1000", spaces:"drive", supportsAllDrives:"true", includeItemsFromAllDrives:"true", fields:"nextPageToken,files(id,name,modifiedTime)"});
-            if (pageToken) params.set("pageToken", pageToken);
-            const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files?${params}`);
-            if (!response.ok) throw new Error(`Yhteisten osoitekorjausten haku epäonnistui (${response.status}).`);
-            const data = await response.json();
-            files.push(...(data.files || []));
-            pageToken = data.nextPageToken || "";
-          } while (pageToken);
-          const candidates = [];
-          for (const file of files) {
-            try {
-              const data = await readGoogleDriveJsonFile(file.id);
-              if (data?.type !== "address-correction" || data.lookupKey !== lookupKey || !data.correctedAddress) continue;
-              candidates.push({
-                address:data.correctedAddress,
-                postalCode:data.correctedPostalCode || data.correctedAddress.match(/\b\d{5}\b/)?.[0] || "",
-                originalAddress:data.originalAddress || address,
-                originalPostalCode:data.originalPostalCode || postalCode,
-                lookupKey,
-                lat:Number.isFinite(Number(data.lat)) ? Number(data.lat) : undefined,
-                lon:Number.isFinite(Number(data.lon)) ? Number(data.lon) : undefined,
-                coordinateSelected:!!data.coordinateSelected,
-                savedAt:data.savedAt || file.modifiedTime || "",
-                pendingShared:false
-              });
-            } catch (error) { console.warn("Virheellinen osoitekorjaus ohitettiin:", file.name, error); }
-          }
-          const newest = candidates.sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)))[0] || null;
-          sharedAddressCorrectionCache.set(rootKey, { value:newest, loadedAt:Date.now() });
-          return newest;
-        } catch (error) {
-          console.warn("Yhteisten osoitekorjausten lataus epäonnistui:", error);
-          return null;
-        } finally {
-          sharedAddressCorrectionRequests.delete(rootKey);
-        }
-      })();
-      sharedAddressCorrectionRequests.set(rootKey, operation);
-      return await operation;
+      try {
+        if (googleDriveFolderId && appInfoCacheRootId !== googleDriveFolderId) loadAppInfoLocalState(googleDriveFolderId);
+        if (googleDriveFolderId && googleDriveTokenIsValid() && !appInfoLoadedAt) await loadAppInfoDatabase({force:true, migrate:true});
+        const identity = customerInfoIdentity({...identitySource, originalExtractedAddress:String(address || "").trim(), originalExtractedPostalCode:String(postalCode || "").match(/\b\d{5}\b/)?.[0] || ""});
+        const customer = findAppInfoCustomer(appInfoDatabase, identity);
+        if (!customer?.correctedAddress) return null;
+        return {address:customer.correctedAddress, postalCode:customer.correctedPostalCode || customer.correctedAddress.match(/\b\d{5}\b/)?.[0] || "", originalAddress:customer.originalAddress || address, originalPostalCode:customer.originalPostalCode || postalCode, lookupKey, customerKey:customer.id, identityAliases:customer.identityAliases || [], company:customer.company || "", customerNumber:customer.customerNumber || "", originalCity:customer.originalCity || "", lat:Number.isFinite(Number(customer.latitude)) ? Number(customer.latitude) : undefined, lon:Number.isFinite(Number(customer.longitude)) ? Number(customer.longitude) : undefined, coordinateSelected:!!customer.coordinateSelected, savedAt:customer.addressUpdatedAt || customer.updatedAt || "", pendingShared:false};
+      } catch (error) {
+        console.warn("Yhteisen osoitekorjauksen lataus epäonnistui, käytetään paikallista tietoa:", error);
+        return null;
+      }
     }
 
     async function flushPendingAddressCorrections() {
-      if (!googleDriveFolderId || !googleDriveTokenIsValid()) return;
       const pending = new Map();
       Object.entries(savedAddressCorrections).forEach(([storedKey, value]) => {
         if (!value?.address || (Array.isArray(value.sharedRootIds) && value.sharedRootIds.includes(googleDriveFolderId))) return;
         const lookupKey = canonicalStoredCorrectionLookupKey(storedKey, value);
         if (!lookupKey) return;
-        const candidate = {...value, lookupKey, originalAddress:value.originalAddress || storedKey.split("|")[0], originalPostalCode:value.originalPostalCode || storedKey.split("|").pop() || ""};
+        const candidate = {...value, pendingMutationId:value.pendingMutationId || `legacy-local-${stableInfoHash(`${lookupKey}|${value.address}|${value.savedAt || ""}`)}`, lookupKey, originalAddress:value.originalAddress || storedKey.split("|")[0], originalPostalCode:value.originalPostalCode || storedKey.split("|").pop() || ""};
         const old = pending.get(lookupKey);
         if (!old || String(candidate.savedAt || "") > String(old.savedAt || "")) pending.set(lookupKey, candidate);
       });
       for (const correction of pending.values()) await saveSharedAddressCorrection(correction);
+      if (googleDriveFolderId && googleDriveTokenIsValid()) await syncPendingAppInfoMutations();
+    }
+
+    async function listLegacyAppInfoFiles(parentId) {
+      const q = `'${googleDriveQueryEscape(parentId)}' in parents and trashed=false and mimeType='application/json' and name!='${googleDriveQueryEscape(APP_INFO_FILE_NAME)}'`;
+      const files = [];
+      let pageToken = "";
+      do {
+        const params = new URLSearchParams({q, pageSize:"1000", spaces:"drive", supportsAllDrives:"true", includeItemsFromAllDrives:"true", fields:"nextPageToken,files(id,name,modifiedTime)"});
+        if (pageToken) params.set("pageToken", pageToken);
+        const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files?${params}`);
+        if (!response.ok) throw new Error(`Vanhojen AppInfo-tiedostojen haku epäonnistui (${response.status}).`);
+        const data = await response.json();
+        files.push(...(data.files || []));
+        pageToken = data.nextPageToken || "";
+      } while (pageToken);
+      return files;
+    }
+
+    async function migrateLegacyAppInfoFiles(parentId) {
+      if (appInfoDatabase.migrations?.legacyAppInfoV1?.completedAt) return;
+      const files = await listLegacyAppInfoFiles(parentId);
+      const migratedFileIds = [];
+      let readFailure = false;
+      for (const file of files) {
+        try {
+          const data = await readGoogleDriveJsonFile(file.id);
+          if (data?.type === "address-correction" && data.correctedAddress) {
+            const identity = customerInfoIdentity({originalExtractedAddress:data.originalAddress || data.lookupKey?.split("|")[0] || "", originalExtractedPostalCode:data.originalPostalCode || data.lookupKey?.split("|").pop() || "", address:data.correctedAddress, recipient:data.company || ""});
+            queueAppInfoMutation("address", identity, {lookupKey:data.lookupKey || sharedAddressCorrectionKey(data.originalAddress, data.originalPostalCode), originalAddress:data.originalAddress || "", originalPostalCode:data.originalPostalCode || "", correctedAddress:data.correctedAddress, correctedPostalCode:data.correctedPostalCode || "", latitude:data.lat, longitude:data.lon, coordinateSelected:!!data.coordinateSelected, savedAt:data.savedAt || file.modifiedTime || new Date().toISOString()}, {id:`migration-address-${file.id}`, rootId:googleDriveFolderId, createdAt:data.savedAt || file.modifiedTime});
+            migratedFileIds.push(file.id);
+          } else if (Array.isArray(data?.entries) && (data.address || data.recipient || data.key)) {
+            const identity = customerInfoIdentity({address:data.address || "", originalExtractedAddress:data.address || String(data.key || "").split("|")[0], recipient:data.recipient || String(data.key || "").split("|").slice(1).join("|")});
+            for (const entry of data.entries) queueAppInfoMutation("info", identity, {entry}, {id:`migration-info-${file.id}-${entry.id || stableInfoHash(JSON.stringify(entry))}`, rootId:googleDriveFolderId, createdAt:entry.createdAt || file.modifiedTime, createdBy:entry.createdBy || "Migraatio"});
+            migratedFileIds.push(file.id);
+          }
+        } catch (error) {
+          readFailure = true;
+          console.warn("Vanha AppInfo-tiedosto jätettiin tällä kertaa muuttamatta:", file.name, error);
+        }
+      }
+      if (readFailure) return;
+      queueAppInfoMutation("migration-complete", {}, {completedAt:new Date().toISOString(), migratedFileIds, legacyFilesLeftInDrive:true}, {id:`migration-complete-${googleDriveFolderId}`, rootId:googleDriveFolderId});
+      await syncPendingAppInfoMutations();
     }
 
     function renderCustomerInfo(data) {
@@ -2756,7 +3042,7 @@
       customerInfoDoorCode.value = draft.doorCode || "";
       customerInfoNote.value = draft.note || "";
       document.getElementById("customerInfoAddPanel").open = false;
-      document.getElementById("btnCustomerInfoSave").disabled = true;
+      document.getElementById("btnCustomerInfoSave").disabled = false;
       customerInfoStop.textContent = `${identity.recipient} · ${identity.address || "Osoite puuttuu"}`;
       customerInfoStatus.textContent = "Ladataan kohteen tietoja…";
       customerInfoList.innerHTML = "";
@@ -2764,13 +3050,19 @@
       try {
         if (!stop?.address?.trim()) throw new Error("Tarkista ensin kohteen toimitusosoite esikatselussa.");
         if (!googleDriveFolderId) throw new Error("Valitse ensin Kuljettajan asetuksista Rahtikirjat-juurikansio.");
-        if (!googleDriveTokenIsValid()) await connectGoogleDrive();
-        const appInfoFolderId = await ensureGoogleDriveAppInfoFolder();
-        const data = await loadCustomerInfoEntries(appInfoFolderId, identity);
-        if (requestId !== customerInfoRequestId || rootId !== googleDriveFolderId) return;
-        customerInfoActiveFile = { parentId:appInfoFolderId, rootId, fileName:identity.fileName, identity, data };
+        if (appInfoCacheRootId !== googleDriveFolderId) loadAppInfoLocalState(googleDriveFolderId);
+        let data = loadCustomerInfoEntries(null, identity);
         renderCustomerInfo(data);
-        customerInfoStatus.textContent = `${googleDriveFolderName || "Rahtikirjat"}/AppInfo · yhteiset kohdetiedot`;
+        customerInfoActiveFile = {rootId, identity, data};
+        customerInfoStatus.textContent = `${googleDriveFolderName || "Rahtikirjat"}/AppInfo/asiakkaat.json · paikallinen välimuisti`;
+        if (googleDriveTokenIsValid()) {
+          await loadAppInfoDatabase({force:true, migrate:true});
+          data = loadCustomerInfoEntries(null, identity);
+        }
+        if (requestId !== customerInfoRequestId || rootId !== googleDriveFolderId) return;
+        customerInfoActiveFile = {rootId, identity, data};
+        renderCustomerInfo(data);
+        customerInfoStatus.textContent = `${googleDriveFolderName || "Rahtikirjat"}/AppInfo/asiakkaat.json · yhteiset kohdetiedot`;
         document.getElementById("btnCustomerInfoSave").disabled = false;
       } catch (error) {
         if (requestId !== customerInfoRequestId) return;
@@ -2785,25 +3077,9 @@
       customerInfoDrafts.set(key, { contactName:customerInfoContactName.value, phone:customerInfoPhone.value, doorCode:customerInfoDoorCode.value, note:customerInfoNote.value });
     }
 
-    async function loadCustomerInfoEntries(parentId, identity) {
-      const prefix = identity.fileName.replace(/\.json$/, "");
-      const q = `'${googleDriveQueryEscape(parentId)}' in parents and trashed=false and mimeType='application/json' and name contains '${googleDriveQueryEscape(prefix)}'`;
-      const files = [];
-      let pageToken = "";
-      do {
-        const params = new URLSearchParams({q, pageSize:"1000", spaces:"drive", supportsAllDrives:"true", includeItemsFromAllDrives:"true", fields:"nextPageToken,files(id,name)"});
-        if (pageToken) params.set("pageToken", pageToken);
-        const response = await googleDriveFetch(`https://www.googleapis.com/drive/v3/files?${params}`);
-        if (!response.ok) throw new Error(`Kohdetietojen haku epäonnistui (${response.status}).`);
-        const data = await response.json();
-        files.push(...(data.files || []));
-        pageToken = data.nextPageToken || "";
-      } while (pageToken);
-      const entries = [];
-      for (const file of files) {
-        const data = await readCustomerInfoFile(file.id);
-        if (data.key === identity.key) entries.push(...data.entries);
-      }
+    function loadCustomerInfoEntries(parentId, identity) {
+      const customer = findAppInfoCustomer(appInfoDatabase, identity);
+      const entries = Array.isArray(customer?.infoEntries) ? customer.infoEntries : [];
       const unique = new Map(entries.map(entry => [entry.id || JSON.stringify(entry), entry]));
       return {version:2, key:identity.key, address:identity.address, recipient:identity.recipient, entries:[...unique.values()].sort((a,b) => String(a.createdAt).localeCompare(String(b.createdAt)))};
     }
@@ -2818,16 +3094,14 @@
       button.disabled = true;
       customerInfoStatus.textContent = "Tallennetaan kohdetietoa…";
       try {
-        // Jokainen lisäys on oma tiedosto: samanaikaiset käyttäjät eivät korvaa toistensa tietoja.
-        const data = {version:2, ...target.identity, entries:[entry]};
-        const fileName = target.fileName.replace(/\.json$/, `-${entry.id}.json`);
-        await writeCustomerInfoFile(target.parentId, fileName, data);
-        target.data.entries.push(entry);
+        queueAppInfoMutation("info", target.identity, {entry});
+        target.data = loadCustomerInfoEntries(null, target.identity);
         if (customerInfoActiveFile !== target) return;
         [customerInfoContactName, customerInfoPhone, customerInfoDoorCode, customerInfoNote].forEach(input => { input.value = ""; });
         customerInfoDrafts.delete(`${target.rootId}|${target.identity.key}`);
         renderCustomerInfo(target.data);
-        customerInfoStatus.textContent = `Tallennettu Rahtikirjat/AppInfo-kansioon klo ${new Intl.DateTimeFormat("fi-FI", { hour:"2-digit", minute:"2-digit" }).format(new Date())}.`;
+        const synced = await syncPendingAppInfoMutations();
+        customerInfoStatus.textContent = synced ? `Tallennettu tiedostoon Rahtikirjat/AppInfo/asiakkaat.json klo ${new Intl.DateTimeFormat("fi-FI", { hour:"2-digit", minute:"2-digit" }).format(new Date())}.` : "Tallennettu turvallisesti laitteelle. Muutos synkronoidaan Driveen, kun yhteys palautuu.";
       } catch (error) {
         if (customerInfoActiveFile !== target) return;
         customerInfoStatus.innerHTML = `<strong style="color:var(--danger)">${escapeHtml(error.message || String(error))}</strong>`;
@@ -2844,11 +3118,24 @@
       googleDriveFolderId = "";
       googleDriveFolderName = "";
       googleDriveLastSavedAt = "";
+      loadAppInfoLocalState("");
       saveGoogleDriveSettings();
       if (token && window.google?.accounts?.oauth2?.revoke) google.accounts.oauth2.revoke(token, () => {});
       if (gmailToken && gmailToken !== token && window.google?.accounts?.oauth2?.revoke) google.accounts.oauth2.revoke(gmailToken, () => {});
       updateGoogleDriveStatus();
     }
+
+    window.addEventListener("online", () => {
+      if (!googleDriveFolderId || !googleDriveTokenIsValid()) return;
+      void (async () => {
+        try {
+          await loadAppInfoDatabase({force:true, migrate:true});
+          await flushPendingAddressCorrections();
+          await syncPendingAppInfoMutations();
+          updateGoogleDriveStatus();
+        } catch (error) { console.warn("AppInfo-synkronointi odottaa edelleen verkkoyhteyttä:", error); }
+      })();
+    });
 
     function updateDriverPdfSaveDestination() {
       if (!driverPdfSaveDestination) return;
@@ -2990,7 +3277,7 @@
         driverPreviewPdfPagePosition.textContent = `${driverPreviewPdfPage} / ${driverPreviewPdfPageCount}`;
         driverPreviewPdfPagePrev.disabled = driverPreviewPdfPage <= 1;
         driverPreviewPdfPageNext.disabled = driverPreviewPdfPage >= driverPreviewPdfPageCount;
-        const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "");
+        const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "", extracted);
         if (previewedIndex === driverPreviewIndex && !driverAddressOverrides.has(driverFileKey(file))) {
           driverPreviewAddress.value = rememberedAddress?.address || extracted.address || "";
           if (rememberedAddress && googleDriveTokenIsValid()) driverPreviewAddressStatus.textContent = "Käytössä on yhteisestä AppInfo-kansiosta tarkistettu osoitekorjaus.";
@@ -3032,7 +3319,7 @@
       let shared = false;
       try {
         const extracted = await extractFromPdf(file);
-        const saved = rememberAddressCorrection(extracted.address || "", extracted.postalCode || "", address);
+        const saved = rememberAddressCorrection(extracted.address || "", extracted.postalCode || "", address, null, extracted);
         shared = await saved.sharedPromise;
       } catch (_) { /* Tiedostokohtainen korjaus jää silti voimaan. */ }
       driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Osoite tallennettu pysyvästi${shared ? " tälle laitteelle ja yhteiseen Rahtikirjat/AppInfo-kansioon" : " tälle laitteelle"}. ${shared ? "Se päivittyy muille Drive-käyttäjille." : "Yhteinen tallennus tehdään seuraavan Drive-yhdistämisen yhteydessä."}</span>`;
@@ -3056,7 +3343,7 @@
       const fileKey = driverFileKey(file);
       let extracted = null;
       try { extracted = await extractFromPdf(file); } catch (_) {}
-      const remembered = await resolvedAddressCorrection(extracted?.address || "", extracted?.postalCode || "");
+      const remembered = await resolvedAddressCorrection(extracted?.address || "", extracted?.postalCode || "", extracted);
       const storedGeo = driverCoordinateOverrides.get(fileKey) || correctionGeo(remembered);
       const address = driverPreviewAddress.value.trim() || remembered?.address || extracted?.address || "";
       driverCoordinateTarget = {
@@ -3064,7 +3351,8 @@
         fileKey,
         address,
         originalAddress: extracted?.address || address,
-        originalPostalCode: extracted?.postalCode || ""
+        originalPostalCode: extracted?.postalCode || "",
+        identitySource:extracted
       };
       driverCoordinatePickerModal.classList.add("open");
       driverCoordinatePosition.textContent = "Haetaan lähtökohtaa kartalle…";
@@ -3096,7 +3384,7 @@
       const correctedAddress = target.address || `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`;
       driverAddressOverrides.set(target.fileKey, correctedAddress);
       driverCoordinateOverrides.set(target.fileKey, geo);
-      const saved = rememberAddressCorrection(target.originalAddress, target.originalPostalCode, correctedAddress, geo);
+      const saved = rememberAddressCorrection(target.originalAddress, target.originalPostalCode, correctedAddress, geo, target.identitySource);
       driverPreviewAddress.value = correctedAddress;
       const shared = await saved.sharedPromise;
       driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Kartalta valittu paikka tallennettu pysyvästi: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}. ${shared ? "Koordinaatti tallennettiin myös yhteiseen Rahtikirjat/AppInfo-kansioon." : "Yhteinen tallennus tehdään seuraavan Drive-yhdistämisen yhteydessä."}</span>`;
@@ -3851,7 +4139,7 @@
 
     async function createReadyDriverStop(file) {
       const extracted = await extractFromPdf(file);
-      const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "");
+      const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "", extracted);
       const originalKey = driverFileKey(file);
       const savedPdf = await readSavedDriverPdf(originalKey);
       const activeFile = savedPdf?.annotatedBytes
@@ -3860,6 +4148,7 @@
       const stop = {
         id: crypto.randomUUID(), file: activeFile, originalFile: file, originalKey, fileName: file.name,
         recipient: extracted.recipient || "Ei tunnistettu",
+        customerNumber:extracted.customerNumber || "",
         address: rememberedAddress?.address || extracted.address || "",
         postalCode: rememberedAddress?.postalCode || extracted.postalCode || "",
         streetKey: rememberedAddress ? "" : (extracted.streetKey || ""),
@@ -3957,12 +4246,14 @@
           id: crypto.randomUUID(),
           pdfCount: group.length,
           fileNames: group.map(stop => stop.fileName),
+          customerNumber:group.map(stop => stop.customerNumber).find(Boolean) || first.customerNumber || "",
           files: group.map(stop => ({
             file: stop.file,
             originalFile: stop.originalFile || stop.file,
             originalKey: stop.originalKey || driverFileKey(stop.originalFile || stop.file),
             fileName: stop.fileName,
             recipient: stop.recipient || "",
+            customerNumber:stop.customerNumber || "",
             trackingNumber: stop.trackingNumber || "",
             eur: Number(stop.eur) || 0,
             teho: Number(stop.teho) || 0,
@@ -4526,7 +4817,7 @@
           const activeFile = savedPdf?.annotatedBytes
             ? new File([savedPdf.annotatedBytes], file.name, { type: "application/pdf", lastModified: file.lastModified })
             : file;
-          const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "");
+          const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "", extracted);
           const fileKey = driverFileKey(file);
           const correctedAddress = driverAddressOverrides.get(fileKey) || rememberedAddress?.address || "";
           const correctedGeo = driverCoordinateOverrides.get(fileKey) || correctionGeo(rememberedAddress);
@@ -4534,6 +4825,7 @@
           const stop = {
             id: crypto.randomUUID(), file: activeFile, originalFile: file, originalKey, fileName: file.name,
             recipient: extracted.recipient || "Ei tunnistettu",
+            customerNumber:extracted.customerNumber || "",
             address: correctedAddress || extracted.address || "",
             // Käsin korjattuun katuosoitteeseen ei saa yhdistää PDF:n vanhaa postinumeroa.
             postalCode: correctedAddress ? correctedPostal : (extracted.postalCode || ""),
@@ -4774,7 +5066,7 @@
         infoButton.disabled = true;
         try {
           const extracted = await extractFromPdf(file);
-          const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "");
+          const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "", extracted);
           await openCustomerInfo({...extracted, address:driverAddressOverrides.get(driverFileKey(file)) || rememberedAddress?.address || extracted.address || ""});
         } catch (error) { alert("Kohdetietojen avaaminen epäonnistui: " + error.message); }
         finally { infoButton.disabled = false; }
@@ -6106,7 +6398,7 @@
     async function geocodeStop(stop) {
       const originalAddress = stop.originalExtractedAddress || stop.address || "";
       const originalPostal = stop.originalExtractedPostalCode || stop.postalCode || "";
-      const correction = await resolvedAddressCorrection(originalAddress, originalPostal);
+      const correction = await resolvedAddressCorrection(originalAddress, originalPostal, stop);
       if (correction) {
         const correctedGeo = correctionGeo(correction);
         if (correction.address && correction.address !== stop.address) {
@@ -6867,7 +7159,7 @@
         uploadStatus.innerHTML = `<span class="spinner"></span> <span>Käsitellään ${i + 1}/${files.length}: ${file.name}</span>`;
         try {
           const extracted = await extractFromPdf(file);
-          const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "");
+          const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "", extracted);
           const stopObj = {
             id: crypto.randomUUID(),
             file,
@@ -7683,7 +7975,9 @@
             rememberAddressCorrection(
               stop.originalExtractedAddress || stop.address || "",
               stop.originalExtractedPostalCode || stop.postalCode || "",
-              correctedFullAddress
+              correctedFullAddress,
+              null,
+              stop
             );
           }
           normalizeStop(stop, { clearStreetIfMissing: field === "address" });
@@ -9533,7 +9827,7 @@
       stop.postalCode = postal;
       if (address && (address !== originalAddress || postal !== originalPostal)) {
         const correctedFullAddress = /\b\d{5}\b/.test(address) ? address : `${address}${postal ? `, ${postal}` : ""}`;
-        rememberAddressCorrection(originalAddress, originalPostal, correctedFullAddress);
+        rememberAddressCorrection(originalAddress, originalPostal, correctedFullAddress, null, stop);
       }
       normalizeStop(stop, { clearStreetIfMissing: true });
       setDeliveryVehicleRule(stop, stop.preferredDriverPlate || "", stop.forbiddenDriverPlates || []);
