@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.80</title>
+  <title>Lähetejako v1.81</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -759,7 +759,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.80</div>
+      <div style="font-weight:600; color:var(--text);">v1.81</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -1217,6 +1217,15 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="addressDiagnosticsModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addressDiagnosticsTitle" style="max-width:min(850px,96vw);">
+      <h3 id="addressDiagnosticsTitle">🛠️ Osoitehaun diagnostiikka</h3>
+      <p class="modal-file-meta">Tämä tekninen näkymä näkyy vain pyydettäessä. Se kertoo, mitä PDF:stä poimittiin ja miksi karttapalvelujen ehdokkaita hyväksyttiin tai hylättiin.</p>
+      <pre id="addressDiagnosticsContent" style="max-height:62vh;overflow:auto;white-space:pre-wrap;word-break:break-word;padding:1rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font:0.82rem/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;"></pre>
+      <div class="modal-actions"><button class="btn btn-secondary" id="btnAddressDiagnosticsClose" type="button">Sulje</button></div>
+    </div>
+  </div>
+
   <!-- Postinumero-korjaus -modal -->
   <div class="modal-overlay" id="postalModal">
     <div class="modal">
@@ -1302,7 +1311,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.80 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
+    Lähetejako v1.81 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1700,6 +1709,7 @@
       [addressCorrectionKey(original, originalPostalCode), addressCorrectionKey(streetOnly, originalPostalCode), addressCorrectionKey(streetOnly, "")]
         .filter(Boolean).forEach(key => { savedAddressCorrections[key] = value; });
       persistAddressCorrections();
+      invalidateAddressGeocodeCache(originalAddress, correctedAddress);
       return { correction:value, sharedPromise:saveSharedAddressCorrection(value) };
     }
 
@@ -1714,8 +1724,9 @@
         [addressCorrectionKey(original, postalCode), addressCorrectionKey(streetOnly, postalCode), addressCorrectionKey(streetOnly, "")]
           .filter(Boolean).forEach(key => { savedAddressCorrections[key] = {...shared, pendingShared:false, sharedAt:new Date().toISOString(), sharedRootIds:[googleDriveFolderId]}; });
         persistAddressCorrections();
+        invalidateAddressGeocodeCache(address, shared.address);
       }
-      return newest || null;
+      return newest ? {...newest, _correctionSource:newest === shared ? "Drive-korjaus" : "paikallinen korjaus"} : null;
     }
 
     function correctedExtractedAddress(extracted) {
@@ -2686,6 +2697,7 @@
         if (!customer || typeof customer !== "object" || Array.isArray(customer)) { delete normalized.customers[key]; return; }
         customer.id = customer.id || key;
         customer.identityAliases = [...new Set(Array.isArray(customer.identityAliases) ? customer.identityAliases.filter(Boolean) : [])];
+        customer.addressAliases = [...new Set(Array.isArray(customer.addressAliases) ? customer.addressAliases.map(value => typeof value === "string" ? value : value?.address).filter(Boolean) : [])];
         customer.infoEntries = Array.isArray(customer.infoEntries) ? customer.infoEntries : (Array.isArray(customer.entries) ? customer.entries : []);
       });
       return normalized;
@@ -2756,10 +2768,11 @@
       const database = normalizeAppInfoDatabase(data);
       let customer = findAppInfoCustomer(database, identity);
       if (!customer) {
-        customer = { id:identity.key, company:identity.company || "", customerNumber:identity.customerNumber || "", originalAddress:identity.originalAddress || "", originalPostalCode:identity.originalPostalCode || "", originalCity:identity.originalCity || "", correctedAddress:"", correctedPostalCode:"", latitude:null, longitude:null, coordinateSelected:false, info:"", phone:"", doorCode:"", contactPerson:"", unloadingInstructions:"", identityAliases:[], infoEntries:[], updatedAt:"" };
+        customer = { id:identity.key, company:identity.company || "", customerNumber:identity.customerNumber || "", originalAddress:identity.originalAddress || "", originalPostalCode:identity.originalPostalCode || "", originalCity:identity.originalCity || "", correctedAddress:"", correctedPostalCode:"", latitude:null, longitude:null, coordinateSelected:false, info:"", phone:"", doorCode:"", contactPerson:"", unloadingInstructions:"", identityAliases:[], addressAliases:[], infoEntries:[], updatedAt:"" };
         database.customers[identity.key] = customer;
       }
       customer.identityAliases = [...new Set([...(customer.identityAliases || []), ...(identity.aliases || [])])];
+      customer.addressAliases = Array.isArray(customer.addressAliases) ? customer.addressAliases : [];
       customer.company ||= identity.company || "";
       customer.customerNumber ||= identity.customerNumber || "";
       customer.originalAddress ||= identity.originalAddress || "";
@@ -2784,6 +2797,11 @@
             customer.originalCity = update.originalCity || customer.originalCity || "";
             customer.correctedAddress = update.correctedAddress || customer.correctedAddress || "";
             customer.correctedPostalCode = update.correctedPostalCode || customer.correctedPostalCode || "";
+            customer.addressAliases = [...new Set([
+              ...(Array.isArray(customer.addressAliases) ? customer.addressAliases : []),
+              update.originalAddress || "", update.correctedAddress || "",
+              ...(Array.isArray(update.addressAliases) ? update.addressAliases : [])
+            ].map(value => String(value || "").trim()).filter(Boolean))];
             if (Number.isFinite(Number(update.latitude)) && Number.isFinite(Number(update.longitude))) {
               customer.latitude = Number(update.latitude);
               customer.longitude = Number(update.longitude);
@@ -2973,7 +2991,7 @@
         try {
           const identity = {key:correction.customerKey || `customer-${stableInfoHash(correction.lookupKey)}`, company:correction.company || "", customerNumber:correction.customerNumber || "", originalAddress:correction.originalAddress || "", originalPostalCode:correction.originalPostalCode || "", originalCity:correction.originalCity || "", aliases:Array.isArray(correction.identityAliases) ? correction.identityAliases : [`address:${correction.lookupKey}`]};
           const mutationId = correction.pendingMutationId || crypto.randomUUID();
-          if (!appInfoPendingMutations.some(item => item.id === mutationId)) queueAppInfoMutation("address", identity, {lookupKey:correction.lookupKey, originalAddress:correction.originalAddress || "", originalPostalCode:correction.originalPostalCode || "", originalCity:correction.originalCity || "", correctedAddress:correction.address || "", correctedPostalCode:correction.postalCode || "", latitude:Number.isFinite(Number(correction.lat)) ? Number(correction.lat) : null, longitude:Number.isFinite(Number(correction.lon)) ? Number(correction.lon) : null, coordinateSelected:!!correction.coordinateSelected, savedAt:correction.savedAt || new Date().toISOString()}, {id:mutationId});
+          if (!appInfoPendingMutations.some(item => item.id === mutationId)) queueAppInfoMutation("address", identity, {lookupKey:correction.lookupKey, originalAddress:correction.originalAddress || "", originalPostalCode:correction.originalPostalCode || "", originalCity:correction.originalCity || "", correctedAddress:correction.address || "", correctedPostalCode:correction.postalCode || "", addressAliases:[correction.originalAddress || "", correction.address || ""].filter(Boolean), latitude:Number.isFinite(Number(correction.lat)) ? Number(correction.lat) : null, longitude:Number.isFinite(Number(correction.lon)) ? Number(correction.lon) : null, coordinateSelected:!!correction.coordinateSelected, savedAt:correction.savedAt || new Date().toISOString()}, {id:mutationId});
           if (!googleDriveFolderId || !googleDriveTokenIsValid()) return false;
           return await syncPendingAppInfoMutations();
         } catch (error) {
@@ -3369,6 +3387,20 @@
         const extracted = await extractFromPdf(file);
         const saved = rememberAddressCorrection(extracted.address || "", extracted.postalCode || "", address, null, extracted);
         shared = await saved.sharedPromise;
+        const routeStops = [...(driverRouteState?.ordered || []), ...(driverRouteState?.unresolved || []), ...(driverRouteState?.manualCandidates || [])];
+        const affected = [...new Set(routeStops.filter(stop => (stop.files || []).some(entry => entry.file === file || entry.fileName === file.name)))];
+        for (const stop of affected) {
+          stop.address = address;
+          stop.postalCode = address.match(/\b\d{5}\b/)?.[0] || extracted.postalCode || stop.postalCode || "";
+          stop.geo = null;
+          normalizeStop(stop, {clearStreetIfMissing:true});
+          await geocodeStop(stop);
+          if (stop.geo && driverRouteState?.unresolved?.includes(stop)) {
+            driverRouteState.unresolved = driverRouteState.unresolved.filter(item => item !== stop);
+            driverRouteState.ordered.push(stop);
+          }
+        }
+        if (affected.length && driverRouteState) renderDriverRouteResult(true);
       } catch (_) { /* Tiedostokohtainen korjaus jää silti voimaan. */ }
       driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Osoite tallennettu pysyvästi${shared ? " tälle laitteelle ja yhteiseen Rahtikirjat/AppInfo-kansioon" : " tälle laitteelle"}. ${shared ? "Se päivittyy muille Drive-käyttäjille." : "Yhteinen tallennus tehdään seuraavan Drive-yhdistämisen yhteydessä."}</span>`;
       queueDriverSessionSave();
@@ -3433,10 +3465,21 @@
       driverAddressOverrides.set(target.fileKey, correctedAddress);
       driverCoordinateOverrides.set(target.fileKey, geo);
       const saved = rememberAddressCorrection(target.originalAddress, target.originalPostalCode, correctedAddress, geo, target.identitySource);
+      const routeStops = [...(driverRouteState?.ordered || []), ...(driverRouteState?.unresolved || []), ...(driverRouteState?.manualCandidates || [])];
+      const affected = [...new Set(routeStops.filter(stop => (stop.files || []).some(entry => entry.file === target.file || driverFileKey(entry.file) === target.fileKey)))];
+      affected.forEach(stop => {
+        stop.address = correctedAddress;
+        stop.geo = geo;
+        if (driverRouteState?.unresolved?.includes(stop)) {
+          driverRouteState.unresolved = driverRouteState.unresolved.filter(item => item !== stop);
+          driverRouteState.ordered.push(stop);
+        }
+      });
       driverPreviewAddress.value = correctedAddress;
       const shared = await saved.sharedPromise;
       driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Kartalta valittu paikka tallennettu pysyvästi: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}. ${shared ? "Koordinaatti tallennettiin myös yhteiseen Rahtikirjat/AppInfo-kansioon." : "Yhteinen tallennus tehdään seuraavan Drive-yhdistämisen yhteydessä."}</span>`;
       closeDriverCoordinatePicker();
+      if (affected.length && driverRouteState) renderDriverRouteResult(true);
       await saveDriverSessionNow();
     }
 
@@ -4661,14 +4704,14 @@
         <div class="driver-route-stop${driverStopUnloadRecommendation(stop).recommended ? " unloadable" : ""}" draggable="true" data-driver-stop-id="${escapeHtml(stop.id)}" ${stop.geo ? "" : 'style="border-color:rgba(245,158,11,0.55)"'} title="Raahaa pysähdys uuteen kohtaan">
           <span class="driver-route-number" ${stop.geo ? "" : 'style="background:var(--warning)"'}>${index + 1}</span>
           <div><strong>${escapeHtml(stop.recipient)}</strong><div class="driver-route-address">${stop.geo ? "" : "Ei karttapistettä · "}${escapeHtml(stop.address || stop.postalCode)}</div>${driverRouteUnloadBadgeHtml(stop)}</div>
-          <span class="driver-route-tools"><span class="driver-route-pdfs">☰ &nbsp;${stop.pdfCount} PDF</span><button type="button" class="driver-preview-btn driver-info-button" draggable="false" data-driver-route-info="${escapeHtml(stop.id)}" title="Näytä kohteen lisätiedot">ℹ️ Info</button><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-preview="${escapeHtml(stop.id)}" title="Esikatsele tämän keikan PDF">🔍</button></span>
+          <span class="driver-route-tools"><span class="driver-route-pdfs">☰ &nbsp;${stop.pdfCount} PDF</span>${stop.geo ? "" : `<button type="button" class="driver-preview-btn" draggable="false" data-driver-route-diagnostics="${escapeHtml(stop.id)}" title="Näytä osoitehaun tiedot">🛠️ Haku</button>`}<button type="button" class="driver-preview-btn driver-info-button" draggable="false" data-driver-route-info="${escapeHtml(stop.id)}" title="Näytä kohteen lisätiedot">ℹ️ Info</button><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-preview="${escapeHtml(stop.id)}" title="Esikatsele tämän keikan PDF">🔍</button></span>
         </div>
         ${breakByAfter.has(index + 1) ? (() => { const loadBreak = breakByAfter.get(index + 1); return `<div class="driver-route-stop" style="border-color:rgba(168,85,247,0.7);background:rgba(168,85,247,0.08)"><span class="driver-route-number" style="background:#a855f7">L${loadBreak.loadNumber}</span><div><strong>Lastaus ${loadBreak.loadNumber}</strong><div class="driver-route-address">Palaa lähtö-/lastausosoitteeseen: ${escapeHtml(driverStartAddress.value.trim())}</div></div><span class="driver-route-pdfs">${loadBreak.forced ? "Kapasiteetti" : "Käsin"}</span></div>`; })() : ""}
       `).join("") + unresolved.map(stop => `
         <div class="driver-route-stop${driverStopUnloadRecommendation(stop).recommended ? " unloadable" : ""}" draggable="true" data-driver-stop-id="${escapeHtml(stop.id)}" style="border-color:rgba(245,158,11,0.55)" title="Karttapiste puuttuu – raahaa keikka haluamaasi kohtaan ajojärjestyksessä">
           <span class="driver-route-number" style="background:var(--warning)">!</span>
           <div><strong>${escapeHtml(stop.recipient)}</strong><div class="driver-route-address">Osoitetta ei löytynyt kartalta: ${escapeHtml(stop.address || stop.postalCode || "puuttuu")} · raahaa ajojärjestykseen</div>${driverRouteUnloadBadgeHtml(stop)}</div>
-          <span class="driver-route-tools"><span class="driver-route-pdfs">☰ &nbsp;${stop.pdfCount} PDF</span><button type="button" class="driver-preview-btn driver-info-button" draggable="false" data-driver-route-info="${escapeHtml(stop.id)}" title="Näytä kohteen lisätiedot">ℹ️ Info</button><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-preview="${escapeHtml(stop.id)}" title="Esikatsele tämän keikan PDF">🔍</button></span>
+          <span class="driver-route-tools"><span class="driver-route-pdfs">☰ &nbsp;${stop.pdfCount} PDF</span><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-diagnostics="${escapeHtml(stop.id)}" title="Näytä osoitehaun tiedot">🛠️ Haku</button><button type="button" class="driver-preview-btn driver-info-button" draggable="false" data-driver-route-info="${escapeHtml(stop.id)}" title="Näytä kohteen lisätiedot">ℹ️ Info</button><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-preview="${escapeHtml(stop.id)}" title="Esikatsele tämän keikan PDF">🔍</button></span>
         </div>
       `).join("");
       driverManualActions.style.display = "none";
@@ -4700,7 +4743,7 @@
         </div>
         ${breakByAfter.has(index + 1) ? (() => { const loadBreak = breakByAfter.get(index + 1); return `<div class="driver-route-stop" style="border-color:rgba(168,85,247,0.7);background:rgba(168,85,247,0.08)"><span class="driver-route-number" style="background:#a855f7">L${loadBreak.loadNumber}</span><div><strong>Lastaus ${loadBreak.loadNumber}</strong><div class="driver-route-address">Paluu lastausosoitteeseen</div></div><span class="driver-route-pdfs">${loadBreak.forced ? "Pakotettu" : "Käsin"}</span></div>`; })() : ""}
       `).join("") + (remaining.length ? `<div style="color:var(--muted);padding:0.65rem 0;">${remaining.length} pysähdystä odottaa valintaa kartalta.</div>` : "") +
-        unresolved.map(stop => `<div class="driver-route-stop" style="border-color:rgba(245,158,11,.55);"><span class="driver-route-number" style="background:var(--warning)">!</span><div style="color:var(--warning)">⚠️ ${escapeHtml(stop.recipient)} – osoitetta ei voitu sijoittaa kartalle</div><button type="button" class="driver-preview-btn driver-info-button" data-driver-route-info="${escapeHtml(stop.id)}" title="Näytä kohteen lisätiedot">ℹ️ Info</button></div>`).join("");
+        unresolved.map(stop => `<div class="driver-route-stop" draggable="true" data-driver-stop-id="${escapeHtml(stop.id)}" style="border-color:rgba(245,158,11,.55);" title="Raahaa keikka haluamaasi kohtaan"><span class="driver-route-number" style="background:var(--warning)">!</span><div style="color:var(--warning)">⚠️ ${escapeHtml(stop.recipient)} – osoitetta ei voitu sijoittaa kartalle</div><span class="driver-route-tools"><button type="button" class="driver-preview-btn" draggable="false" data-driver-route-diagnostics="${escapeHtml(stop.id)}">🛠️ Haku</button><button type="button" class="driver-preview-btn driver-info-button" draggable="false" data-driver-route-info="${escapeHtml(stop.id)}" title="Näytä kohteen lisätiedot">ℹ️ Info</button></span></div>`).join("");
       driverManualActions.style.display = remaining.length || ordered.length ? "flex" : "none";
       btnOptimizeDriverRemainder.disabled = !ordered.length || !remaining.length;
       const manualBreaks = activeBreaks.filter(item => !item.forced);
@@ -5443,6 +5486,12 @@
       await saveDriverSessionNow();
     });
     driverRouteList.addEventListener("click", event => {
+      const diagnosticsButton = event.target.closest("[data-driver-route-diagnostics]");
+      if (diagnosticsButton) {
+        const diagnosticsStop = findDriverRouteStop(diagnosticsButton.dataset.driverRouteDiagnostics);
+        if (diagnosticsStop) openAddressDiagnostics(diagnosticsStop);
+        return;
+      }
       const infoButton = event.target.closest("[data-driver-route-info]");
       if (infoButton) {
         const infoStop = findDriverRouteStop(infoButton.dataset.driverRouteInfo);
@@ -5459,7 +5508,7 @@
       renderDriverLoadingPreview();
     });
     driverRouteList.addEventListener("dragstart", event => {
-      if (event.target.closest("[data-driver-route-preview], [data-driver-route-info]")) return event.preventDefault();
+      if (event.target.closest("[data-driver-route-preview], [data-driver-route-info], [data-driver-route-diagnostics]")) return event.preventDefault();
       const row = event.target.closest("[data-driver-stop-id]");
       if (!row || !driverRouteState) return;
       draggedDriverStopId = row.dataset.driverStopId;
@@ -5506,6 +5555,8 @@
       draggedDriverStopId = null;
       driverRouteList.querySelectorAll(".dragging, .drag-target").forEach(item => item.classList.remove("dragging", "drag-target"));
     });
+    document.getElementById("btnAddressDiagnosticsClose").addEventListener("click", () => document.getElementById("addressDiagnosticsModal").classList.remove("open"));
+    document.getElementById("addressDiagnosticsModal").addEventListener("click", event => { if (event.target.id === "addressDiagnosticsModal") event.currentTarget.classList.remove("open"); });
 
     btnDispatcherGmail.addEventListener("click", () => openGmailImport("dispatcher"));
     document.getElementById("btnGmailSettings").addEventListener("click", () => {gmailImportModal.classList.remove("open"); btnDriverSettings.click();});
@@ -6161,10 +6212,154 @@
     } catch (_) { /* Vaurioitunut välimuisti ei saa estää koko ohjelman käynnistymistä. */ }
     let lastGeoRequest = 0;
     let lastPhotonRequest = 0;
-    const GEOCODER_VERSION = "v5-city-postal-verified";
+    const GEOCODER_VERSION = "v6-finnish-address-pipeline";
+    const ADDRESS_DIAGNOSTIC_LIMIT = 80;
+    const addressDiagnosticHistory = new Map();
+    const failedGeocodeCache = new Map();
+
+    // Laajennettava luettelo vanhoista ja vaihtoehtoisista kadunnimistä.
+    // Käyttäjän paikalliset ja asiakkaat.json-tiedoston korjaukset käsitellään aina ensin.
+    const BUILTIN_ADDRESS_ALIASES = [
+      { names:["Länsituulentie", "Länsituuli"], postalCodes:["02100"], cities:["Espoo"], reason:"vanha/nykyinen kadunnimi" }
+    ];
 
     function saveGeoCache() {
       try { localStorage.setItem("lahetejako_geo", JSON.stringify(geoCache)); } catch (_) {}
+    }
+
+    // Uusi välimuistiversio ohittaa ja poistaa vain vanhat osoitehakujen osumat.
+    // Postinumero- ja reittivälimuistit jätetään koskematta.
+    let prunedOldAddressCache = false;
+    Object.keys(geoCache).forEach(key => {
+      if (/^(?:mml:|photon:|v\d+:a:|nominatim:)/.test(key) && !key.includes(GEOCODER_VERSION)) {
+        delete geoCache[key];
+        prunedOldAddressCache = true;
+      }
+    });
+    if (prunedOldAddressCache) saveGeoCache();
+
+    function geocodeTrace(stopOrAddress, postalCode = "") {
+      const stop = typeof stopOrAddress === "object" ? stopOrAddress : null;
+      return {
+        id:crypto.randomUUID(), createdAt:new Date().toISOString(),
+        recipient:String(stop?.recipient || ""), customerNumber:String(stop?.customerNumber || ""),
+        originalAddress:String(stop?.originalExtractedAddress || stop?.address || stopOrAddress || "").trim(),
+        originalPostalCode:String(stop?.originalExtractedPostalCode || stop?.postalCode || postalCode || "").match(/\b\d{5}\b/)?.[0] || "",
+        events:[], result:null
+      };
+    }
+
+    function traceGeocode(trace, stage, details = {}) {
+      if (trace) trace.events.push({stage, ...details});
+    }
+
+    function finishGeocodeTrace(trace, stop, result, reason = "") {
+      if (!trace) return;
+      trace.result = result
+        ? {found:true, source:result.source || "", lat:result.lat, lon:result.lon, matchedAddress:result.matchedAddress || result.matchedVariant || ""}
+        : {found:false, reason};
+      const key = String(stop?.id || trace.id);
+      addressDiagnosticHistory.set(key, trace);
+      while (addressDiagnosticHistory.size > ADDRESS_DIAGNOSTIC_LIMIT) addressDiagnosticHistory.delete(addressDiagnosticHistory.keys().next().value);
+      if (stop) stop.addressDiagnosticId = key;
+      console.debug("[Lähetejako osoite]", trace);
+    }
+
+    function formatAddressDiagnostics(trace) {
+      if (!trace) return "Tästä osoitteesta ei ole vielä diagnostiikkatietoa. Tee osoitehaku tai reitin optimointi ensin.";
+      const lines = [
+        `Aika: ${trace.createdAt}`,
+        `Vastaanottaja: ${trace.recipient || "–"}`,
+        `Asiakasnumero: ${trace.customerNumber || "–"}`,
+        `PDF:stä poimittu osoite: ${trace.originalAddress || "–"}`,
+        `PDF:stä poimittu postinumero: ${trace.originalPostalCode || "–"}`,
+        ""
+      ];
+      trace.events.forEach((event, index) => {
+        lines.push(`${index + 1}. ${event.stage}`);
+        if (event.address) lines.push(`   Haku: ${event.address}`);
+        if (event.source) lines.push(`   Lähde: ${event.source}`);
+        if (event.provider) lines.push(`   Palvelu: ${event.provider}`);
+        if (event.outcome) lines.push(`   Tulos: ${event.outcome}`);
+        if (Array.isArray(event.variants)) event.variants.forEach(item => lines.push(`   • ${item.address} (${item.source})`));
+        if (Array.isArray(event.candidates) && event.candidates.length) event.candidates.forEach(item => {
+          lines.push(`   • ${item.decision}: ${item.address || "nimetön ehdokas"} · pisteet ${item.score ?? "–"}`);
+          (item.reasons || []).forEach(reason => lines.push(`     - ${reason}`));
+        });
+      });
+      lines.push("", trace.result?.found
+        ? `LOPPUTULOS: löytyi palvelusta ${trace.result.source || "tuntematon"} (${trace.result.lat}, ${trace.result.lon})${trace.result.matchedAddress ? `\n${trace.result.matchedAddress}` : ""}`
+        : `LOPPUTULOS: ei löytynyt. ${trace.result?.reason || ""}`);
+      return lines.join("\n");
+    }
+
+    function openAddressDiagnostics(stop) {
+      const modal = document.getElementById("addressDiagnosticsModal");
+      const content = document.getElementById("addressDiagnosticsContent");
+      const trace = addressDiagnosticHistory.get(String(stop?.addressDiagnosticId || stop?.id || ""));
+      content.textContent = formatAddressDiagnostics(trace);
+      modal.classList.add("open");
+    }
+
+    function normalizedRoadName(value) {
+      const parsed = parseStreetAddressLine(String(value || "").replace(/,.*$/, ""), {allowGeneric:true});
+      return normalizeText(parsed?.name || String(value || "").replace(/\b\d{1,4}.*$/, ""));
+    }
+
+    function streetAddressParts(value) {
+      const clean = String(value || "").replace(/\b\d{5}\b.*$/i, "").replace(/,.*$/, "").trim();
+      const parsed = parseStreetAddressLine(clean, {allowGeneric:true});
+      return {
+        road:String(parsed?.name || clean.replace(/\b\d{1,4}.*$/, "")).trim(),
+        house:String(parsed?.num || clean.match(/\b(\d{1,4})/)?.[1] || "").trim()
+      };
+    }
+
+    function aliasRuleApplies(rule, postalCode = "", cityHint = "") {
+      const postal = String(postalCode || "").replace(/\s/g, "");
+      if (rule.postalCodes?.length && postal && !rule.postalCodes.includes(postal)) return false;
+      if (rule.cities?.length && cityHint && !rule.cities.some(city => locationNameMatches(city, [cityHint]))) return false;
+      return true;
+    }
+
+    function aliasRoadNames(road, postalCode = "", cityHint = "") {
+      const normalized = normalizedRoadName(road);
+      const names = new Set([String(road || "").trim()].filter(Boolean));
+      BUILTIN_ADDRESS_ALIASES.forEach(rule => {
+        if (!aliasRuleApplies(rule, postalCode, cityHint)) return;
+        if (rule.names.some(name => normalizedRoadName(name) === normalized)) rule.names.forEach(name => names.add(name));
+      });
+      return [...names];
+    }
+
+    function roadsEquivalent(wantedRoad, resultRoad, postalCode = "", cityHint = "") {
+      const wanted = normalizedRoadName(wantedRoad);
+      const result = normalizedRoadName(resultRoad);
+      if (!wanted || !result) return false;
+      if (wanted === result || wanted.includes(result) || result.includes(wanted)) return true;
+      const wantedAliases = new Set(aliasRoadNames(wantedRoad, postalCode, cityHint).map(normalizedRoadName));
+      const resultAliases = new Set(aliasRoadNames(resultRoad, postalCode, cityHint).map(normalizedRoadName));
+      return [...wantedAliases].some(name => resultAliases.has(name));
+    }
+
+    function geocodeFailureKey(address, postalCode = "", cityHint = "") {
+      return `${GEOCODER_VERSION}|${normalizeText(address)}|${String(postalCode || "").replace(/\s/g, "")}|${normalizeText(cityHint)}`;
+    }
+
+    function invalidateAddressGeocodeCache(...addresses) {
+      const needles = addresses.flatMap(value => {
+        const text = typeof value === "object" ? value?.address : value;
+        const parts = streetAddressParts(text);
+        return [normalizeText(text), normalizeText([parts.road, parts.house].filter(Boolean).join(" "))].filter(item => item.length >= 4);
+      });
+      failedGeocodeCache.clear();
+      if (!needles.length) return;
+      let changed = false;
+      Object.keys(geoCache).forEach(key => {
+        const normalizedKey = normalizeText(key);
+        if (needles.some(needle => normalizedKey.includes(needle))) { delete geoCache[key]; changed = true; }
+      });
+      if (changed) saveGeoCache();
     }
 
     async function nominatimSearch(query) {
@@ -6191,14 +6386,14 @@
       }
     }
 
-    async function mmlAddressSearch(street, postalCode, cityHint = "") {
-      if (!mmlApiKey) return null;
+    async function mmlAddressSearch(street, postalCode, cityHint = "", trace = null) {
+      if (!mmlApiKey) { traceGeocode(trace, "palvelu ohitettu", {provider:"Maanmittauslaitos", outcome:"API-avainta ei ole asetettu"}); return null; }
       const normalizedStreet = String(street || "").replace(/,.*$/, "").trim();
       const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
       const normalizedCity = String(cityHint || "").trim();
       if (!normalizedStreet) return null;
-      const cacheKey = `mml:v3:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
-      if (geoCache[cacheKey]) return geoCache[cacheKey];
+      const cacheKey = `mml:${GEOCODER_VERSION}:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
+      if (geoCache[cacheKey]) { traceGeocode(trace, "välimuisti", {provider:"Maanmittauslaitos", query:normalizedStreet, outcome:"osuma"}); return geoCache[cacheKey]; }
       try {
         const params = new URLSearchParams({
           text: [normalizedStreet, normalizedPostal, normalizedCity].filter(Boolean).join(" "),
@@ -6212,23 +6407,35 @@
         const response = await fetch(`https://avoin-paikkatieto.maanmittauslaitos.fi/geocoding/v2/pelias/search?${params}`, {
           headers: { "Accept": "application/geo+json, application/json" }
         });
-        if (!response.ok) return null;
+        if (!response.ok) { traceGeocode(trace, "palveluvirhe", {provider:"Maanmittauslaitos", outcome:`HTTP ${response.status}`}); return null; }
         const data = await response.json();
         const features = Array.isArray(data?.features) ? data.features : [];
-        const matching = features.find(feature => {
+        const candidates = features.map(feature => {
           const properties = feature.properties || {};
-          const resultPostal = String(properties.postalcode || properties.postcode || properties.postal_code || "").replace(/\s/g, "");
           const label = String(properties.label || properties.name || "");
-          return !normalizedPostal || resultPostal === normalizedPostal || new RegExp(`\\b${normalizedPostal}\\b`).test(label);
-        });
-        const coordinates = matching?.geometry?.coordinates;
+          const parsedLabel = streetAddressParts(label);
+          const coordinates = feature.geometry?.coordinates || [];
+          const candidate = {
+            road:String(properties.street || parsedLabel.road || properties.name || ""),
+            house:String(properties.housenumber || properties.house_number || parsedLabel.house || ""),
+            postalCode:String(properties.postalcode || properties.postcode || properties.postal_code || label.match(/\b\d{5}\b/)?.[0] || "").replace(/\s/g, ""),
+            cities:[properties.locality, properties.localadmin, properties.municipality, properties.region],
+            countryCode:String(properties.country_a || properties.country_code || "FI").slice(0,2),
+            lat:Number(coordinates[1]), lon:Number(coordinates[0]), label
+          };
+          return {feature, candidate, evaluation:scoreAddressCandidate(candidate, normalizedStreet, normalizedPostal, normalizedCity)};
+        }).sort((a,b) => b.evaluation.score - a.evaluation.score);
+        traceGeocode(trace, "palveluvastaus", {provider:"Maanmittauslaitos", query:[normalizedStreet, normalizedPostal, normalizedCity].filter(Boolean).join(" "), candidates:candidates.slice(0,5).map(item => summarizeCandidate(item.candidate, item.evaluation))});
+        const matching = candidates.find(item => item.evaluation.accepted);
+        const coordinates = matching?.feature?.geometry?.coordinates;
         if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
-        const point = { lat: Number(coordinates[1]), lon: Number(coordinates[0]), geocodeVersion:GEOCODER_VERSION, source:"mml" };
+        const point = { lat:Number(coordinates[1]), lon:Number(coordinates[0]), geocodeVersion:GEOCODER_VERSION, source:"mml", matchedAddress:matching.candidate.label || "" };
         if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon) || point.lat < 59 || point.lat > 71 || point.lon < 19 || point.lon > 32) return null;
         geoCache[cacheKey] = point;
         saveGeoCache();
         return point;
-      } catch (_) {
+      } catch (error) {
+        traceGeocode(trace, "palveluvirhe", {provider:"Maanmittauslaitos", outcome:error?.message || String(error)});
         return null;
       }
     }
@@ -6272,7 +6479,11 @@
       const resultPostal = String(resultPostalCode || "").replace(/\s/g, "");
       const hasCandidateCity = candidateNames.some(value => String(value || "").trim());
       const cityMatches = locationNameMatches(cityHint, candidateNames);
-      if (wantedPostal && resultPostal) return wantedPostal === resultPostal;
+      if (wantedPostal && resultPostal) {
+        if (wantedPostal !== resultPostal) return false;
+        if (cityHint && hasCandidateCity && !cityMatches) return false;
+        return true;
+      }
       if (cityHint && hasCandidateCity && !cityMatches) return false;
       if (wantedPostal && !resultPostal) return !!cityHint && cityMatches;
       if (cityHint) return cityMatches;
@@ -6280,43 +6491,64 @@
       return false;
     }
 
-    function nominatimResultScore(result, street, postalCode, cityHint = "") {
-      const details = result?.address || {};
-      const wanted = parseStreetAddressLine(street, { allowGeneric: true });
-      const wantedRoad = normalizeText(wanted?.name || String(street).replace(/\d.*$/, ""));
-      const wantedHouse = String(wanted?.num || String(street).match(/\b(\d{1,4})/)?.[1] || "");
-      const resultRoad = normalizeText(details.road || details.pedestrian || details.footway || details.place || details.square || "");
-      const display = normalizeText(result.display_name || "");
-      const roadMatches = !!wantedRoad && (
-        (!!resultRoad && (resultRoad.includes(wantedRoad) || wantedRoad.includes(resultRoad))) ||
-        display.includes(wantedRoad)
-      );
-      if (wantedRoad && !roadMatches) return -Infinity;
-
-      let score = 4;
-      const resultHouse = String(details.house_number || "");
-      if (wantedHouse && resultHouse && !houseNumberMatches(wantedHouse, resultHouse)) return -Infinity;
-      if (wantedHouse && houseNumberMatches(wantedHouse, resultHouse)) score += 5;
-      else if (wantedHouse) score += 1; // katu löytyi, mutta OSM:stä puuttuu rakennusnumero
-
-      const wantedPostal = String(postalCode || "").replace(/\s/g, "");
-      const resultPostal = String(details.postcode || "").replace(/\s/g, "");
-      const resultCities = [details.city, details.town, details.municipality, details.village, details.county, details.state_district];
-      if (!locationEvidenceMatches(wantedPostal, cityHint, resultPostal, resultCities)) return -Infinity;
-      if (wantedPostal && resultPostal === wantedPostal) score += 5;
-
-      const wantedCity = normalizeText(cityHint);
-      if (wantedCity && locationNameMatches(wantedCity, resultCities)) score += 2;
-      return score;
+    function pointInFinland(lat, lon) {
+      return Number.isFinite(Number(lat)) && Number.isFinite(Number(lon)) && Number(lat) >= 59 && Number(lat) <= 71 && Number(lon) >= 19 && Number(lon) <= 32;
     }
 
-    async function nominatimAddressSearch(street, postalCode, cityHint = "", recipient = "", fullAddress = "") {
+    function scoreAddressCandidate(candidate, street, postalCode, cityHint = "") {
+      const wanted = streetAddressParts(street);
+      const reasons = [];
+      if (!pointInFinland(candidate.lat, candidate.lon)) return {accepted:false, score:-Infinity, reasons:["koordinaatti ei ole Suomessa"]};
+      if (candidate.countryCode && !/^fi$/i.test(String(candidate.countryCode).slice(0,2))) return {accepted:false, score:-Infinity, reasons:["maa ei ole Suomi"]};
+      if (wanted.road && (!candidate.road || !roadsEquivalent(wanted.road, candidate.road, postalCode, cityHint))) {
+        return {accepted:false, score:-Infinity, reasons:[`kadunnimi ei täsmää (${candidate.road || "puuttuu"})`]};
+      }
+      let score = normalizedRoadName(wanted.road) === normalizedRoadName(candidate.road) ? 7 : 6;
+      reasons.push(score === 7 ? "kadunnimi täsmää" : "kadunnimi täsmää hyväksytyn aliaksen kautta");
+      if (wanted.house && candidate.house && !houseNumberMatches(wanted.house, candidate.house)) {
+        return {accepted:false, score:-Infinity, reasons:[...reasons, `talonumero ei täsmää (${candidate.house})`]};
+      }
+      if (wanted.house && houseNumberMatches(wanted.house, candidate.house)) { score += 6; reasons.push("talonumero täsmää"); }
+      else if (wanted.house) { score += 1; reasons.push("palvelu ei palauttanut talonumeroa"); }
+      const resultCities = candidate.cities || [];
+      if (!locationEvidenceMatches(postalCode, cityHint, candidate.postalCode, resultCities)) {
+        return {accepted:false, score:-Infinity, reasons:[...reasons, `postinumero/paikkakunta ei täsmää (${candidate.postalCode || "ei postinumeroa"}; ${resultCities.filter(Boolean).join("/") || "ei paikkakuntaa"})`]};
+      }
+      const wantedPostal = String(postalCode || "").replace(/\s/g, "");
+      const resultPostal = String(candidate.postalCode || "").replace(/\s/g, "");
+      if (wantedPostal && wantedPostal === resultPostal) { score += 7; reasons.push("postinumero täsmää"); }
+      if (cityHint && locationNameMatches(cityHint, resultCities)) { score += 3; reasons.push("kaupunki täsmää"); }
+      const postalCenter = wantedPostal && geoCache[wantedPostal];
+      if (postalCenter && pointInFinland(postalCenter.lat, postalCenter.lon)) {
+        const distance = haversineKm(postalCenter, candidate);
+        if (distance > 120) return {accepted:false, score:-Infinity, reasons:[...reasons, `liian kaukana postinumeroalueesta (${distance.toFixed(0)} km)`]};
+        if (distance <= 30) { score += 2; reasons.push("sijainti on postinumeroalueen lähellä"); }
+      }
+      return {accepted:score >= 9, score, reasons};
+    }
+
+    function summarizeCandidate(candidate, evaluation) {
+      return {
+        address:candidate.label || [candidate.road, candidate.house, candidate.postalCode, (candidate.cities || []).find(Boolean)].filter(Boolean).join(" "),
+        postalCode:candidate.postalCode || "", city:(candidate.cities || []).find(Boolean) || "",
+        score:Number.isFinite(evaluation.score) ? evaluation.score : null,
+        decision:evaluation.accepted ? "hyväksytty" : "hylätty", reasons:evaluation.reasons
+      };
+    }
+
+    function nominatimResultScore(result, street, postalCode, cityHint = "") {
+      const details = result?.address || {};
+      const candidate = {road:details.road || details.pedestrian || details.footway || details.place || details.square || "", house:details.house_number || "", postalCode:details.postcode || "", cities:[details.city, details.town, details.municipality, details.village, details.county, details.state_district], countryCode:details.country_code || "fi", lat:parseFloat(result?.lat), lon:parseFloat(result?.lon), label:result?.display_name || ""};
+      return scoreAddressCandidate(candidate, street, postalCode, cityHint).score;
+    }
+
+    async function nominatimAddressSearch(street, postalCode, cityHint = "", recipient = "", fullAddress = "", trace = null) {
       const normalizedStreet = String(street || "").replace(/,.*$/, "").trim();
       const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
       if (!normalizedStreet) return null;
       const normalizedCity = String(cityHint || "").trim();
-      const cacheKey = `v5:a:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
-      if (geoCache[cacheKey]) return geoCache[cacheKey];
+      const cacheKey = `nominatim:${GEOCODER_VERSION}:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
+      if (geoCache[cacheKey]) { traceGeocode(trace, "välimuisti", {provider:"Nominatim", query:normalizedStreet, outcome:"osuma"}); return geoCache[cacheKey]; }
       try {
         const fetchNominatim = async params => {
           const now = Date.now();
@@ -6326,7 +6558,7 @@
           const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
             headers: { "Accept": "application/json", "User-Agent": "LaheteJako/1.76 (Teemu H. Fingerroos)" }
           });
-          if (!response.ok) return [];
+          if (!response.ok) { traceGeocode(trace, "palveluvirhe", {provider:"Nominatim", outcome:`HTTP ${response.status}`}); return []; }
           return await response.json();
         };
         const exactParams = new URLSearchParams({
@@ -6339,12 +6571,19 @@
         });
         if (normalizedPostal) exactParams.set("postalcode", normalizedPostal);
         if (normalizedCity) exactParams.set("city", normalizedCity);
+        const diagnosticResults = [];
+        const candidateFromResult = result => {
+          const details = result?.address || {};
+          return {road:details.road || details.pedestrian || details.footway || details.place || details.square || "", house:details.house_number || "", postalCode:details.postcode || "", cities:[details.city, details.town, details.municipality, details.village, details.county, details.state_district], countryCode:details.country_code || "fi", lat:parseFloat(result?.lat), lon:parseFloat(result?.lon), label:result?.display_name || ""};
+        };
         const chooseBest = results => (results || [])
           .map(result => ({ result, score: nominatimResultScore(result, normalizedStreet, normalizedPostal, normalizedCity) }))
           .filter(item => Number.isFinite(item.score))
           .sort((a, b) => b.score - a.score)[0] || null;
 
-        let best = chooseBest(await fetchNominatim(exactParams));
+        const exactResults = await fetchNominatim(exactParams);
+        diagnosticResults.push(...exactResults);
+        let best = chooseBest(exactResults);
         // Jos tarkka rakennehaku ei löytänyt rakennusta/postinumeroa varmasti, kokeile
         // myös vapaata osoiteriviä. Tämä löytää OSM:ssä POI-kohteena olevat kauppakeskukset.
         if (!best || best.score < 12) {
@@ -6352,34 +6591,40 @@
             ? [fullAddress, "Finland"].join(", ")
             : [normalizedStreet, normalizedPostal, normalizedCity, "Finland"].filter(Boolean).join(", ");
           const freeParams = new URLSearchParams({ format: "jsonv2", countrycodes: "fi", addressdetails: "1", limit: "10", q: freeText });
-          const freeBest = chooseBest(await fetchNominatim(freeParams));
+          const freeResults = await fetchNominatim(freeParams);
+          diagnosticResults.push(...freeResults);
+          const freeBest = chooseBest(freeResults);
           if (freeBest && (!best || freeBest.score > best.score)) best = freeBest;
         }
         if ((!best || best.score < 9) && recipient && !/^Ei tunnistettu$/i.test(recipient)) {
           const poiText = [recipient, normalizedPostal, normalizedCity, "Finland"].filter(Boolean).join(", ");
           const poiParams = new URLSearchParams({ format: "jsonv2", countrycodes: "fi", addressdetails: "1", limit: "10", q: poiText });
-          const poiBest = chooseBest(await fetchNominatim(poiParams));
+          const poiResults = await fetchNominatim(poiParams);
+          diagnosticResults.push(...poiResults);
+          const poiBest = chooseBest(poiResults);
           if (poiBest && (!best || poiBest.score > best.score)) best = poiBest;
         }
+        traceGeocode(trace, "palveluvastaus", {provider:"Nominatim", query:[normalizedStreet, normalizedPostal, normalizedCity].filter(Boolean).join(" "), candidates:diagnosticResults.slice(0,5).map(result => { const candidate = candidateFromResult(result); return summarizeCandidate(candidate, scoreAddressCandidate(candidate, normalizedStreet, normalizedPostal, normalizedCity)); })});
         const matching = best?.result;
         if (!matching) return null;
-        const point = { lat: parseFloat(matching.lat), lon: parseFloat(matching.lon), geocodeVersion:GEOCODER_VERSION, source:"nominatim" };
+        const point = { lat:parseFloat(matching.lat), lon:parseFloat(matching.lon), geocodeVersion:GEOCODER_VERSION, source:"nominatim", matchedAddress:matching.display_name || "" };
         if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon)) return null;
         geoCache[cacheKey] = point;
         saveGeoCache();
         return point;
-      } catch (_) {
+      } catch (error) {
+        traceGeocode(trace, "palveluvirhe", {provider:"Nominatim", outcome:error?.message || String(error)});
         return null;
       }
     }
 
-    async function photonAddressSearch(street, postalCode, cityHint = "", fullAddress = "") {
+    async function photonAddressSearch(street, postalCode, cityHint = "", fullAddress = "", trace = null) {
       const normalizedStreet = String(street || "").replace(/,.*$/, "").trim();
       const normalizedPostal = String(postalCode || "").replace(/\s/g, "");
       const normalizedCity = String(cityHint || "").trim();
       if (!normalizedStreet) return null;
-      const cacheKey = `photon:v2:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
-      if (geoCache[cacheKey]) return geoCache[cacheKey];
+      const cacheKey = `photon:${GEOCODER_VERSION}:${normalizedStreet.toLowerCase()}|${normalizedPostal}|${normalizedCity.toLowerCase()}`;
+      if (geoCache[cacheKey]) { traceGeocode(trace, "välimuisti", {provider:"Photon", query:normalizedStreet, outcome:"osuma"}); return geoCache[cacheKey]; }
       try {
         const now = Date.now();
         const wait = 550 - (now - lastPhotonRequest);
@@ -6390,52 +6635,116 @@
         const response = await fetch(`https://photon.komoot.io/api/?${params}`, {
           headers: { "Accept": "application/json" }
         });
-        if (!response.ok) return null;
+        if (!response.ok) { traceGeocode(trace, "palveluvirhe", {provider:"Photon", outcome:`HTTP ${response.status}`}); return null; }
         const data = await response.json();
-        const wanted = parseStreetAddressLine(normalizedStreet, { allowGeneric: true });
-        const wantedRoad = normalizeText(wanted?.name || normalizedStreet.replace(/\d.*$/, ""));
-        const wantedHouse = String(wanted?.num || normalizedStreet.match(/\b(\d{1,4})/)?.[1] || "");
-        const wantedCity = normalizeText(normalizedCity);
         const candidates = (Array.isArray(data?.features) ? data.features : []).map(feature => {
           const properties = feature.properties || {};
-          const resultRoad = normalizeText(properties.street || properties.name || "");
-          const resultHouse = String(properties.housenumber || "");
-          const resultPostal = String(properties.postcode || "").replace(/\s/g, "");
-          const resultCities = [properties.city, properties.district, properties.county, properties.state];
-          if (wantedRoad && (!resultRoad || (!resultRoad.includes(wantedRoad) && !wantedRoad.includes(resultRoad)))) return null;
-          if (wantedHouse && resultHouse && !houseNumberMatches(wantedHouse, resultHouse)) return null;
-          if (!locationEvidenceMatches(normalizedPostal, normalizedCity, resultPostal, resultCities)) return null;
-          let score = 4;
-          if (wantedHouse && houseNumberMatches(wantedHouse, resultHouse)) score += 5;
-          else if (wantedHouse) score += 1;
-          if (normalizedPostal && resultPostal === normalizedPostal) score += 5;
-          if (wantedCity && locationNameMatches(wantedCity, resultCities)) score += 2;
-          return { feature, score };
-        }).filter(Boolean).sort((a, b) => b.score - a.score);
-        const coordinates = candidates[0]?.feature?.geometry?.coordinates;
+          const coordinates = feature.geometry?.coordinates || [];
+          const candidate = {road:properties.street || properties.name || "", house:properties.housenumber || "", postalCode:properties.postcode || "", cities:[properties.city, properties.district, properties.county, properties.state], countryCode:properties.countrycode || properties.country_code || "fi", lat:Number(coordinates[1]), lon:Number(coordinates[0]), label:[properties.name, properties.street, properties.housenumber, properties.postcode, properties.city].filter(Boolean).join(" ")};
+          return {feature, candidate, evaluation:scoreAddressCandidate(candidate, normalizedStreet, normalizedPostal, normalizedCity)};
+        }).sort((a, b) => b.evaluation.score - a.evaluation.score);
+        traceGeocode(trace, "palveluvastaus", {provider:"Photon", query, candidates:candidates.slice(0,5).map(item => summarizeCandidate(item.candidate, item.evaluation))});
+        const matching = candidates.find(item => item.evaluation.accepted);
+        const coordinates = matching?.feature?.geometry?.coordinates;
         if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
-        const point = { lat: Number(coordinates[1]), lon: Number(coordinates[0]), geocodeVersion:GEOCODER_VERSION, source:"photon" };
+        const point = { lat:Number(coordinates[1]), lon:Number(coordinates[0]), geocodeVersion:GEOCODER_VERSION, source:"photon", matchedAddress:matching.candidate.label || "" };
         if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon) || point.lat < 59 || point.lat > 71 || point.lon < 19 || point.lon > 32) return null;
         geoCache[cacheKey] = point;
         saveGeoCache();
         return point;
-      } catch (_) {
+      } catch (error) {
+        traceGeocode(trace, "palveluvirhe", {provider:"Photon", outcome:error?.message || String(error)});
         return null;
       }
+    }
+
+    function correctedAddressCandidates(address, postalCode, identitySource = null) {
+      const values = [];
+      const local = findSavedAddressCorrection(address, postalCode);
+      if (local?.address) values.push({address:local.address, source:"paikallinen korjaus"});
+      try {
+        const identity = customerInfoIdentity({...(identitySource || {}), originalExtractedAddress:address, originalExtractedPostalCode:postalCode});
+        const customer = findAppInfoCustomer(appInfoDatabase, identity);
+        if (customer?.correctedAddress) values.push({address:customer.correctedAddress, source:"Drive-korjaus"});
+        (Array.isArray(customer?.addressAliases) ? customer.addressAliases : []).forEach(alias => {
+          const candidate = typeof alias === "string" ? alias : alias?.address;
+          if (candidate) values.push({address:candidate, source:"tallennettu osoitealias"});
+        });
+      } catch (_) {}
+      return values;
+    }
+
+    function addressSearchVariants(address, postalCode = "", cityHint = "", identitySource = null) {
+      const original = String(address || "").trim();
+      const postal = String(postalCode || original.match(/\b\d{5}\b/)?.[0] || "").replace(/\s/g, "");
+      const city = String(cityHint || addressCityHint(original, postal) || "").trim();
+      const candidates = [...correctedAddressCandidates(original, postal, identitySource), {address:original, source:"PDF:n alkuperäinen osoite"}];
+      const variants = [];
+      const seen = new Set();
+      const add = (street, variantPostal, variantCity, source, alias = false) => {
+        const parts = streetAddressParts(street);
+        const cleanStreet = [parts.road, parts.house].filter(Boolean).join(" ").trim();
+        if (!parts.road || !cleanStreet) return;
+        const key = `${normalizeText(cleanStreet)}|${variantPostal}|${normalizeText(variantCity)}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        variants.push({street:cleanStreet, postalCode:variantPostal, city:variantCity, fullAddress:[cleanStreet, variantPostal, variantCity].filter(Boolean).join(", "), source, alias});
+      };
+      candidates.forEach(candidate => {
+        const candidatePostal = String(candidate.address.match(/\b\d{5}\b/)?.[0] || postal).replace(/\s/g, "");
+        const candidateCity = addressCityHint(candidate.address, candidatePostal) || city;
+        const parts = streetAddressParts(candidate.address);
+        add(candidate.address, candidatePostal, candidateCity, candidate.source, candidate.source !== "PDF:n alkuperäinen osoite");
+        aliasRoadNames(parts.road, candidatePostal, candidateCity).forEach(aliasRoad => {
+          if (normalizedRoadName(aliasRoad) === normalizedRoadName(parts.road)) return;
+          add([aliasRoad, parts.house].filter(Boolean).join(" "), candidatePostal, candidateCity, `osoitealias: ${parts.road} → ${aliasRoad}`, true);
+        });
+      });
+      return variants;
+    }
+
+    async function geocodeAddressVariants(address, postalCode = "", cityHint = "", recipient = "", identitySource = null, trace = null) {
+      const failureKey = geocodeFailureKey(address, postalCode, cityHint);
+      const failedAt = failedGeocodeCache.get(failureKey);
+      if (failedAt && Date.now() - failedAt < 45000) {
+        traceGeocode(trace, "välimuisti", {outcome:"tilapäinen ei löytynyt", ageSeconds:Math.round((Date.now() - failedAt) / 1000)});
+        return null;
+      }
+      failedGeocodeCache.delete(failureKey);
+      const variants = addressSearchVariants(address, postalCode, cityHint, identitySource);
+      traceGeocode(trace, "osoitevariantit", {variants:variants.map(item => ({address:item.fullAddress, source:item.source}))});
+      for (const variant of variants) {
+        traceGeocode(trace, "hakuyritys", {address:variant.fullAddress, source:variant.source});
+        const mmlPoint = await mmlAddressSearch(variant.street, variant.postalCode, variant.city, trace);
+        if (mmlPoint) return {...mmlPoint, matchedVariant:variant.fullAddress, aliasUsed:variant.alias};
+        const photonPoint = await photonAddressSearch(variant.street, variant.postalCode, variant.city, variant.fullAddress, trace);
+        if (photonPoint) return {...photonPoint, matchedVariant:variant.fullAddress, aliasUsed:variant.alias};
+        const nominatimPoint = await nominatimAddressSearch(variant.street, variant.postalCode, variant.city, recipient, variant.fullAddress, trace);
+        if (nominatimPoint) return {...nominatimPoint, matchedVariant:variant.fullAddress, aliasUsed:variant.alias};
+      }
+      // Väärä/vanha postinumero voidaan ohittaa vain, jos paikkakunta tunnetaan.
+      // Kaupungin täsmäys pysyy tällöinkin pakollisena, joten samanniminen katu
+      // toisessa kaupungissa ei kelpaa.
+      if (cityHint) {
+        for (const variant of variants) {
+          const relaxedAddress = [variant.street, variant.city, "Finland"].filter(Boolean).join(", ");
+          traceGeocode(trace, "hakuyritys ilman postinumeroa", {address:relaxedAddress, source:variant.source});
+          const photonPoint = await photonAddressSearch(variant.street, "", variant.city, relaxedAddress, trace);
+          if (photonPoint) return {...photonPoint, matchedVariant:relaxedAddress, aliasUsed:variant.alias};
+          const nominatimPoint = await nominatimAddressSearch(variant.street, "", variant.city, recipient, relaxedAddress, trace);
+          if (nominatimPoint) return {...nominatimPoint, matchedVariant:relaxedAddress, aliasUsed:variant.alias};
+        }
+      }
+      failedGeocodeCache.set(failureKey, Date.now());
+      return null;
     }
 
     async function geocodeAddressText(address) {
       const text = String(address || "").trim();
       if (!text) return null;
       const postal = text.match(/\b\d{5}\b/)?.[0] || "";
-      const parsed = parseStreetAddressLine(text, { allowGeneric: true });
-      const street = parsed ? `${parsed.name}${parsed.num ? ` ${parsed.num}` : ""}` : text.replace(/,.*$/, "").trim();
       const city = addressCityHint(text, postal);
-      const mmlPoint = await mmlAddressSearch(street, postal, city);
-      if (mmlPoint) return mmlPoint;
-      const photonPoint = await photonAddressSearch(street, postal, city, text);
-      if (photonPoint) return photonPoint;
-      return await nominatimAddressSearch(street, postal, city, "", text);
+      return await geocodeAddressVariants(text, postal, city, "", null, null);
     }
 
     async function geocodePostal(postalCode) {
@@ -6451,10 +6760,13 @@
     }
 
     async function geocodeStop(stop) {
+      const trace = geocodeTrace(stop);
+      traceGeocode(trace, "PDF-poiminta", {address:trace.originalAddress, postalCode:trace.originalPostalCode, recipient:trace.recipient, customerNumber:trace.customerNumber});
       const originalAddress = stop.originalExtractedAddress || stop.address || "";
       const originalPostal = stop.originalExtractedPostalCode || stop.postalCode || "";
       const correction = await resolvedAddressCorrection(originalAddress, originalPostal, stop);
       if (correction) {
+        traceGeocode(trace, "pysyvä korjaus", {source:correction._correctionSource || "tallennettu korjaus", correctedAddress:correction.address || "", hasCoordinate:!!correctionGeo(correction)});
         const correctedGeo = correctionGeo(correction);
         if (correction.address && correction.address !== stop.address) {
           stop.address = correction.address;
@@ -6464,45 +6776,30 @@
           if (!correctedGeo) stop.geo = null;
           normalizeStop(stop, { preserveGeo:!!correctedGeo, clearStreetIfMissing:true });
         }
-        if (correctedGeo) stop.geo = correctedGeo;
+        if (correctedGeo) {
+          stop.geo = correctedGeo;
+          finishGeocodeTrace(trace, stop, correctedGeo, "tallennettu tarkka purkupaikka");
+        }
       }
-      if (stop.geo?.manual) return stop.geo;
-      if (stop.geo?.geocodeVersion === GEOCODER_VERSION) return stop.geo;
+      if (stop.geo?.manual) { if (!trace.result) finishGeocodeTrace(trace, stop, stop.geo, "käsin valittu purkupaikka"); return stop.geo; }
+      if (stop.geo?.geocodeVersion === GEOCODER_VERSION) { traceGeocode(trace, "välimuisti", {outcome:"keikan karttapiste"}); finishGeocodeTrace(trace, stop, stop.geo); return stop.geo; }
       // Vanhat automaattiset osumat tarkistetaan uudelleen, jotta väärä välimuistitulos ei jää käyttöön.
       stop.geo = null;
       const street = stop.streetKey || stop.address || "";
       const postal = String(stop.postalCode || "").replace(/\s/g, "");
-      if (street && postal) {
-        const cityHint = addressCityHint(stop.address || "", postal);
-        const mmlPoint = await mmlAddressSearch(street, postal, cityHint);
-        if (mmlPoint) { stop.geo = mmlPoint; return mmlPoint; }
-        const photonPoint = await photonAddressSearch(street, postal, cityHint, stop.address || "");
-        if (photonPoint) { stop.geo = photonPoint; return photonPoint; }
-        const p = await nominatimAddressSearch(street, postal, cityHint, stop.recipient || "", stop.address || "");
-        if (p) { stop.geo = p; return p; }
-        // Väärä tai vanhentunut postinumero ei saa estää oikean kadun löytymistä.
-        // Kokeile lopuksi ilman postinumeroa, mutta vain kun kaupungin nimi tunnetaan.
-        if (cityHint) {
-          const cityAddress = `${street}, ${cityHint}, Finland`;
-          const relaxedPhoton = await photonAddressSearch(street, "", cityHint, cityAddress);
-          if (relaxedPhoton) { stop.geo = relaxedPhoton; return relaxedPhoton; }
-          const relaxedNominatim = await nominatimAddressSearch(street, "", cityHint, stop.recipient || "", cityAddress);
-          if (relaxedNominatim) { stop.geo = relaxedNominatim; return relaxedNominatim; }
-        }
-        // Älä hyväksy postinumeroalueen keskipistettä katuosoitteen sijasta.
-        return null;
-      }
       if (street) {
         const cityHint = addressCityHint(stop.address || "", postal);
-        const photonPoint = await photonAddressSearch(street, postal, cityHint, stop.address || "");
-        if (photonPoint) { stop.geo = photonPoint; return photonPoint; }
-        const p = await nominatimAddressSearch(street, postal, cityHint, stop.recipient || "", stop.address || "");
-        if (p) { stop.geo = p; return p; }
+        const point = await geocodeAddressVariants(stop.address || street, postal, cityHint, stop.recipient || "", stop, trace);
+        if (point) { stop.geo = point; finishGeocodeTrace(trace, stop, point); return point; }
+        // Katuosoitetta ei koskaan korvata postinumeroalueen keskipisteellä.
+        finishGeocodeTrace(trace, stop, null, "mikään sallittu osoitevariantti ja palvelu ei tuottanut riittävän varmaa osumaa");
+        return null;
       }
       if (postal) {
         const p = await geocodePostal(postal);
-        if (p) { stop.geo = p; return p; }
+        if (p) { stop.geo = p; traceGeocode(trace, "postinumeron keskipiste", {postalCode:postal}); finishGeocodeTrace(trace, stop, p); return p; }
       }
+      finishGeocodeTrace(trace, stop, null, "PDF:stä ei saatu katuosoitetta eikä käyttökelpoista postinumeroa");
       return null;
     }
 
@@ -7696,6 +7993,14 @@
       const ba = base(sa);
       const bb = base(sb);
       if (ba && bb && ba === bb) return true;
+      const pa = streetAddressParts(sa);
+      const pb = streetAddressParts(sb);
+      const postalA = String(a.postalCode || "").replace(/\s/g, "");
+      const postalB = String(b.postalCode || "").replace(/\s/g, "");
+      if (pa.house && pb.house && houseNumberMatches(pa.house, pb.house) && (!postalA || !postalB || postalA === postalB)) {
+        const city = addressCityHint(a.address || b.address || "", postalA || postalB);
+        if (roadsEquivalent(pa.road, pb.road, postalA || postalB, city)) return true;
+      }
       return false;
     }
 
@@ -9885,6 +10190,13 @@
         rememberAddressCorrection(originalAddress, originalPostal, correctedFullAddress, null, stop);
       }
       normalizeStop(stop, { clearStreetIfMissing: true });
+      if (address) {
+        stop.geo = null;
+        geocodeStop(stop).then(() => {
+          renderList();
+          if (drivers.length) renderDrivers();
+        }).catch(error => console.warn("Korjatun osoitteen uudelleenhaku epäonnistui:", error));
+      }
       setDeliveryVehicleRule(stop, stop.preferredDriverPlate || "", stop.forbiddenDriverPlates || []);
 
       // Päivitä myös avoinna olevan PDF-entryn tiedot (yhdistetyissä keikoissa) samalla normalisoinnilla.
