@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.79</title>
+  <title>Lähetejako v1.80</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -759,7 +759,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.79</div>
+      <div style="font-weight:600; color:var(--text);">v1.80</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -1302,7 +1302,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.79 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
+    Lähetejako v1.80 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1533,6 +1533,10 @@
     let googleDriveFileIds = {};
     let googleDriveFolderIds = {};
     let googleDriveLastSavedAt = "";
+    let googleDriveLastError = "";
+    let driverDrivePathNeedsRefresh = true;
+    let driverActiveDriveDailyFolderId = "";
+    let driverActiveDriveDailyFolderKey = "";
     let gmailAccessToken = "";
     let gmailTokenExpiresAt = 0;
     let gmailTokenClient = null;
@@ -1966,8 +1970,16 @@
             return result;
           } catch (error) {
             lastError = error;
+            // Paikallinen tiedosto on jo turvassa: älä luo automaattisella
+            // uusintayrityksellä uusia selainlatauksen kopioita.
+            if (error?.localSaved) break;
             if (attempt < retries) await new Promise(resolve => setTimeout(resolve, 350 + attempt * 650));
           }
+        }
+        if (lastError?.localSaved) {
+          driverLastFailedSave = { operation, label };
+          showDriverSaveNotice(lastError.message, "error", true);
+          return { localSaved:true, driveSaved:false, driveFailed:true, message:lastError.message };
         }
         driverLastFailedSave = { operation, label };
         showDriverSaveNotice(`Tallennus epäonnistui: ${lastError?.message || lastError}`, "error", true);
@@ -2280,6 +2292,9 @@
       }
       googleDriveFolderId = folder.id;
       googleDriveFolderName = folder.name || "Rahtikirjat";
+      driverDrivePathNeedsRefresh = true;
+      driverActiveDriveDailyFolderId = "";
+      driverActiveDriveDailyFolderKey = "";
       loadAppInfoLocalState(googleDriveFolderId);
       saveGoogleDriveSettings();
       updateDriverPdfSaveDestination();
@@ -2405,6 +2420,26 @@
       return await ensureGoogleDriveFolderPath(googleDriveDailyFolderNames(date));
     }
 
+    async function ensureGoogleDrivePdfDestination(date = driverArchiveDay()) {
+      if (!googleDriveFolderId) throw new Error("Rahtikirjat-juurikansiota ei ole valittu.");
+      if (!googleDriveTokenIsValid()) throw new Error("Google Drive -istunto ei ole aktiivinen. Yhdistä Google Drive asetuksista.");
+      if (driverDrivePathNeedsRefresh) {
+        let rootFolder = await getGoogleDriveFolder(googleDriveFolderId);
+        if (!rootFolder) rootFolder = await autoAttachGoogleDriveRoot();
+        if (!rootFolder?.id) throw new Error("Rahtikirjat-juurikansiota ei löytynyt tai siihen ei ole kirjoitusoikeutta.");
+      }
+      const pathKey = `${googleDriveFolderId}|${googleDriveDailyFolderNames(date).join("/")}`;
+      if (!driverDrivePathNeedsRefresh && driverActiveDriveDailyFolderId && driverActiveDriveDailyFolderKey === pathKey) return driverActiveDriveDailyFolderId;
+      // Jokaisen uuden ajon ensimmäinen tallennus hakee tai luo
+      // vuosi/kuukausi/päivä-polun juurikansiosta lähtien.
+      const dailyFolderId = await ensureGoogleDriveDailyFolder(date);
+      if (!dailyFolderId) throw new Error("Päiväkohtaisen Drive-kansion muodostaminen epäonnistui.");
+      driverActiveDriveDailyFolderId = dailyFolderId;
+      driverActiveDriveDailyFolderKey = pathKey;
+      driverDrivePathNeedsRefresh = false;
+      return dailyFolderId;
+    }
+
     async function ensureGoogleDriveAppInfoFolder() {
       return await ensureGoogleDriveFolderPath(["AppInfo"]);
     }
@@ -2439,14 +2474,20 @@
     }
 
     async function uploadDriverPdfToGoogleDrive(bytes) {
-      if (!googleDriveFolderId) return false;
+      googleDriveLastError = "";
+      if (!googleDriveFolderId) {
+        googleDriveLastError = "Rahtikirjat-juurikansiota ei ole valittu.";
+        updateGoogleDriveStatus(`⚠ ${googleDriveLastError}`);
+        return false;
+      }
       if (!googleDriveTokenIsValid()) {
-        updateGoogleDriveStatus("Drive-kansio on valittu, mutta Google-istunto pitää yhdistää uudelleen ennen verkkotallennusta.");
+        googleDriveLastError = "Google Drive -istunto ei ole aktiivinen. Yhdistä Google Drive asetuksista.";
+        updateGoogleDriveStatus(`⚠ ${googleDriveLastError}`);
         return false;
       }
       try {
         const fileName = driverRoutePdfName();
-        const dailyFolderId = await ensureGoogleDriveDailyFolder();
+        const dailyFolderId = await ensureGoogleDrivePdfDestination();
         const mapKey = googleDriveFileMapKey(fileName, dailyFolderId);
         updateGoogleDriveStatus(`Tallennetaan ${googleDriveDailyPathText()}/${fileName}…`);
         let fileId = googleDriveFileIds[mapKey] || "";
@@ -2459,8 +2500,9 @@
         updateGoogleDriveStatus();
         return true;
       } catch (error) {
+        googleDriveLastError = error?.message || String(error);
         console.error("Google Drive -tallennus epäonnistui:", error);
-        updateGoogleDriveStatus(`⚠ Google Drive -tallennus epäonnistui: ${error.message || error}`);
+        updateGoogleDriveStatus(`⚠ Google Drive -tallennus epäonnistui: ${googleDriveLastError}`);
         return false;
       }
     }
@@ -3207,9 +3249,15 @@
         driverDownloadedOutputName = driverRoutePdfName();
         saveAs(new Blob([normalized], { type: "application/pdf" }), driverDownloadedOutputName);
       }
-      await uploadDriverPdfToGoogleDrive(normalized);
+      const driveSaved = await uploadDriverPdfToGoogleDrive(normalized);
       updateDriverPdfSaveDestination();
       await saveDriverSessionNow();
+      if (!driveSaved) {
+        const error = new Error(`Tallennettu paikallisesti, mutta Google Drive -tallennus epäonnistui. ${googleDriveLastError || "Tarkista Drive-yhteys ja yritä uudelleen."}`);
+        error.localSaved = true;
+        error.driveFailed = true;
+        throw error;
+      }
       return writtenOver;
     }
 
@@ -5243,9 +5291,11 @@
         const unresolvedEntries = driverRouteState.unresolved.flatMap(stop => stop.files || []);
         const pickerSupported = typeof window.showSaveFilePicker === "function";
         if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
-        await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: !driverOutputFileHandle }), "Luodaan ja tallennetaan ajojärjestys-PDF");
+        const saveResult = await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: !driverOutputFileHandle }), "Luodaan ja tallennetaan ajojärjestys-PDF");
         driverUploadStatus.style.display = "flex";
-        driverUploadStatus.innerHTML = `<strong>PDF tallennettu ja automaattitallennus käytössä.</strong> Sivut ovat reittijärjestyksessä${unresolvedEntries.length ? "; reitittämättömät PDF:t ovat lopussa" : ""}.`;
+        driverUploadStatus.innerHTML = saveResult?.driveFailed
+          ? `<strong style="color:var(--warning)">${escapeHtml(saveResult.message)}</strong> Voit jatkaa työskentelyä ja yrittää Drive-tallennusta uudelleen.`
+          : `<strong>PDF tallennettu paikallisesti ja Google Driveen. Automaattitallennus on käytössä.</strong> Sivut ovat reittijärjestyksessä${unresolvedEntries.length ? "; reitittämättömät PDF:t ovat lopussa" : ""}.`;
         openDriverLoadingPhase();
       } catch (error) {
         driverUploadStatus.style.display = "flex";
@@ -5373,8 +5423,8 @@
         await persistCurrentLoadingStop();
         const pickerSupported = typeof window.showSaveFilePicker === "function";
         if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
-        await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: !driverOutputFileHandle }), "Tallennetaan päivitettyä PDF:ää");
-        driverLoadingNoteStatus.textContent = "Päivitetty PDF tallennettu. Kaikki merkinnät ovat mukana.";
+        const saveResult = await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: !driverOutputFileHandle }), "Tallennetaan päivitettyä PDF:ää");
+        driverLoadingNoteStatus.textContent = saveResult?.driveFailed ? saveResult.message : "Päivitetty PDF tallennettu paikallisesti ja Google Driveen. Kaikki merkinnät ovat mukana.";
       } catch (error) {
         alert("PDF:n luonti epäonnistui: " + (error.message || error));
       } finally {
@@ -5532,6 +5582,11 @@
       driverCustomPdfNameInput.value = "";
       driverArchiveDate = "";
       driverServiceDate = localIsoDate();
+      // Drive-kirjautuminen ja Rahtikirjat-juurikansio säilyvät. Uuden ajon
+      // päiväkansiopolku varmistetaan seuraavan tallennuksen yhteydessä alusta asti.
+      driverDrivePathNeedsRefresh = true;
+      driverActiveDriveDailyFolderId = "";
+      driverActiveDriveDailyFolderKey = "";
       updateDriverServiceDateControl();
       driverCombinedPdfBytes = null;
       driverLoadingNotes = {};
