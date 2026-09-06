@@ -1,8 +1,17 @@
-# Lähetejako v1.77
+# Lähetejako v1.78
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.78
+
+- Paino ja tilavuus luetaan ensisijaisesti PDF:n omilta `Paino:`- ja `Tilavuus:`-riveiltä suomalaiset desimaalipilkut sekä välilyönnilliset tuhaterottimet huomioiden.
+- Vaarallisten aineiden taulukon `Paino Kg`-sarake ei enää voi sekoittua koko keikan painoon.
+- Kuljettajan valmiin ajojärjestyksen tuonti ja reittioptimointi säilyttävät nyt sekä painon että tilavuuden keikalla.
+- Samaan keikkaan yhdistettyjen lähetteiden tiedostokohtaiset painot ja tilavuudet säilyvät ja keikan yhteissummat lasketaan oikein. Tämä korjaa myös lavojen purettavuusehdotuksen lähtötiedot.
+- Lastausnäkymä näyttää löydetyn kokonaispainon ja -tilavuuden tavaramäärän yhteydessä.
+- Vanha keskeneräinen kuljettajan työtila täydentää puuttuvat paino- ja tilavuustiedot automaattisesti alkuperäisistä lähetteistä päivityksen käynnistyessä.
 
 ## Versio 1.77
 
