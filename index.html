@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.82</title>
+  <title>Lähetejako v1.83</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -759,7 +759,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.82</div>
+      <div style="font-weight:600; color:var(--text);">v1.83</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -1311,7 +1311,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.82 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
+    Lähetejako v1.83 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -4229,7 +4229,7 @@
     }
 
     async function createReadyDriverStop(file) {
-      const extracted = await extractFromPdf(file);
+      const extracted = normalizeDriverExtractedResult(await extractFromPdf(file));
       const rememberedAddress = await resolvedAddressCorrection(extracted.address || "", extracted.postalCode || "", extracted);
       const originalKey = driverFileKey(file);
       const savedPdf = await readSavedDriverPdf(originalKey);
@@ -4285,7 +4285,7 @@
           driverUploadStatus.innerHTML = `<span class="spinner"></span> Luetaan ${index + 1}/${routeFiles.length} lähetettä…`;
         }
         driverPdfFiles = routeFiles;
-        const ordered = groupDriverStopsByAddress(parsedStops);
+        const ordered = groupDriverStopsByAddress(parsedStops).map((stop, index) => normalizeDriverRouteStop(stop, index)).filter(Boolean);
         const depotPoint = { lat: DEPOT.lat, lon: DEPOT.lon, label: DEPOT.label };
         driverRouteState = {
           ordered,
@@ -4301,6 +4301,7 @@
           readyRoute: true,
           roadGeometry: null
         };
+        normalizeDriverRouteState(driverRouteState);
         driverOutputFileHandle = null;
         driverDownloadedOutputName = "";
         driverCombinedPdfBytes = null;
@@ -4324,7 +4325,7 @@
 
     function groupDriverStopsByAddress(stopsToGroup) {
       const groups = new Map();
-      stopsToGroup.forEach(stop => {
+      (Array.isArray(stopsToGroup) ? stopsToGroup : []).filter(stop => stop && typeof stop === "object").forEach(stop => {
         // Sama osoite ei yksin riitä: eri yritykset/vastaanottajat ovat eri keikkoja.
         const recipientKey = companyKey(stop.recipient) || normalizeText(stop.recipient || "tuntematon");
         const key = `${physicalAddressKey(stop)}|recipient:${recipientKey}`;
@@ -4346,6 +4347,7 @@
             fileName: stop.fileName,
             recipient: stop.recipient || "",
             customerNumber:stop.customerNumber || "",
+            deliveryTime:stop.deliveryTime || "",
             trackingNumber: stop.trackingNumber || "",
             eur: Number(stop.eur) || 0,
             teho: Number(stop.teho) || 0,
@@ -4371,6 +4373,70 @@
           volumeM3: group.reduce((sum, stop) => sum + (Number(stop.volumeM3) || 0), 0)
         };
       });
+    }
+
+    /** Muuta puuttuva tai vajaa PDF-poiminta turvalliseksi reittisyötteeksi. */
+    function normalizeDriverExtractedResult(value) {
+      const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      return {
+        ...source,
+        recipient:String(source.recipient || "Ei tunnistettu").trim() || "Ei tunnistettu",
+        customerNumber:String(source.customerNumber || "").trim(),
+        address:String(source.address || "").trim(),
+        postalCode:String(source.postalCode || "").match(/\b\d{5}\b/)?.[0] || "",
+        streetKey:String(source.streetKey || "").trim(),
+        trackingNumber:String(source.trackingNumber || "").trim(),
+        deliveryTime:String(source.deliveryTime || "").trim(),
+        recipientPhone:String(source.recipientPhone || "").trim(),
+        customerPhone:String(source.customerPhone || "").trim(),
+        eur:Number(source.eur) || 0,
+        teho:Number(source.teho) || 0,
+        rollCages:Number(source.rollCages) || 0,
+        packageCount:Number(source.packageCount) || 0,
+        weightKg:source.weightKg == null || !Number.isFinite(Number(source.weightKg)) ? null : Number(source.weightKg),
+        volumeM3:source.volumeM3 == null || !Number.isFinite(Number(source.volumeM3)) ? null : Number(source.volumeM3),
+        extractionMissing:!(value && typeof value === "object" && !Array.isArray(value))
+      };
+    }
+
+    function validDriverRouteGeo(point) {
+      const lat = Number(point?.lat);
+      const lon = Number(point?.lon);
+      return Number.isFinite(lat) && Number.isFinite(lon) && lat >= 59 && lat <= 71 && lon >= 19 && lon <= 32;
+    }
+
+    function normalizeDriverRouteStop(stop, index = 0) {
+      if (!stop || typeof stop !== "object") return null;
+      stop.id = String(stop.id || `driver-stop-${index}-${crypto.randomUUID()}`);
+      stop.recipient = String(stop.recipient || "Ei tunnistettu").trim() || "Ei tunnistettu";
+      stop.address = String(stop.address || "").trim();
+      stop.postalCode = String(stop.postalCode || "").match(/\b\d{5}\b/)?.[0] || "";
+      stop.streetKey = String(stop.streetKey || "").trim();
+      stop.files = Array.isArray(stop.files) ? stop.files.filter(Boolean) : [];
+      stop.eur = Number(stop.eur) || 0;
+      stop.teho = Number(stop.teho) || 0;
+      stop.rollCages = Number(stop.rollCages) || 0;
+      stop.packageCount = Number(stop.packageCount) || 0;
+      if (!validDriverRouteGeo(stop.geo)) stop.geo = null;
+      return stop;
+    }
+
+    function normalizeDriverRouteState(state) {
+      if (!state || typeof state !== "object") return null;
+      const ordered = (Array.isArray(state.ordered) ? state.ordered : []).map((stop, index) => normalizeDriverRouteStop(stop, index)).filter(Boolean);
+      const unresolved = (Array.isArray(state.unresolved) ? state.unresolved : []).map((stop, index) => normalizeDriverRouteStop(stop, ordered.length + index)).filter(Boolean);
+      const invalidOrdered = ordered.filter(stop => !validDriverRouteGeo(stop.geo));
+      const unresolvedIds = new Set(unresolved.map(stop => stop.id));
+      state.ordered = ordered.filter(stop => validDriverRouteGeo(stop.geo));
+      state.unresolved = [...unresolved, ...invalidOrdered.filter(stop => !unresolvedIds.has(stop.id))];
+      state.manualCandidates = (Array.isArray(state.manualCandidates) ? state.manualCandidates : []).map((stop, index) => normalizeDriverRouteStop(stop, index)).filter(stop => stop && validDriverRouteGeo(stop.geo));
+      const depotPoint = {lat:60.2785, lon:25.0405, label:"Lastaus (01380 Vantaa)"};
+      state.startPoint = validDriverRouteGeo(state.startPoint) ? state.startPoint : depotPoint;
+      state.endPoint = validDriverRouteGeo(state.endPoint) ? state.endPoint : state.startPoint;
+      state.distanceCache = state.distanceCache instanceof Map ? state.distanceCache : new Map(Array.isArray(state.distanceCache) ? state.distanceCache : []);
+      state.loadBreaks = normalizeDriverLoadBreaks(state.loadBreaks, state.ordered.length);
+      state.pdfCount = Number(state.pdfCount) || state.ordered.reduce((sum, stop) => sum + Math.max(1, Number(stop.pdfCount) || stop.files.length), 0) + state.unresolved.reduce((sum, stop) => sum + Math.max(1, Number(stop.pdfCount) || stop.files.length), 0);
+      return state;
     }
 
     async function refreshDriverRouteMeasurements(routeState) {
@@ -4458,10 +4524,11 @@
     }
 
     function driverRoutePointsWithReload(orderedStops, startPoint, endPoint, loadBreaks = []) {
+      if (!validDriverRouteGeo(startPoint) || !validDriverRouteGeo(endPoint)) return [];
       const breakPositions = new Set(normalizeDriverLoadBreaks(loadBreaks, orderedStops.length).map(item => item.after));
       const points = [startPoint];
       orderedStops.forEach((stop, index) => {
-        if (stop.geo) points.push(stop.geo);
+        if (validDriverRouteGeo(stop?.geo)) points.push(stop.geo);
         if (breakPositions.has(index + 1)) points.push(startPoint);
       });
       points.push(endPoint);
@@ -4848,7 +4915,15 @@
 
     function optimizeDriverRouteRemainder() {
       if (!driverRouteState?.manualSelecting) return;
-      const { ordered, manualCandidates, endPoint, distanceCache } = driverRouteState;
+      const ordered = (driverRouteState.ordered || []).map((stop, index) => normalizeDriverRouteStop(stop, index)).filter(stop => stop && validDriverRouteGeo(stop.geo));
+      const allCandidates = (driverRouteState.manualCandidates || []).map((stop, index) => normalizeDriverRouteStop(stop, index)).filter(Boolean);
+      const invalidCandidates = allCandidates.filter(stop => !validDriverRouteGeo(stop.geo));
+      if (invalidCandidates.length) {
+        const unresolvedIds = new Set((driverRouteState.unresolved || []).map(stop => stop?.id));
+        driverRouteState.unresolved = [...(driverRouteState.unresolved || []), ...invalidCandidates.filter(stop => !unresolvedIds.has(stop.id))];
+      }
+      const manualCandidates = allCandidates.filter(stop => validDriverRouteGeo(stop.geo));
+      const { endPoint, distanceCache } = driverRouteState;
       if (!ordered.length) {
         alert("Valitse kartalta ensin vähintään yksi pysähdys.");
         return;
@@ -4860,11 +4935,16 @@
       const continuationStart = hasReloadAtSelectionEnd
         ? driverRouteState.startPoint
         : ordered[ordered.length - 1].geo;
+      if (!validDriverRouteGeo(continuationStart) || !validDriverRouteGeo(endPoint)) {
+        driverUploadStatus.style.display = "flex";
+        driverUploadStatus.innerHTML = `<strong style="color:var(--danger)">Loppuosaa ei voitu optimoida:</strong> lähtö- tai loppupiste puuttuu. Valitut ensimmäiset pysähdykset säilytettiin.`;
+        return;
+      }
       // Varsinainen tieverkkomatriisi on kuljettajan reittitilassa. Ota se tämän
       // optimoinnin ajaksi käyttöön, jotta loppuosa ei järjesty linnuntie-etäisyydellä.
       const savedRoadCache = new Map(roadDistanceCache);
       roadDistanceCache.clear();
-      distanceCache.forEach((value, key) => roadDistanceCache.set(key, value));
+      (distanceCache instanceof Map ? distanceCache : new Map(Array.isArray(distanceCache) ? distanceCache : [])).forEach((value, key) => roadDistanceCache.set(key, value));
       let optimizedRemainder;
       try {
         optimizedRemainder = optimizeStopOrder(remaining, continuationStart, endPoint);
@@ -4898,12 +4978,19 @@
       const savedRoadCache = new Map(roadDistanceCache);
       const savedRoadReady = roadNetworkReady;
       const savedRoadPartial = roadNetworkPartial;
+      const diagnostics = [];
       try {
         const parsedStops = [];
         for (let i = 0; i < driverPdfFiles.length; i++) {
           const file = driverPdfFiles[i];
           driverUploadStatus.innerHTML = `<span class="spinner"></span> <span>Luetaan ${i + 1}/${driverPdfFiles.length}: ${escapeHtml(file.name)}</span>`;
-          const extracted = await extractFromPdf(file);
+          let extracted;
+          try {
+            extracted = normalizeDriverExtractedResult(await extractFromPdf(file));
+          } catch (error) {
+            diagnostics.push({phase:"PDF-poiminta", fileName:file?.name || `Tiedosto ${i + 1}`, error:error?.message || String(error)});
+            extracted = normalizeDriverExtractedResult(null);
+          }
           const originalKey = driverFileKey(file);
           const savedPdf = await readSavedDriverPdf(originalKey);
           const activeFile = savedPdf?.annotatedBytes
@@ -4942,24 +5029,37 @@
               : ""
           };
           normalizeStop(stop, { preserveGeo: !!correctedGeo });
+          normalizeDriverRouteStop(stop, i);
+          if (extracted.extractionMissing) {
+            stop.routeIssue = "PDF:n osoitetietoja ei voitu lukea";
+            diagnostics.push({phase:"reittisyötteen normalisointi", stopId:stop.id, fileName:file?.name || "", recipient:stop.recipient, address:stop.address, geo:stop.geo, reason:stop.routeIssue});
+          }
           parsedStops.push(stop);
         }
 
-        const routeStops = groupDriverStopsByAddress(parsedStops);
+        const routeStops = groupDriverStopsByAddress(parsedStops).map((stop, index) => normalizeDriverRouteStop(stop, index)).filter(Boolean);
         driverUploadStatus.innerHTML = `<span class="spinner"></span> <span>Haetaan osoitteita 0/${routeStops.length}...</span>`;
         for (let i = 0; i < routeStops.length; i++) {
-          await geocodeStop(routeStops[i]);
+          const stop = routeStops[i];
+          try {
+            if (stop.address || stop.streetKey || stop.postalCode) await geocodeStop(stop);
+          } catch (error) {
+            stop.geo = null;
+            stop.routeIssue = error?.message || "Osoitehakua ei voitu suorittaa";
+            diagnostics.push({phase:"geokoodaus", stopId:stop.id, recipient:stop.recipient, address:stop.address, postalCode:stop.postalCode, geo:stop.geo, error:stop.routeIssue});
+          }
+          if (!validDriverRouteGeo(stop.geo)) stop.geo = null;
           driverUploadStatus.innerHTML = `<span class="spinner"></span> <span>Haetaan osoitteita ${i + 1}/${routeStops.length}...</span>`;
         }
-        const unresolved = routeStops.filter(stop => !stop.geo);
-        const routable = routeStops.filter(stop => stop.geo);
+        const unresolved = routeStops.filter(stop => !validDriverRouteGeo(stop.geo));
+        const routable = routeStops.filter(stop => validDriverRouteGeo(stop.geo));
         if (!routable.length) throw new Error("Yhdellekään lähetteelle ei löytynyt reititettävää osoitetta.");
 
         driverUploadStatus.innerHTML = `<span class="spinner"></span> <span>Haetaan lähtö- ja loppuosoite...</span>`;
         const startPoint = await geocodeAddressText(startText);
-        if (!startPoint) throw new Error("Lähtöosoitetta ei löytynyt. Tarkista osoite ja postinumero.");
+        if (!validDriverRouteGeo(startPoint)) throw new Error("Lähtöosoitetta ei löytynyt. Tarkista osoite ja postinumero.");
         const endPoint = endText ? await geocodeAddressText(endText) : startPoint;
-        if (!endPoint) throw new Error("Reitin loppuosoitetta ei löytynyt. Tarkista osoite ja postinumero.");
+        if (!validDriverRouteGeo(endPoint)) throw new Error("Reitin loppuosoitetta ei löytynyt. Tarkista osoite ja postinumero.");
 
         driverUploadStatus.innerHTML = `<span class="spinner"></span> <span>Lasketaan tieverkko ja optimoidaan reitti...</span>`;
         await buildRoadDistanceMatrix([startPoint, endPoint, ...routable.map(stop => stop.geo)], (done, total) => {
@@ -4985,18 +5085,25 @@
           manualMapFitted: false,
           loadBreaks: automaticLoadBreaks
         };
+        normalizeDriverRouteState(driverRouteState);
         driverRouteCard.style.display = "block";
         if (manualSelection) {
           renderDriverManualSelection();
           driverUploadStatus.innerHTML = `<strong>Pysähdykset ovat kartalla.</strong> Valitse pallurat haluamassasi ajojärjestyksessä.`;
         } else {
           renderDriverRouteResult(false);
-          driverUploadStatus.innerHTML = `<strong>Reitti optimoitu.</strong> ${ordered.length} pysähdystä, noin ${routeKm.toFixed(1)} km.`;
+          driverUploadStatus.innerHTML = unresolved.length
+            ? `<strong>Reitti optimoitiin osittain.</strong> ${ordered.length} löydettyä pysähdystä, noin ${routeKm.toFixed(1)} km. ${unresolved.length} keikkaa jäi ilman karttapistettä ja voidaan raahata käsin ajojärjestykseen.`
+            : `<strong>Reitti optimoitu.</strong> ${ordered.length} pysähdystä, noin ${routeKm.toFixed(1)} km.`;
         }
+        if (diagnostics.length) console.warn("Kuljettajan reittioptimoinnin diagnostiikka", diagnostics);
         window.scrollTo({ top: 0, behavior: "auto" });
       } catch (error) {
-        console.error(error);
-        driverUploadStatus.innerHTML = `<strong style="color:var(--danger)">Reitin optimointi epäonnistui:</strong> ${escapeHtml(error.message || String(error))}`;
+        console.error("Kuljettajan reittioptimointi epäonnistui", {error, diagnostics});
+        const knownMessage = /^(?:Lähtöosoitetta|Reitin loppuosoitetta|Yhdellekään lähetteelle)/.test(error?.message || "")
+          ? error.message
+          : "Reittiä ei voitu optimoida kokonaan. Yhdeltä tai useammalta keikalta puuttuu kelvollinen osoite tai karttapiste. Tarkista osoitteet ja yritä uudelleen.";
+        driverUploadStatus.innerHTML = `<strong style="color:var(--danger)">Reitin optimointi epäonnistui:</strong> ${escapeHtml(knownMessage)}`;
       } finally {
         roadDistanceCache.clear();
         savedRoadCache.forEach((value, key) => roadDistanceCache.set(key, value));
@@ -5683,10 +5790,7 @@
       let measurementsRefreshed = false;
       try {
         driverPdfFiles = saved.files;
-        driverRouteState = saved.routeState || null;
-        if (driverRouteState && !(driverRouteState.distanceCache instanceof Map)) {
-          driverRouteState.distanceCache = new Map(Array.isArray(driverRouteState.distanceCache) ? driverRouteState.distanceCache : []);
-        }
+        driverRouteState = normalizeDriverRouteState(saved.routeState || null);
         driverAddressOverrides.clear();
         (saved.addressOverrides || []).forEach(([key, value]) => driverAddressOverrides.set(key, value));
         driverCoordinateOverrides.clear();
@@ -6805,11 +6909,11 @@
         seen.add(key);
         variants.push({street:cleanStreet, postalCode:variantPostal, city:variantCity, fullAddress:[cleanStreet, variantPostal, variantCity].filter(Boolean).join(", "), source, alias});
       };
-      candidates.forEach(candidate => {
+      candidates.filter(candidate => candidate && typeof candidate.address === "string" && candidate.address.trim()).forEach(candidate => {
         const candidatePostal = String(candidate.address.match(/\b\d{5}\b/)?.[0] || postal).replace(/\s/g, "");
         const candidateCity = addressCityHint(candidate.address, candidatePostal) || city;
         const parts = streetAddressParts(candidate.address);
-        add(candidate.address, candidatePostal, candidateCity, candidate.source, candidate.source !== "PDF:n alkuperäinen osoite");
+        add(candidate.address, candidatePostal, candidateCity, candidate.source || "osoite-ehdokas", candidate.source !== "PDF:n alkuperäinen osoite");
         aliasRoadNames(parts.road, candidatePostal, candidateCity).forEach(aliasRoad => {
           if (normalizedRoadName(aliasRoad) === normalizedRoadName(parts.road)) return;
           add([aliasRoad, parts.house].filter(Boolean).join(" "), candidatePostal, candidateCity, `osoitealias: ${parts.road} → ${aliasRoad}`, true);
