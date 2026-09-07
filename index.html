@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.81</title>
+  <title>Lähetejako v1.82</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -759,7 +759,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.81</div>
+      <div style="font-weight:600; color:var(--text);">v1.82</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -1311,7 +1311,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.81 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
+    Lähetejako v1.82 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -4251,6 +4251,7 @@
         teho: extracted.teho || 0,
         rollCages: extracted.rollCages || 0,
         trackingNumber: extracted.trackingNumber || "",
+        deliveryTime: extracted.deliveryTime || "",
         packageCount: extracted.packageCount || 0,
         weightKg: extracted.weightKg ?? null,
         volumeM3: extracted.volumeM3 ?? null,
@@ -4925,6 +4926,7 @@
             geo: correctedGeo,
             eur: extracted.eur || 0, teho: extracted.teho || 0, rollCages: extracted.rollCages || 0,
             trackingNumber: extracted.trackingNumber || "",
+            deliveryTime: extracted.deliveryTime || "",
             packageCount: extracted.packageCount || 0,
             weightKg: extracted.weightKg ?? null,
             volumeM3: extracted.volumeM3 ?? null,
@@ -5924,6 +5926,119 @@
     ];
 
     const ALL_AREAS = AREA_TREE.flatMap(c => c.districts);
+
+    // Automaattisen KEIKKAJAON tehtäväprofiilit. Nämä eivät määritä käyntijärjestystä
+    // eivätkä käytä tieverkkoa; sijainti vaikuttaa vain työalueen yhtenäisyyteen.
+    const DISPATCH_ASSIGNMENT_VERSION = "practical-v1";
+    const HELSINKI_AREAS = new Set(AREA_TREE.find(group => group.city === "Helsinki")?.districts || []);
+    const ESPOO_AREAS = new Set(AREA_TREE.find(group => group.city === "Espoo / Kauniainen")?.districts || []);
+    const VANTAA_AREAS = new Set(AREA_TREE.find(group => group.city === "Vantaa")?.districts || []);
+    const KERAVA_AREAS = new Set(AREA_TREE.find(group => group.city === "Kerava")?.districts || []);
+    const JARVENPAA_AREAS = new Set(AREA_TREE.find(group => group.city === "Järvenpää")?.districts || []);
+    const TUUSULA_AREAS = new Set(AREA_TREE.find(group => group.city === "Tuusula")?.districts || []);
+    const MANTSALA_AREAS = new Set(AREA_TREE.find(group => group.city === "Mäntsälä")?.districts || []);
+    const SLT_CORE_AREAS = new Set([
+      "Keskusta/Etu-Töölö", "Punavuori/Eira", "Ullanlinna/Kaartinkaupunki",
+      "Katajanokka/Kruununhaka", "Kamppi/Ruoholahti/Jätkäsaari", "Suomenlinna",
+      "Töölö/Meilahti", "Kallio/Vallila", "Sörnäinen/Kalasatama", "Pasila", "Arabia/Toukola"
+    ]);
+    const SLT_APPROACH_AREAS = new Set([
+      "Lauttasaari", "Munkkiniemi/Munkkivuori", "Haaga/Pikku Huopalahti",
+      "Pitäjänmäki", "Konala/Malminkartano", "Käpylä/Koskela"
+    ]);
+    const LLT_PRIMARY_AREAS = new Set([
+      "Sörnäinen/Kalasatama", "Arabia/Toukola", "Kulosaari/Laajasalo",
+      "Herttoniemi/Roihuvuori", "Östersundom", "Itäkeskus/Myllypuro",
+      "Kontula/Mellunmäki", "Vuosaari", "Puistola/Jakomäki", ...MANTSALA_AREAS
+    ]);
+    const LLT_BALANCE_AREAS = new Set([...VANTAA_AREAS, ...KERAVA_AREAS, ...JARVENPAA_AREAS, ...TUUSULA_AREAS]);
+    const JTS_PRIMARY_AREAS = new Set([...VANTAA_AREAS, ...KERAVA_AREAS, ...JARVENPAA_AREAS, ...TUUSULA_AREAS]);
+    const JTS_BALANCE_AREAS = new Set(["Käpylä/Koskela", "Oulunkylä/Pakila", "Malmi/Tapanila", "Viikki/Pukinmäki", "Puistola/Jakomäki"]);
+    let lastDistributionAudit = null;
+
+    function dispatcherVehicleRole(vehicleOrName) {
+      const plate = String(typeof vehicleOrName === "string" ? vehicleOrName : (vehicleOrName?.name || vehicleOrName?.plate || "")).toUpperCase();
+      if (plate.startsWith("SLT")) return "slt";
+      if (plate.startsWith("ENR")) return "enr";
+      if (plate.startsWith("LLT")) return "llt";
+      if (plate.startsWith("JTS")) return "jts";
+      if (plate.startsWith("MTY")) return "mty";
+      return "other";
+    }
+
+    function deliveryTimeMinutes(value) {
+      const match = String(value || "").match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/);
+      return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+    }
+
+    function stopHasLateDelivery(stop) {
+      const values = [stop?.deliveryTime, ...(Array.isArray(stop?.files) ? stop.files.map(file => file?.deliveryTime) : [])];
+      return values.some(value => {
+        const minutes = deliveryTimeMinutes(value);
+        return minutes != null && minutes >= 12 * 60;
+      });
+    }
+
+    function unloadablePalletCountForStop(stop) {
+      return driverShipmentBreakdown(stop).reduce((sum, row) => {
+        const recommendation = driverPalletUnloadRecommendation(row);
+        return sum + (recommendation.recommendedTypes.includes("EUR") ? Number(row.eur) || 0 : 0)
+          + (recommendation.recommendedTypes.includes("Teho") ? Number(row.teho) || 0 : 0);
+      }, 0);
+    }
+
+    function dispatcherGroupFacts(list) {
+      const stopsInGroup = list || [];
+      const sum = field => stopsInGroup.reduce((total, stop) => total + (Number(stop?.[field]) || 0), 0);
+      const volumeValuesKnown = stopsInGroup.every(stop => Number(stop?.volumeM3) > 0);
+      const facts = {
+        weightKg:sum("weightKg"), volumeM3:sum("volumeM3"), eur:sum("eur"), teho:sum("teho"),
+        rollCages:sum("rollCages"), packages:sum("packageCount"), volumeKnown:volumeValuesKnown,
+        unloadablePallets:stopsInGroup.reduce((total, stop) => total + unloadablePalletCountForStop(stop), 0),
+        restaurant:stopsInGroup.some(stop => isRestaurantRecipient(stop?.recipient)),
+        late:stopsInGroup.some(stop => stopHasLateDelivery(stop))
+      };
+      facts.palletPlaces = facts.eur + (facts.teho + facts.rollCages) * 0.5;
+      facts.small = facts.palletPlaces <= 1.0 && facts.weightKg <= 350 && (facts.volumeKnown ? facts.volumeM3 <= 1.5 : facts.packages <= 4);
+      facts.large = facts.palletPlaces >= 2.5 || facts.weightKg >= 700 || facts.volumeM3 >= 3;
+      return facts;
+    }
+
+    function roleAreaLevel(driver, area) {
+      const role = dispatcherVehicleRole(driver);
+      if (driver?.preferredAreas?.has(area)) return 3;
+      if (role === "slt" && SLT_CORE_AREAS.has(area)) return 3;
+      if (role === "enr" && ESPOO_AREAS.has(area)) return 3;
+      if (role === "llt" && LLT_PRIMARY_AREAS.has(area)) return 3;
+      if (role === "jts" && JTS_PRIMARY_AREAS.has(area)) return 3;
+      if (role === "mty" && HELSINKI_AREAS.has(area)) return 3;
+      if (driver?.balanceAreas?.has(area)) return 2;
+      if (role === "slt" && SLT_APPROACH_AREAS.has(area)) return 2;
+      if (role === "llt" && LLT_BALANCE_AREAS.has(area)) return 2;
+      if (role === "jts" && JTS_BALANCE_AREAS.has(area)) return 2;
+      if (role === "mty" && (ESPOO_AREAS.has(area) || VANTAA_AREAS.has(area))) return 1;
+      return 0;
+    }
+
+    function groupFitsStartingLoad(group, driver) {
+      const amount = capacityAmountForStops(group.list, driver);
+      if (dispatcherVehicleRole(driver) === "slt" && !group.facts.volumeKnown) return false;
+      if (driver.maxJobVolume > 0 && dispatcherVehicleRole(driver) === "slt" && amount > driver.maxJobVolume + 0.001) return false;
+      return driver.totalUnits + amount <= driver.capacity + 0.01;
+    }
+
+    function straightLineGroupDistance(driver, geo) {
+      if (!geo) return 8;
+      const points = driver.points?.length ? driver.points : [];
+      return points.length ? Math.min(...points.map(point => haversineKm(point, geo))) : 8;
+    }
+
+    function distributionMetrics(driverList) {
+      return (driverList || []).map(driver => {
+        const facts = dispatcherGroupFacts(driver.stops);
+        return {plate:driver.name, stops:physicalStopCount(driver.stops), weightKg:facts.weightKg, volumeM3:facts.volumeM3, eur:facts.eur, teho:facts.teho, rollCages:facts.rollCages, palletPlaces:facts.palletPlaces, unloadablePallets:facts.unloadablePallets, capacityUsed:Number(driver.totalUnits) || 0, capacity:Number(driver.capacity) || 0};
+      });
+    }
 
     const AREA_COORDS = {
       "Keskusta/Etu-Töölö": [60.1720, 24.9320],
@@ -7031,17 +7146,18 @@
 
     function workloadForStops(stopList) {
       if (!stopList || !stopList.length) return 0;
-      const eur = stopList.reduce((sum, s) => sum + (parseFloat(s.eur) || 0), 0);
-      const teho = stopList.reduce((sum, s) => sum + (parseFloat(s.teho) || 0), 0);
-      const weight = stopList.reduce((sum, s) => sum + (parseFloat(s.weightKg) || 0), 0);
+      const facts = dispatcherGroupFacts(stopList);
       const area = stopList[0]?.area || "";
       const factor = AREA_WORKLOAD_FACTOR[area] || 1.0;
-      // v1.13: yksi fyysinen pysähdys hallitsee työmäärää. Tavaramäärä ja paino
-      // vaikuttavat vain hienosäätönä, jotta muutama raskas keikka ei vie jakoa vinoon.
+      // Yksi fyysinen paikka on edelleen työn perusyksikkö, mutta kuorman koko vaikuttaa
+      // aidosti: suuri lavakeikka voi olla työläämpi kuin useampi pieni SLT-pudotus.
       const baseStop = 4.0;
-      const palletWork = eur * 0.12 + teho * 0.07;
-      const weightWork = Math.min(weight / 1200, 0.25);
-      return baseStop + (palletWork + weightWork) * factor;
+      const palletWork = facts.eur * 0.42 + facts.teho * 0.28 + facts.rollCages * 0.24;
+      const weightWork = Math.min(facts.weightKg / 450, 4.0);
+      const volumeWork = Math.min(facts.volumeM3 * 0.18, 3.0);
+      const packageWork = Math.min(facts.packages * 0.05, 1.5);
+      const unloadingWork = Math.min(facts.unloadablePallets * 0.12, 1.2);
+      return baseStop + (palletWork + weightWork + volumeWork + packageWork + unloadingWork) * factor;
     }
 
     function physicalStopCount(stopList) {
@@ -7527,6 +7643,7 @@
             rollCages: extracted.rollCages ?? 0,
             packageCount: extracted.packageCount ?? 0,
             trackingNumber: extracted.trackingNumber || "",
+            deliveryTime: extracted.deliveryTime || "",
             capacityUnits: (extracted.eur ?? 0) + ((extracted.teho ?? 0) + (extracted.rollCages ?? 0)) * 0.5,
             orderNumber: extracted.orderNumber || "",
             deliveryNote: extracted.deliveryNote || "",
@@ -7907,6 +8024,13 @@
         || fullText.match(/(?:Seur\.?\s*nro|Seurantanumero)\s*:?\s*([A-ZÅÄÖ0-9][A-ZÅÄÖ0-9./_-]*)/i);
       if (trackingM) trackingNumber = trackingM[1].replace(/\s+/g, " ").trim();
 
+      // Käytä aikataulutietoa vain, kun PDF:n toimitusrivillä on yksiselitteinen
+      // kellonaika. Tavallista pp.kk.vvvv-päivämäärää ei saa tulkita kellonajaksi.
+      let deliveryTime = "";
+      const deliveryTimeLine = positionedTextLines.find(line => /\b(?:Pyydetty|Arvioitu|Toimitusaika|Toimitus\s+klo)\b/i.test(line) && /(?:\bklo\s*\d{1,2}[.:]\d{2}\b|\b\d{1,2}:\d{2}\b)/i.test(line));
+      const deliveryTimeMatch = String(deliveryTimeLine || "").match(/(?:\bklo\s*)?\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/i);
+      if (deliveryTimeMatch) deliveryTime = `${String(Number(deliveryTimeMatch[1])).padStart(2, "0")}:${deliveryTimeMatch[2]}`;
+
       // Jos keikalla on lavoja, sitä ei ilmoiteta lisäksi kolleina.
       // Ilman lavoja kollimäärä luetaan Tuotenro=KOL-rivin Toimitettu-sarakkeesta.
       if (eur <= 0 && teho <= 0 && rollCages <= 0) {
@@ -7946,7 +8070,7 @@
       // streetKey asetettu vastaanottajablokista yllä (vaatii katu + talonumero)
       return {
         recipient, address, postalCode, eur, teho, rollCages,
-        orderNumber, deliveryNote, customerNumber, trackingNumber, packageCount, streetKey,
+        orderNumber, deliveryNote, customerNumber, trackingNumber, packageCount, streetKey, deliveryTime,
         weightKg, volumeM3, recipientPhone, customerPhone
       };
     }
@@ -8036,6 +8160,7 @@
         rollCages: s.rollCages || 0,
         packageCount: s.packageCount || 0,
         trackingNumber: s.trackingNumber || "",
+        deliveryTime: s.deliveryTime || "",
         capacityUnits: (s.eur || 0) + ((s.teho || 0) + (s.rollCages || 0)) * 0.5,
         orderNumber: s.orderNumber || "",
         deliveryNote: s.deliveryNote || "",
@@ -8082,6 +8207,7 @@
           rollCages: entry.rollCages || 0,
           packageCount: entry.packageCount || 0,
           trackingNumber: entry.trackingNumber || "",
+          deliveryTime: entry.deliveryTime || "",
           capacityUnits: entry.capacityUnits ?? ((entry.eur || 0) + ((entry.teho || 0) + (entry.rollCages || 0)) * 0.5),
           orderNumber: entry.orderNumber || "",
           deliveryNote: entry.deliveryNote || "",
@@ -8132,6 +8258,7 @@
         rollCages: entry.rollCages || 0,
         packageCount: entry.packageCount || 0,
         trackingNumber: entry.trackingNumber || "",
+        deliveryTime: entry.deliveryTime || "",
         capacityUnits: (entry.eur || 0) + ((entry.teho || 0) + (entry.rollCages || 0)) * 0.5,
         orderNumber: entry.orderNumber || "",
         deliveryNote: entry.deliveryNote || "",
@@ -8822,20 +8949,16 @@
         }));
         try { sessionStorage.removeItem("lahetejako_double_hint"); } catch (_) {}
 
-        // Geokoodaa autojen lähtö- ja kotiosoitteet
-        for (let i = 0; i < drivers.length; i++) {
-          btnDistribute.innerHTML = `<span class="spinner"></span> Geokoodataan autojen osoitteita ${i + 1}/${drivers.length}…`;
-          const d = drivers[i];
-          d.startGeo = (await nominatimSearch(d.startAddress + ", Finland")) || DEPOT;
-          d.homeGeo = (await nominatimSearch(d.homeAddress + ", Finland")) || d.startGeo || DEPOT;
-        }
+        // Keikkajako ei suunnittele ajoreittejä. Lähtö- ja kotiosoitteita ei siksi
+        // geokoodata eikä käytetä ajomatkan tai käyntijärjestyksen laskemiseen.
+        drivers.forEach(driver => { driver.startGeo = DEPOT; driver.homeGeo = DEPOT; });
 
         stops.forEach(s => {
           s.driverIndex = -1;
           s.loadSlot = 1;
           s.routeOrder = 0;
           s.capacityUnits = (s.eur || 0) + ((s.teho || 0) + (s.rollCages || 0)) * 0.5;
-          s.geo = null;
+          if (!s.geo?.manual && s.geo?.geocodeVersion !== GEOCODER_VERSION) s.geo = null;
         });
 
         // Geokoodaa uniikit osoitteet (katu+pnro), kopioi samoihin keikkoihin
@@ -8862,19 +8985,8 @@
           keyToStops[uniqueKeys[i]].forEach(s => { s.geo = point; });
         }
 
-        // Tieverkkomatriisi kaikille pysähdyksille sekä autojen lähtö- ja kotipisteille.
-        // Tämän jälkeen jako ja reittijärjestys käyttävät oikeaa ajomatkaa.
-        const roadPoints = [DEPOT];
-        drivers.forEach(d => { if (d.startGeo) roadPoints.push(d.startGeo); if (d.homeGeo) roadPoints.push(d.homeGeo); });
-        stops.forEach(s => { if (s.geo) roadPoints.push(s.geo); });
-        const roadResult = await buildRoadDistanceMatrix(roadPoints, (done, total) => {
-          btnDistribute.innerHTML = `<span class="spinner"></span> Lasketaan tieverkkoetäisyyksiä ${done}/${total}…`;
-        });
-        if (!roadNetworkReady) {
-          alert("Tieverkkoetäisyyksiä ei saatu reitityspalvelusta. Tämä jako käyttää poikkeuksellisesti varalaskentaa. Tarkista internet-yhteys ja kokeile jakoa uudelleen.");
-        } else if (roadNetworkPartial) {
-          console.warn(`Tieverkkomatriisi osittainen: ${roadResult.failed}/${roadResult.total} pyyntöä epäonnistui. Puuttuvat välit arvioidaan varalaskennalla.`);
-        }
+        // Ei tieverkkomatriisia tässä toiminnossa. Karttapisteitä käytetään ainoastaan
+        // alueellisen yhtenäisyyden arviointiin suoralla maantieteellisellä etäisyydellä.
 
         // Ryhmittele osoitteen mukaan (streetKey + pnro) – sama paikka pysyy yhdessä
         const byAddr = {};
@@ -8899,8 +9011,9 @@
           const preferredPlates = [...new Set(list.map(s => s.preferredDriverPlate).filter(Boolean))];
           const preferredPlate = preferredPlates.length === 1 ? preferredPlates[0] : null;
           const forbiddenPlates = new Set(list.flatMap(s => normalizeForbiddenPlates(s.forbiddenDriverPlates)));
+          const facts = dispatcherGroupFacts(list);
           return {
-            key, list, area, totalUnits, workload, geo, lockedPlate, preferredPlate, forbiddenPlates,
+            key, list, area, totalUnits, workload, geo, facts, lockedPlate, preferredPlate, forbiddenPlates,
             lockConflict: lockedPlates.length > 1,
             preferenceConflict: preferredPlates.length > 1 || (!!preferredPlate && forbiddenPlates.has(preferredPlate))
           };
@@ -8908,7 +9021,6 @@
 
         const totalPlannedWorkload = groups.reduce((sum, g) => sum + g.workload, 0);
         const targetWorkload = drivers.length ? totalPlannedWorkload / drivers.length : 0;
-        const targetStops = drivers.length ? groups.length / drivers.length : 0;
 
         function assignStop(stop, driverIdx) {
           const drv = drivers[driverIdx];
@@ -8928,10 +9040,10 @@
 
         function driverAllowsArea(drv, area, mode = "primary") {
           if (!area) return false;
-          const primary = drv.preferredAreas && drv.preferredAreas.has(area);
-          const balance = drv.balanceAreas && drv.balanceAreas.has(area);
-          if (mode === "primary") return !!primary;
-          return !!(primary || balance);
+          const level = roleAreaLevel(drv, area);
+          if (mode === "primary") return level >= 3;
+          if (mode === "balance") return level >= 2;
+          return level >= 1;
         }
 
         function pickDriverForGroup(group, opts = {}) {
@@ -8940,46 +9052,46 @@
           let bestIdx = -1;
           let bestScore = Infinity;
 
-          const nonSlt = drivers.filter(d => d.name !== SLT_PLATE);
+          const nonSlt = drivers.filter(d => dispatcherVehicleRole(d) !== "slt");
 
           for (let d = 0; d < drivers.length; d++) {
             const drv = drivers[d];
             const groupUnits = capacityAmountForStops(group.list, drv);
-            const isSlt = drv.name === SLT_PLATE;
-            const sltRestaurantPriority = isSlt && isSltRestaurantGroup(group);
+            const role = dispatcherVehicleRole(drv);
+            const isSlt = role === "slt";
+            const areaLevel = roleAreaLevel(drv, group.area);
             if (group.forbiddenPlates?.has(drv.name)) continue;
-            if (!driverAllowsArea(drv, group.area, mode) && !sltRestaurantPriority) continue;
-            if (isSlt && drv.maxJobVolume > 0 && groupUnits > drv.maxJobVolume + 0.001) continue;
+            if (!driverAllowsArea(drv, group.area, mode) && !(isSlt && (group.facts.restaurant || group.facts.late) && SLT_CORE_AREAS.has(group.area))) continue;
+            if (!groupFitsStartingLoad(group, drv)) continue;
 
-            // Max 2 lastauksen verran kapasiteettia jako-vaiheessa
-            if (drv.totalUnits + groupUnits > drv.capacity * 2 + 0.01) continue;
-
-            let dist = 12;
-            if (geo && drv.points.length) {
-              // Tieverkossa lähin jo auton alueella oleva pysähdys on sentroidia hyödyllisempi mittari.
-              dist = Math.min(...drv.points.map(p => travelDistanceKm(p, geo)));
-            } else if (geo) {
-              dist = travelDistanceKm(drv.startGeo || DEPOT, geo);
-            }
-
-            // SLT: keikkamäärä ei saa nousta selvästi muiden yläpuolelle
-            if (isSlt && nonSlt.length) {
-              const maxOther = Math.max(...nonSlt.map(x => physicalStopCount(x.stops)), 0);
-              if (physicalStopCount(drv.stops) >= maxOther + 1) continue;
-            }
-
-            // v1.13: fyysisten pysähdysten määrä on ensisijainen tasausmittari.
-            // Työmäärä, tavaramäärä ja etäisyys hienosäätävät muuten tasaista jakoa.
+            const dist = straightLineGroupDistance(drv, geo);
             const projectedWork = (drv.workload || 0) + (group.workload || 0);
             const projectedStops = physicalStopCount(drv.stops) + 1;
-            const stopBalance = Math.abs(projectedStops - targetStops) * 18;
-            const workBalance = Math.abs(projectedWork - targetWorkload) * 3;
-            const capacityUse = ((drv.totalUnits + groupUnits) / Math.max(drv.capacity * 2, 1)) * 3;
+            const workBalance = Math.abs(projectedWork - targetWorkload) * 1.4;
+            const capacityUse = ((drv.totalUnits + groupUnits) / Math.max(drv.capacity, 1)) * 9;
             const samePostal = group.list.some(s => s.postalCode && drv.postalCodes.has(String(s.postalCode).trim()));
-            const postalAffinity = samePostal ? -4 : 0;
-            let score = stopBalance + workBalance + capacityUse + dist * 1.2 + postalAffinity;
-            if (sltRestaurantPriority) score -= 32;
-            if (isSlt) score += Math.max(0, physicalStopCount(drv.stops) - Math.max(...nonSlt.map(x => physicalStopCount(x.stops)), 0)) * 25;
+            const sameArea = drv.stops.some(stop => stop.area === group.area);
+            let score = workBalance + capacityUse + dist * 1.8 + (samePostal ? -8 : 0) + (sameArea ? -10 : 0);
+            score += areaLevel >= 3 ? -28 : (areaLevel === 2 ? -13 : 5);
+            if (drv.points.length && geo && dist > 28) score += 35; // irrallinen saareke
+
+            const otherAreaOwners = drivers.filter(other => other !== drv && other.stops.some(stop => stop.area === group.area));
+            const intentionalHelsinkiOverlap = HELSINKI_AREAS.has(group.area) && ((role === "slt" && otherAreaOwners.some(other => dispatcherVehicleRole(other) === "mty")) || (role === "mty" && otherAreaOwners.some(other => dispatcherVehicleRole(other) === "slt")));
+            if (otherAreaOwners.length && !sameArea && !intentionalHelsinkiOverlap) score += 14;
+
+            if (isSlt) {
+              if (group.facts.restaurant && SLT_CORE_AREAS.has(group.area)) score -= 45;
+              if (group.facts.late && (SLT_CORE_AREAS.has(group.area) || SLT_APPROACH_AREAS.has(group.area))) score -= 34;
+              if (group.facts.small && SLT_CORE_AREAS.has(group.area)) score -= 18;
+              if (group.facts.small && SLT_APPROACH_AREAS.has(group.area)) score -= 9;
+              if (!group.facts.small) score += group.facts.large ? 65 : 24;
+              const otherAverage = nonSlt.length ? nonSlt.reduce((sum, other) => sum + physicalStopCount(other.stops), 0) / nonSlt.length : 0;
+              const desiredMiddle = otherAverage + 6;
+              score += Math.abs(projectedStops - desiredMiddle) * 2.5;
+            } else if (role === "mty" && HELSINKI_AREAS.has(group.area)) {
+              if (group.facts.large) score -= 38;
+              if (group.facts.restaurant && group.facts.small) score += 24;
+            }
 
             if (score < bestScore) {
               bestScore = score;
@@ -8999,11 +9111,14 @@
 
         btnDistribute.innerHTML = `<span class="spinner"></span> Jaetaan osoitteittain…`;
 
-        // Kaukaiset ensin; tavaramäärä ratkaisee vasta toissijaisesti.
+        // Tehtävältään selvät ja suuret toimitukset ensin. Etäisyys lähtöpaikasta tai
+        // mahdollinen ajovuoro ei vaikuta järjestykseen.
         const remaining = groups.slice().sort((a, b) => {
-          const da = a.geo ? travelDistanceKm(DEPOT, a.geo) : 0;
-          const db = b.geo ? travelDistanceKm(DEPOT, b.geo) : 0;
-          return db - da || b.totalUnits - a.totalUnits;
+          const priority = group => (group.lockedPlate || group.preferredPlate ? 100 : 0)
+            + ((group.facts.restaurant || group.facts.late) && SLT_CORE_AREAS.has(group.area) ? 40 : 0)
+            + (group.facts.large && HELSINKI_AREAS.has(group.area) ? 25 : 0)
+            + group.workload;
+          return priority(b) - priority(a);
         });
 
         for (const group of remaining) {
@@ -9039,83 +9154,152 @@
           if (d >= 0) {
             assignGroup(group, d, "balance");
           } else {
-            for (const stop of group.list) {
-              stop.driverIndex = -1;
-              stop.status = "unassigned";
-            }
+            d = pickDriverForGroup(group, { mode:"flexible" });
+            if (d >= 0) assignGroup(group, d, "flexible");
+            else for (const stop of group.list) { stop.driverIndex = -1; stop.status = "unassigned"; }
           }
         }
 
         // Päivitä autokohtaiset kuorma- ja työmäärätilastot. Ajojärjestystä ei muodosteta.
         btnDistribute.innerHTML = `<span class="spinner"></span> Lasketaan autokohtaiset määrät…`;
         for (const drv of drivers) {
-          recalculateDriverRoute(drv, { autoSecondLoad: true });
+          recalculateDriverRoute(drv, { autoSecondLoad: false });
         }
 
-        // Local search: tasaa todellista työmäärää kokonaisina osoiteryhminä.
-        // Lukittuihin keikkoihin ei kosketa. Etäisyys toimii vastapainona, jotta pelkkä
-        // työmäärän tasaus ei hajota maantieteellisesti järkeviä reittejä.
-        const allIdx = drivers.map((d, i) => i);
-        for (let pass = 0; pass < 24; pass++) {
-          let changed = false;
-          const sourceOrder = allIdx.slice().sort((i, j) =>
-            physicalStopCount(drivers[j].stops) - physicalStopCount(drivers[i].stops) ||
-            (drivers[j].workload || 0) - (drivers[i].workload || 0)
-          );
-          for (const i of sourceOrder) {
-            const a = drivers[i];
-            const seenGroups = new Set();
-            for (const st of a.stops.slice()) {
-              const groupKey = physicalAddressKey(st);
-              if (seenGroups.has(groupKey)) continue;
-              seenGroups.add(groupKey);
-              const moving = a.stops.filter(x => physicalAddressKey(x) === groupKey);
-              if (!moving.length || moving.some(x => x.locked || x.preferredDriverPlate)) continue;
-              const movingWork = workloadForStops(moving);
-              const gGeo = centroid(moving.map(x => x.geo).filter(Boolean));
+        // Tallenna ensimmäinen jako vertailua varten ennen käytännön jälkitasapainotusta.
+        lastDistributionAudit = {version:DISPATCH_ASSIGNMENT_VERSION, before:distributionMetrics(drivers), after:[], sltTarget:null};
+        const allIdx = drivers.map((driver, index) => index);
+        const sltIndex = drivers.findIndex(driver => dispatcherVehicleRole(driver) === "slt");
+        const namedComparisonRoles = new Set(["enr", "llt", "jts", "mty"]);
+        const sltComparisonDrivers = () => {
+          const named = drivers.filter(driver => namedComparisonRoles.has(dispatcherVehicleRole(driver)));
+          return named.length ? named : drivers.filter(driver => dispatcherVehicleRole(driver) !== "slt");
+        };
+        const sltTarget = () => {
+          const comparison = sltComparisonDrivers();
+          const average = comparison.length ? comparison.reduce((sum, driver) => sum + physicalStopCount(driver.stops), 0) / comparison.length : 0;
+          return {average, min:average + 4, max:average + 8, middle:average + 6};
+        };
+        const movableGroup = (driver, stop) => {
+          const key = physicalAddressKey(stop);
+          const list = driver.stops.filter(item => physicalAddressKey(item) === key);
+          return list.some(item => item.locked || item.preferredDriverPlate) ? [] : list;
+        };
+        const makeMovingGroup = moving => ({list:moving, area:moving[0]?.area || "Tuntematon", geo:centroid(moving.map(item => item.geo).filter(Boolean)), facts:dispatcherGroupFacts(moving), workload:workloadForStops(moving)});
+        const movePhysicalGroup = (sourceIndex, targetIndex, moving) => {
+          const source = drivers[sourceIndex];
+          const target = drivers[targetIndex];
+          const keys = new Set(moving.map(item => item.id));
+          source.stops = source.stops.filter(item => !keys.has(item.id));
+          target.stops.push(...moving);
+          moving.forEach(item => { item.driverIndex = targetIndex; });
+          recalculateDriverRoute(source, {autoSecondLoad:false});
+          recalculateDriverRoute(target, {autoSecondLoad:false});
+        };
 
-              let bestTarget = -1;
-              let bestGain = 0;
-              for (const j of allIdx) {
-                if (i === j) continue;
-                const b = drivers[j];
-                const movingUnits = capacityAmountForStops(moving, b);
-                if (moving.some(x => stopForbidsDriver(x, b.name))) continue;
-                if (moving.some(x => !driverAllowsArea(b, x.area, "balance") && !driverAllowsArea(b, x.area, "primary"))) continue;
-                if (b.name === SLT_PLATE && b.maxJobVolume > 0 && movingUnits > b.maxJobVolume + 0.001) continue;
-                if (b.totalUnits + movingUnits > b.capacity * 2 + 0.01) continue;
-                const aStops = physicalStopCount(a.stops);
-                const bStops = physicalStopCount(b.stops);
-                const beforeStopBalance = Math.abs(aStops - targetStops) + Math.abs(bStops - targetStops);
-                const afterStopBalance = Math.abs((aStops - 1) - targetStops) + Math.abs((bStops + 1) - targetStops);
-                const beforeBalance = Math.abs((a.workload || 0) - targetWorkload) + Math.abs((b.workload || 0) - targetWorkload);
-                const afterBalance = Math.abs(((a.workload || 0) - movingWork) - targetWorkload) + Math.abs(((b.workload || 0) + movingWork) - targetWorkload);
-                let targetDist = 0;
-                if (gGeo) {
-                  const bPts = b.points.length ? b.points : [b.startGeo || DEPOT];
-                  targetDist = Math.min(...bPts.map(p => travelDistanceKm(p, gGeo)));
-                }
-                const stopGain = beforeStopBalance - afterStopBalance;
-                const workloadGain = beforeBalance - afterBalance;
-                const gain = stopGain * 12 + workloadGain * 0.8 - targetDist * 0.05;
-                if (gain > bestGain + 0.05) { bestGain = gain; bestTarget = j; }
-              }
-
-              if (bestTarget >= 0) {
-                const b = drivers[bestTarget];
-                a.stops = a.stops.filter(x => physicalAddressKey(x) !== groupKey);
-                b.stops.push(...moving);
-                moving.forEach(x => { x.driverIndex = bestTarget; });
-                recalculateDriverRoute(a, { autoSecondLoad: true });
-                recalculateDriverRoute(b, { autoSecondLoad: true });
-                changed = true;
-                break;
-              }
-            }
-            if (changed) break;
+        // SLT:n dynaaminen tavoite: täydennä vain pienillä keskustan, lähialueen tai
+        // matkalla keskustaan olevilla toimituksilla. Lähtökuorman pitää mahtua kerralla.
+        if (sltIndex >= 0) {
+          const slt = drivers[sltIndex];
+          for (let pass = 0; pass < groups.length; pass++) {
+            const target = sltTarget();
+            if (physicalStopCount(slt.stops) >= target.min - 0.001) break;
+            let best = null;
+            drivers.forEach((source, sourceIndex) => {
+              if (sourceIndex === sltIndex) return;
+              const seen = new Set();
+              source.stops.forEach(stop => {
+                const key = physicalAddressKey(stop);
+                if (seen.has(key)) return;
+                seen.add(key);
+                const moving = movableGroup(source, stop);
+                if (!moving.length || moving.some(item => stopForbidsDriver(item, slt.name))) return;
+                const group = makeMovingGroup(moving);
+                if (!group.facts.small || !(SLT_CORE_AREAS.has(group.area) || SLT_APPROACH_AREAS.has(group.area))) return;
+                if (!groupFitsStartingLoad(group, slt)) return;
+                const distance = straightLineGroupDistance(slt, group.geo);
+                if (slt.points.length && group.geo && distance > 24) return;
+                let score = distance * 2 + group.workload;
+                if (group.facts.restaurant) score -= 35;
+                if (group.facts.late) score -= 28;
+                if (SLT_CORE_AREAS.has(group.area)) score -= 16;
+                if (source.stops.filter(item => item.area === group.area).length <= moving.length && dispatcherVehicleRole(source) !== "mty") score += 10;
+                if (!best || score < best.score) best = {sourceIndex, moving, score};
+              });
+            });
+            if (!best) break;
+            movePhysicalGroup(best.sourceIndex, sltIndex, best.moving);
           }
-          if (!changed) break;
+
+          // Jos tehtäväprofiili tuotti yli tavoitealueen, siirrä ensisijaisesti SLT:lle
+          // huonoimmin sopivia ei-ravintola-/ei-myöhäiskeikkoja niiden omalle alueautolle.
+          for (let pass = 0; pass < groups.length; pass++) {
+            const target = sltTarget();
+            if (physicalStopCount(slt.stops) <= target.max + 0.001) break;
+            let best = null;
+            const seen = new Set();
+            slt.stops.forEach(stop => {
+              const key = physicalAddressKey(stop);
+              if (seen.has(key)) return;
+              seen.add(key);
+              const moving = movableGroup(slt, stop);
+              if (!moving.length) return;
+              const group = makeMovingGroup(moving);
+              if (group.facts.restaurant || group.facts.late) return;
+              drivers.forEach((targetDriver, targetIndex) => {
+                if (targetIndex === sltIndex || roleAreaLevel(targetDriver, group.area) < 2) return;
+                if (moving.some(item => stopForbidsDriver(item, targetDriver.name)) || !groupFitsStartingLoad(group, targetDriver)) return;
+                const distance = straightLineGroupDistance(targetDriver, group.geo);
+                const score = distance - roleAreaLevel(targetDriver, group.area) * 8 - (dispatcherVehicleRole(targetDriver) === "mty" && HELSINKI_AREAS.has(group.area) && group.facts.large ? 18 : 0);
+                if (!best || score < best.score) best = {targetIndex, moving, score};
+              });
+            });
+            if (!best) break;
+            movePhysicalGroup(sltIndex, best.targetIndex, best.moving);
+          }
         }
+
+        // Tasaa muiden autojen todellista työmäärää vain silloin, kun muutos parantaa
+        // kuormaa selvästi ja kohde liittyy vastaanottavan auton alueeseen. Paikkamäärää
+        // ei tasata itseisarvona, eikä SLT:n tarkoituksellista suurempaa määrää poisteta.
+        const nonSltIndexes = allIdx.filter(index => dispatcherVehicleRole(drivers[index]) !== "slt");
+        for (let pass = 0; pass < 20; pass++) {
+          const averageWork = nonSltIndexes.length ? nonSltIndexes.reduce((sum, index) => sum + drivers[index].workload, 0) / nonSltIndexes.length : 0;
+          let bestMove = null;
+          nonSltIndexes.forEach(sourceIndex => {
+            const source = drivers[sourceIndex];
+            if (source.workload <= averageWork * 1.08) return;
+            const seen = new Set();
+            source.stops.forEach(stop => {
+              const key = physicalAddressKey(stop);
+              if (seen.has(key)) return;
+              seen.add(key);
+              const moving = movableGroup(source, stop);
+              if (!moving.length) return;
+              const group = makeMovingGroup(moving);
+              nonSltIndexes.forEach(targetIndex => {
+                if (targetIndex === sourceIndex) return;
+                const target = drivers[targetIndex];
+                const areaLevel = roleAreaLevel(target, group.area);
+                if (areaLevel < 2 || moving.some(item => stopForbidsDriver(item, target.name)) || !groupFitsStartingLoad(group, target)) return;
+                const distance = straightLineGroupDistance(target, group.geo);
+                if (target.points.length && group.geo && distance > 22) return;
+                const before = Math.abs(source.workload - averageWork) + Math.abs(target.workload - averageWork);
+                const after = Math.abs(source.workload - group.workload - averageWork) + Math.abs(target.workload + group.workload - averageWork);
+                const workloadGain = before - after;
+                const sameArea = target.stops.some(item => item.area === group.area);
+                const score = workloadGain * 4 + (sameArea ? 12 : 0) + areaLevel * 5 - distance;
+                if (workloadGain > 0.2 && (!bestMove || score > bestMove.score)) bestMove = {sourceIndex, targetIndex, moving, score};
+              });
+            });
+          });
+          if (!bestMove) break;
+          movePhysicalGroup(bestMove.sourceIndex, bestMove.targetIndex, bestMove.moving);
+        }
+
+        drivers.forEach(driver => recalculateDriverRoute(driver, {autoSecondLoad:false}));
+        lastDistributionAudit.after = distributionMetrics(drivers);
+        lastDistributionAudit.sltTarget = sltIndex >= 0 ? sltTarget() : null;
 
         stops.forEach(s => {
           if (s.driverIndex < 0 && s.status !== "err") s.status = "unassigned";
@@ -9474,6 +9658,29 @@
       }, 30);
     }
 
+    function distributionAuditHtml() {
+      if (!lastDistributionAudit?.after?.length) return "";
+      const current = distributionMetrics(drivers);
+      const comparisonRoles = new Set(["enr", "llt", "jts", "mty"]);
+      const namedComparison = current.filter(item => comparisonRoles.has(dispatcherVehicleRole(item.plate)));
+      const comparison = namedComparison.length ? namedComparison : current.filter(item => dispatcherVehicleRole(item.plate) !== "slt");
+      const average = comparison.length ? comparison.reduce((sum, item) => sum + item.stops, 0) / comparison.length : 0;
+      const target = {average, min:average + 4, max:average + 8};
+      const slt = current.find(item => dispatcherVehicleRole(item.plate) === "slt");
+      const difference = slt && target ? slt.stops - target.average : null;
+      const inTarget = difference != null && difference >= 4 - 0.01 && difference <= 8 + 0.01;
+      const sltLine = slt && target
+        ? `<div style="font-size:1rem;"><strong>SLT: ${slt.stops} paikkaa</strong> · muiden keskiarvo ${target.average.toLocaleString("fi-FI", {maximumFractionDigits:1})} · ero <strong style="color:${inTarget ? "var(--success)" : "var(--warning)"}">${difference >= 0 ? "+" : ""}${difference.toLocaleString("fi-FI", {maximumFractionDigits:1})}</strong> · tavoite +4…+8</div>`
+        : `<div>SLT-vertailua ei voitu laskea aktiivisesta kalustosta.</div>`;
+      const beforeByPlate = new Map((lastDistributionAudit.before || []).map(item => [item.plate, item]));
+      const rows = current.map(after => {
+        const before = beforeByPlate.get(after.plate) || after;
+        const capacityPct = after.capacity > 0 ? Math.round(after.capacityUsed / after.capacity * 100) : 0;
+        return `<tr><td><strong>${escapeHtml(after.plate)}</strong></td><td>${before.stops} → <strong>${after.stops}</strong></td><td>${after.weightKg.toFixed(0)} kg</td><td>${formatCapacityAmount(after.volumeM3)} m³</td><td>${formatCapacityAmount(after.palletPlaces)}</td><td>${formatCapacityAmount(after.unloadablePallets)}</td><td>${capacityPct}%</td></tr>`;
+      }).join("");
+      return `<div style="grid-column:1/-1;padding:.8rem 1rem;margin-bottom:.5rem;background:var(--card);border:1px solid var(--border);border-radius:8px;">${sltLine}<details style="margin-top:.55rem;"><summary style="cursor:pointer;color:var(--muted);">Näytä ensimmäinen jako → tasattu jako ja kuormamittarit</summary><div style="overflow:auto;margin-top:.55rem;"><table style="width:100%;border-collapse:collapse;font-size:.82rem;"><thead><tr><th>Auto</th><th>Paikat</th><th>Paino</th><th>Tilavuus</th><th>Lavapaikat</th><th>Purettavat</th><th>Kapasiteetti</th></tr></thead><tbody>${rows}</tbody></table></div></details></div>`;
+    }
+
     function renderDrivers() {
       const overDrivers = drivers.filter(d => d.totalUnits > effectiveCapacity(d) + 0.01);
       const allDriverOpts = drivers.map((d, i) => `<option value="${i}">${d.name}</option>`).join("");
@@ -9498,7 +9705,7 @@
         </div>
       `;
 
-      driverCards.innerHTML = toolbar + drivers.map((d, di) => {
+      driverCards.innerHTML = distributionAuditHtml() + toolbar + drivers.map((d, di) => {
         const cap = effectiveCapacity(d);
         const pct = Math.min(100, Math.round((d.totalUnits / Math.max(cap, 0.01)) * 100));
         const over = d.totalUnits > cap + 0.01;
@@ -9506,6 +9713,9 @@
         const tehoSum = d.stops.reduce((s, x) => s + (x.teho || 0), 0);
         const rollCageSum = d.stops.reduce((s, x) => s + (x.rollCages || 0), 0);
         const weightSum = d.stops.reduce((s, x) => s + (parseFloat(x.weightKg) || 0), 0);
+        const volumeSum = d.stops.reduce((s, x) => s + (parseFloat(x.volumeM3) || 0), 0);
+        const unloadablePallets = d.stops.reduce((s, x) => s + unloadablePalletCountForStop(x), 0);
+        const palletPlaces = eurSum + (tehoSum + rollCageSum) * 0.5;
         const missingVolumeCount = usesVolumeCapacity(d) ? missingVolumePdfCount(d.stops) : 0;
         const stopCount = physicalStopCount(d.stops);
         const capacityLine = usesVolumeCapacity(d)
@@ -9525,7 +9735,9 @@
               <div>${capacityLine}</div>
               ${usesVolumeCapacity(d) ? `<div>Yksittäinen keikka: <strong>${d.maxJobVolume > 0 ? `enintään ${formatCapacityAmount(d.maxJobVolume)} m³` : "ei tilavuusrajaa"}</strong></div>` : ""}
               ${missingVolumeCount ? `<div style="color:var(--warning);">⚠ Tilavuus puuttuu ${missingVolumeCount} lähetteeltä</div>` : ""}
-              <div>Paino: <strong>${weightSum.toFixed(0)}</strong> kg · Työmäärä: <strong>${Number(d.workload || 0).toFixed(1)}</strong> p. <span style="opacity:0.7;">(ka. ${avgWorkload.toFixed(1)})</span></div>
+              <div>Paino: <strong>${weightSum.toFixed(0)}</strong> kg · Tilavuus: <strong>${formatCapacityAmount(volumeSum)}</strong> m³</div>
+              <div>Lavapaikat: <strong>${formatCapacityAmount(palletPlaces)}</strong> · Purettavaksi sopivia lavoja: <strong>${formatCapacityAmount(unloadablePallets)}</strong></div>
+              <div>Kapasiteetin käyttö: <strong>${Math.round((d.totalUnits / Math.max(d.capacity, .01)) * 100)} %</strong> · Työmäärä: <strong>${Number(d.workload || 0).toFixed(1)}</strong> p. <span style="opacity:0.7;">(ka. ${avgWorkload.toFixed(1)})</span></div>
               <div class="progress">
                 <div class="progress-bar ${over ? "over" : ""}" style="width:${pct}%"></div>
               </div>
