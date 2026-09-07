@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.84</title>
+  <title>Lähetejako v1.85</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -759,7 +759,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.84</div>
+      <div style="font-weight:600; color:var(--text);">v1.85</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -1155,6 +1155,24 @@
           <div class="modal-file-meta" style="margin-top:0.35rem;">Parantaa suomalaisten osoitteiden löytymistä. Avain tallennetaan vain tälle laitteelle, ei GitHubiin.</div>
         </div>
         <div style="padding:.75rem;border:1px solid var(--border);border-radius:8px;">
+          <strong>Tiedostojen tallennustapa</strong>
+          <label for="driverStorageMode" style="display:block;margin-top:.65rem;">Tallennuskohde</label>
+          <select id="driverStorageMode" style="width:100%;padding:.65rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font:inherit;">
+            <option value="local-folder">Paikallinen Drive-kansio (suositeltu tietokoneella)</option>
+            <option value="drive-api">Google Drive API</option>
+            <option value="device-only">Vain laitteen tallennus</option>
+          </select>
+          <div id="localDriveFolderPanel" style="margin-top:.7rem;">
+            <div class="modal-file-meta">Valitse Google Drive for desktopissa näkyvä oikea <strong>Rahtikirjat</strong>-kansio. Windows-pikakuvaketta (.lnk) ei voi käyttää.</div>
+            <div class="actions" style="margin-top:.65rem;">
+              <button class="btn btn-primary" id="btnChooseLocalRahtikirjat" type="button">Valitse paikallinen Rahtikirjat-kansio</button>
+              <button class="btn btn-secondary" id="btnRequestLocalFolderPermission" type="button" hidden>Vahvista kansion käyttöoikeus</button>
+              <button class="btn btn-secondary" id="btnRetryLocalFolderSave" type="button" hidden>Yritä tallennusta uudelleen</button>
+            </div>
+            <div class="status-bar" id="localDriveFolderStatus" style="display:flex;margin-top:.65rem;"></div>
+          </div>
+        </div>
+        <div style="padding:.75rem;border:1px solid var(--border);border-radius:8px;">
           <strong>Google Drive -tallennus</strong>
           <div class="modal-file-meta" style="margin:.2rem 0 .65rem;">Yhdistämisen jälkeen ohjelma etsii automaattisesti käytettävissä olevan täsmälleen <strong>Rahtikirjat</strong>-nimisen kansion ja muistaa sen tällä laitteella. Ohjelma tekee sen alle valitun ajopäivän mukaiset VVVV/Kuukausi/PPKKVVVV-kansiot sekä AppInfo-kansion. Myös käsin korjatut osoitteet ja nuppineulalla valitut purkupaikat jaetaan AppInfo-kansion kautta kaikille samaa juurikansiota käyttäville.</div>
           <div class="modal-file-meta" style="margin-bottom:.65rem;">Yhteisten kansioiden ja muiden kuljettajien kohdetietojen käyttöön Google pyytää Driven luku- ja muokkausoikeutta. Googlen lupa on koko Driven laajuinen; ohjelma käsittelee vain valitsemasi juurikansion sisältöä. Hyväksyt luvan Google-kirjautumisessa.</div>
@@ -1311,7 +1329,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.84 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · PDF:t, kohdetiedot ja osoitekorjaukset lähetetään Google Driveen vain käyttäjän yhdistämisen jälkeen
+    Lähetejako v1.85 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · Tallennustavan voi valita: synkronoitu paikallinen kansio, Drive API tai vain laite
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1469,6 +1487,12 @@
     const btnGoogleDriveChooseFolder = document.getElementById("btnGoogleDriveChooseFolder");
     const btnGoogleDriveDisconnect = document.getElementById("btnGoogleDriveDisconnect");
     const googleDriveStatus = document.getElementById("googleDriveStatus");
+    const driverStorageModeInput = document.getElementById("driverStorageMode");
+    const localDriveFolderPanel = document.getElementById("localDriveFolderPanel");
+    const localDriveFolderStatus = document.getElementById("localDriveFolderStatus");
+    const btnChooseLocalRahtikirjat = document.getElementById("btnChooseLocalRahtikirjat");
+    const btnRequestLocalFolderPermission = document.getElementById("btnRequestLocalFolderPermission");
+    const btnRetryLocalFolderSave = document.getElementById("btnRetryLocalFolderSave");
     const btnDispatcherGmail = document.getElementById("btnDispatcherGmail");
     const btnDriverGmail = document.getElementById("btnDriverGmail");
     const gmailImportModal = document.getElementById("gmailImportModal");
@@ -1543,6 +1567,13 @@
     let googleDriveFolderIds = {};
     let googleDriveLastSavedAt = "";
     let googleDriveLastError = "";
+    let driverStorageMode = "drive-api";
+    let localRahtikirjatHandle = null;
+    let localFolderPermission = "missing";
+    let localFolderLastSavedAt = "";
+    let localFolderLastError = "";
+    let localFolderWriteQueue = Promise.resolve();
+    const LOCAL_FOLDER_ROOT_ID = "local-drive-folder";
     let driverDrivePathNeedsRefresh = true;
     let driverActiveDriveDailyFolderId = "";
     let driverActiveDriveDailyFolderKey = "";
@@ -1758,12 +1789,13 @@
       if (driverPdfDatabasePromise) return driverPdfDatabasePromise;
       if (!window.indexedDB) return Promise.reject(new Error("Laitteen pysyvä PDF-tallennus ei ole käytettävissä"));
       driverPdfDatabasePromise = new Promise((resolve, reject) => {
-        const request = indexedDB.open("lahetejako_driver_pdf_edits", 3);
+        const request = indexedDB.open("lahetejako_driver_pdf_edits", 4);
         request.onupgradeneeded = () => {
           const database = request.result;
           if (!database.objectStoreNames.contains("pdfs")) database.createObjectStore("pdfs", { keyPath: "key" });
           if (!database.objectStoreNames.contains("sessions")) database.createObjectStore("sessions", { keyPath: "key" });
           if (!database.objectStoreNames.contains("backups")) database.createObjectStore("backups", { keyPath: "id" });
+          if (!database.objectStoreNames.contains("persistent")) database.createObjectStore("persistent", { keyPath: "key" });
         };
         request.onsuccess = () => {
           const database = request.result;
@@ -1790,6 +1822,33 @@
         };
       });
       return driverPdfDatabasePromise;
+    }
+
+    async function readDriverPersistentValue(key) {
+      return await withDriverPdfDatabase(database => new Promise((resolve, reject) => {
+        const request = database.transaction("persistent", "readonly").objectStore("persistent").get(key);
+        request.onsuccess = () => resolve(request.result?.value ?? null);
+        request.onerror = () => reject(request.error);
+      }));
+    }
+
+    async function writeDriverPersistentValue(key, value) {
+      return await withDriverPdfDatabase(database => new Promise((resolve, reject) => {
+        const transaction = database.transaction("persistent", "readwrite");
+        transaction.objectStore("persistent").put({key, value, updatedAt:new Date().toISOString()});
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error);
+      }));
+    }
+
+    async function deleteDriverPersistentValue(key) {
+      return await withDriverPdfDatabase(database => new Promise((resolve, reject) => {
+        const transaction = database.transaction("persistent", "readwrite");
+        transaction.objectStore("persistent").delete(key);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+      }));
     }
 
     function driverDatabaseCanRetry(error) {
@@ -2022,6 +2081,8 @@
       googleDriveApiKey = localStorage.getItem("lahetejako_google_drive_api_key") || "";
       googleDriveFolderId = localStorage.getItem("lahetejako_google_drive_folder_id") || "";
       googleDriveFolderName = localStorage.getItem("lahetejako_google_drive_folder_name") || "";
+      const savedStorageMode = localStorage.getItem("lahetejako_driver_storage_mode_v1");
+      if (["local-folder", "drive-api", "device-only"].includes(savedStorageMode)) driverStorageMode = savedStorageMode;
       try {
         const savedDriveFileIds = JSON.parse(localStorage.getItem("lahetejako_google_drive_file_ids_v1") || "{}");
         if (savedDriveFileIds && typeof savedDriveFileIds === "object" && !Array.isArray(savedDriveFileIds)) googleDriveFileIds = savedDriveFileIds;
@@ -2430,6 +2491,153 @@
       return [googleDriveFolderName || "Rahtikirjat", ...googleDriveDailyFolderNames(date)].join("/");
     }
 
+    function localFolderSupported() {
+      return typeof window.showDirectoryPicker === "function";
+    }
+
+    function activeAppInfoRootId() {
+      if (driverStorageMode === "local-folder") return LOCAL_FOLDER_ROOT_ID;
+      if (driverStorageMode === "drive-api") return googleDriveFolderId;
+      return "";
+    }
+
+    function localFolderPathText(date = driverArchiveDay()) {
+      return [localRahtikirjatHandle?.name || "Rahtikirjat", ...googleDriveDailyFolderNames(date)].join("/");
+    }
+
+    async function queryLocalFolderPermission() {
+      if (!localRahtikirjatHandle) return localFolderPermission = "missing";
+      try { return localFolderPermission = await localRahtikirjatHandle.queryPermission({mode:"readwrite"}); }
+      catch (_) { return localFolderPermission = "denied"; }
+    }
+
+    async function requestLocalFolderPermission() {
+      if (!localRahtikirjatHandle) return false;
+      try {
+        localFolderPermission = await localRahtikirjatHandle.requestPermission({mode:"readwrite"});
+        updateLocalFolderStatus();
+        if (localFolderPermission === "granted") {
+          loadAppInfoLocalState(LOCAL_FOLDER_ROOT_ID);
+          await loadAppInfoDatabase({force:true});
+          await syncPendingAppInfoMutations();
+          await retryLocalFolderWrites();
+          return true;
+        }
+      } catch (error) { localFolderLastError = error?.message || String(error); }
+      updateLocalFolderStatus();
+      return false;
+    }
+
+    function updateLocalFolderStatus(message = "") {
+      if (!localDriveFolderStatus) return;
+      const supported = localFolderSupported();
+      localDriveFolderPanel.hidden = driverStorageMode !== "local-folder";
+      btnChooseLocalRahtikirjat.disabled = !supported;
+      btnRequestLocalFolderPermission.hidden = !supported || !localRahtikirjatHandle || localFolderPermission !== "prompt";
+      btnRetryLocalFolderSave.hidden = !localFolderLastError;
+      if (message) localDriveFolderStatus.textContent = message;
+      else if (!supported) localDriveFolderStatus.textContent = "Tämä selain tai laite ei tue suoraa kansiotallennusta. Käytä Google Drive API -tallennusta tai tavallista latausta.";
+      else if (!localRahtikirjatHandle) localDriveFolderStatus.textContent = "Paikallista Rahtikirjat-kansiota ei ole vielä valittu.";
+      else if (localFolderPermission === "granted") localDriveFolderStatus.textContent = `✅ Paikallinen Rahtikirjat-kansio yhdistetty: ${localRahtikirjatHandle.name}. Drive for desktopin pilvisynkronoinnin tilaa selain ei pysty tarkistamaan.${localFolderLastSavedAt ? ` Tallennettu paikallisesti ${localFolderLastSavedAt}.` : ""}`;
+      else if (localFolderPermission === "prompt") localDriveFolderStatus.textContent = "Kansion käyttöoikeus pitää vahvistaa käyttäjän painalluksella.";
+      else localDriveFolderStatus.textContent = "Kansion käyttöoikeus puuttuu. Valitse kansio uudelleen.";
+      updateDriverPdfSaveDestination();
+    }
+
+    async function chooseLocalRahtikirjatFolder() {
+      if (!localFolderSupported()) throw new Error("Tämä selain tai laite ei tue suoraa kansiotallennusta.");
+      const handle = await window.showDirectoryPicker({mode:"readwrite", id:"lahetejako-rahtikirjat"});
+      if (!handle || handle.kind !== "directory") throw new Error("Valittu kohde ei ole kansio.");
+      if (handle.name !== "Rahtikirjat" && !confirm(`Valitun kansion nimi on “${handle.name}”, ei “Rahtikirjat”. Käytetäänkö sitä silti tallennusjuurena?`)) return false;
+      let permission = await handle.queryPermission({mode:"readwrite"});
+      if (permission !== "granted") permission = await handle.requestPermission({mode:"readwrite"});
+      if (permission !== "granted") throw new Error("Kansiolle ei myönnetty luku- ja kirjoitusoikeutta.");
+      localRahtikirjatHandle = handle;
+      localFolderPermission = permission;
+      localFolderLastError = "";
+      await writeDriverPersistentValue("local-rahtikirjat-handle", handle);
+      loadAppInfoLocalState(LOCAL_FOLDER_ROOT_ID);
+      await loadAppInfoDatabase({force:true});
+      await syncPendingAppInfoMutations();
+      updateLocalFolderStatus();
+      return true;
+    }
+
+    async function getLocalDirectory(root, names, create = true) {
+      let current = root;
+      for (const name of names) current = await current.getDirectoryHandle(name, {create});
+      return current;
+    }
+
+    async function requireLocalFolderAccess({request = false} = {}) {
+      if (!localRahtikirjatHandle) throw new Error("Valitse ensin paikallinen Rahtikirjat-kansio asetuksista.");
+      let permission = await queryLocalFolderPermission();
+      if (permission !== "granted" && request) permission = await localRahtikirjatHandle.requestPermission({mode:"readwrite"});
+      localFolderPermission = permission;
+      if (permission !== "granted") throw new Error("Paikallisen Rahtikirjat-kansion käyttöoikeus pitää vahvistaa asetuksista.");
+      return localRahtikirjatHandle;
+    }
+
+    async function writeBytesToLocalFolder(directory, fileName, bytes) {
+      const fileHandle = await directory.getFileHandle(fileName, {create:true});
+      const writable = await fileHandle.createWritable();
+      try { await writable.write(bytes); }
+      finally { await writable.close(); }
+      return fileHandle;
+    }
+
+    async function savePdfToLocalDriveFolder(bytes) {
+      const operation = async () => {
+        const root = await requireLocalFolderAccess();
+        const directory = await getLocalDirectory(root, googleDriveDailyFolderNames(driverArchiveDay()), true);
+        await writeBytesToLocalFolder(directory, driverRoutePdfName(), bytes);
+        localFolderLastSavedAt = new Intl.DateTimeFormat("fi-FI", {hour:"2-digit", minute:"2-digit"}).format(new Date());
+        localFolderLastError = "";
+        await deleteDriverPersistentValue("local-folder-pdf-outbox").catch(() => {});
+        updateLocalFolderStatus();
+        return true;
+      };
+      const pending = localFolderWriteQueue.then(operation, operation);
+      localFolderWriteQueue = pending.catch(() => {});
+      return await pending;
+    }
+
+    async function retryLocalFolderWrites() {
+      localFolderLastError = "";
+      const pendingPdf = await readDriverPersistentValue("local-folder-pdf-outbox").catch(() => null);
+      if (pendingPdf?.bytes) {
+        const previousDate = driverArchiveDate;
+        const previousName = driverCustomPdfName;
+        try {
+          driverArchiveDate = pendingPdf.archiveDate;
+          driverCustomPdfName = pendingPdf.fileName;
+          await savePdfToLocalDriveFolder(new Uint8Array(pendingPdf.bytes));
+        } finally { driverArchiveDate = previousDate; driverCustomPdfName = previousName; }
+      }
+      await syncPendingAppInfoMutations();
+      updateLocalFolderStatus();
+    }
+
+    async function restoreLocalFolderHandle() {
+      if (!localFolderSupported()) { localFolderPermission = "unavailable"; updateLocalFolderStatus(); return; }
+      try {
+        localRahtikirjatHandle = await readDriverPersistentValue("local-rahtikirjat-handle");
+        const pendingPdf = await readDriverPersistentValue("local-folder-pdf-outbox");
+        const pendingAppInfo = await readDriverPersistentValue("local-folder-appinfo-outbox");
+        if (Array.isArray(pendingAppInfo)) {
+          pendingAppInfo.forEach(item => { if (item?.id && !appInfoPendingMutations.some(current => current.id === item.id)) appInfoPendingMutations.push(item); });
+          persistAppInfoLocalState();
+        }
+        if (pendingPdf?.bytes || (Array.isArray(pendingAppInfo) && pendingAppInfo.length)) localFolderLastError = "Laitteella on odottavia muutoksia. Paina Yritä tallennusta uudelleen.";
+        await queryLocalFolderPermission();
+        if (driverStorageMode === "local-folder") {
+          loadAppInfoLocalState(LOCAL_FOLDER_ROOT_ID);
+          if (localFolderPermission === "granted") await loadAppInfoDatabase({force:true});
+        }
+      } catch (error) { console.warn("Paikallisen kansiokahvan palautus epäonnistui:", error); }
+      updateLocalFolderStatus();
+    }
+
     async function ensureGoogleDriveDailyFolder(date = driverArchiveDay()) {
       return await ensureGoogleDriveFolderPath(googleDriveDailyFolderNames(date));
     }
@@ -2830,7 +3038,7 @@
     function queueAppInfoMutation(type, identity, payload, options = {}) {
       const mutation = {
         id:options.id || crypto.randomUUID(),
-        rootId:options.rootId ?? googleDriveFolderId ?? "",
+        rootId:options.rootId ?? activeAppInfoRootId() ?? "",
         type,
         identity,
         payload,
@@ -2840,6 +3048,7 @@
       if (!appInfoPendingMutations.some(item => item.id === mutation.id)) appInfoPendingMutations.push(mutation);
       applyAppInfoMutation(appInfoDatabase, mutation);
       persistAppInfoLocalState();
+      if (driverStorageMode === "local-folder") void writeDriverPersistentValue("local-folder-appinfo-outbox", appInfoPendingMutations).catch(error => console.warn("AppInfo-varmistuksen tallennus epäonnistui:", error));
       return mutation;
     }
 
@@ -2889,7 +3098,65 @@
       return {fileId:saved.id, version:String(saved.version || "")};
     }
 
+    async function readLocalJsonFile(directory, name) {
+      try {
+        const handle = await directory.getFileHandle(name);
+        const file = await handle.getFile();
+        const text = await file.text();
+        return {data:normalizeAppInfoDatabase(JSON.parse(text)), modified:Number(file.lastModified) || 0, text};
+      } catch (error) {
+        if (error?.name === "NotFoundError") return {data:emptyAppInfoDatabase(), modified:0, text:""};
+        throw error;
+      }
+    }
+
+    async function loadLocalAppInfoDatabase() {
+      const root = await requireLocalFolderAccess();
+      const directory = await getLocalDirectory(root, ["AppInfo"], true);
+      const snapshot = await readLocalJsonFile(directory, APP_INFO_FILE_NAME);
+      appInfoDatabase = snapshot.data;
+      appInfoPendingMutations.filter(item => !item.rootId || item.rootId === LOCAL_FOLDER_ROOT_ID).forEach(item => applyAppInfoMutation(appInfoDatabase, item));
+      appInfoCacheRootId = LOCAL_FOLDER_ROOT_ID;
+      appInfoLoadedAt = Date.now();
+      persistAppInfoLocalState();
+      return appInfoDatabase;
+    }
+
+    async function performLocalAppInfoSync() {
+      const root = await requireLocalFolderAccess();
+      const directory = await getLocalDirectory(root, ["AppInfo"], true);
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const pending = appInfoPendingMutations.filter(item => !item.rootId || item.rootId === LOCAL_FOLDER_ROOT_ID);
+        if (!pending.length) return true;
+        const first = await readLocalJsonFile(directory, APP_INFO_FILE_NAME);
+        pending.forEach(item => applyAppInfoMutation(first.data, item));
+        const second = await readLocalJsonFile(directory, APP_INFO_FILE_NAME);
+        if (second.modified !== first.modified && attempt < 3) continue;
+        if (second.text) await writeBytesToLocalFolder(directory, "asiakkaat.varmuuskopio.json", new TextEncoder().encode(second.text));
+        const bytes = new TextEncoder().encode(JSON.stringify(first.data, null, 2));
+        await writeBytesToLocalFolder(directory, APP_INFO_FILE_NAME, bytes);
+        const verified = await readLocalJsonFile(directory, APP_INFO_FILE_NAME);
+        const missing = pending.filter(item => !verified.data.appliedMutationIds.includes(item.id));
+        if (missing.length && attempt < 3) continue;
+        if (missing.length) throw new Error("asiakkaat.json-tiedoston päivitystä ei voitu vahvistaa.");
+        appInfoPendingMutations = appInfoPendingMutations.filter(item => !pending.some(done => done.id === item.id));
+        appInfoDatabase = verified.data;
+        appInfoCacheRootId = LOCAL_FOLDER_ROOT_ID;
+        appInfoLoadedAt = Date.now();
+        persistAppInfoLocalState();
+        pending.filter(item => item.type === "address").forEach(item => markAddressCorrectionShared(item.payload?.lookupKey || "", {address:item.payload?.correctedAddress || ""}));
+        await writeDriverPersistentValue("local-folder-appinfo-outbox", appInfoPendingMutations).catch(() => {});
+        return true;
+      }
+      return false;
+    }
+
     async function loadAppInfoDatabase({force = false, migrate = false} = {}) {
+      if (driverStorageMode === "local-folder") {
+        if (!localRahtikirjatHandle || await queryLocalFolderPermission() !== "granted") return appInfoDatabase;
+        if (!force && appInfoLoadedAt && Date.now() - appInfoLoadedAt < 60000) return appInfoDatabase;
+        return await loadLocalAppInfoDatabase();
+      }
       if (!googleDriveFolderId) return appInfoDatabase;
       if (appInfoCacheRootId !== googleDriveFolderId) loadAppInfoLocalState(googleDriveFolderId);
       if (!googleDriveTokenIsValid()) return appInfoDatabase;
@@ -2922,8 +3189,19 @@
     }
 
     async function performAppInfoSync() {
+      if (driverStorageMode === "local-folder") {
+        try { return await performLocalAppInfoSync(); }
+        catch (error) {
+          localFolderLastError = error?.message || String(error);
+          await writeDriverPersistentValue("local-folder-appinfo-outbox", appInfoPendingMutations).catch(() => {});
+          persistAppInfoLocalState();
+          updateLocalFolderStatus();
+          return false;
+        }
+      }
+      if (driverStorageMode === "device-only") return false;
       if (!googleDriveFolderId || !googleDriveTokenIsValid()) return false;
-      const rootId = googleDriveFolderId;
+      const rootId = activeAppInfoRootId();
       for (let attempt = 0; attempt < 5; attempt++) {
         const pending = appInfoPendingMutations.filter(item => !item.rootId || item.rootId === rootId);
         if (!pending.length) return true;
@@ -2981,21 +3259,22 @@
         value.lookupKey = lookupKey;
         value.pendingShared = false;
         value.sharedAt = sharedAt;
-        value.sharedRootIds = [...new Set([...(Array.isArray(value.sharedRootIds) ? value.sharedRootIds : []), googleDriveFolderId])];
+        value.sharedRootIds = [...new Set([...(Array.isArray(value.sharedRootIds) ? value.sharedRootIds : []), activeAppInfoRootId()])];
       });
       persistAddressCorrections();
     }
 
     async function saveSharedAddressCorrection(correction) {
       if (!correction?.lookupKey) return false;
-      const signature = `${googleDriveFolderId}|${correction.pendingMutationId || correction.lookupKey}|${correction.address}|${correction.lat ?? ""}|${correction.lon ?? ""}`;
+      const signature = `${activeAppInfoRootId()}|${correction.pendingMutationId || correction.lookupKey}|${correction.address}|${correction.lat ?? ""}|${correction.lon ?? ""}`;
       if (sharedAddressCorrectionWrites.has(signature)) return await sharedAddressCorrectionWrites.get(signature);
       const operation = (async () => {
         try {
           const identity = {key:correction.customerKey || `customer-${stableInfoHash(correction.lookupKey)}`, company:correction.company || "", customerNumber:correction.customerNumber || "", originalAddress:correction.originalAddress || "", originalPostalCode:correction.originalPostalCode || "", originalCity:correction.originalCity || "", aliases:Array.isArray(correction.identityAliases) ? correction.identityAliases : [`address:${correction.lookupKey}`]};
           const mutationId = correction.pendingMutationId || crypto.randomUUID();
           if (!appInfoPendingMutations.some(item => item.id === mutationId)) queueAppInfoMutation("address", identity, {lookupKey:correction.lookupKey, originalAddress:correction.originalAddress || "", originalPostalCode:correction.originalPostalCode || "", originalCity:correction.originalCity || "", correctedAddress:correction.address || "", correctedPostalCode:correction.postalCode || "", addressAliases:[correction.originalAddress || "", correction.address || ""].filter(Boolean), latitude:Number.isFinite(Number(correction.lat)) ? Number(correction.lat) : null, longitude:Number.isFinite(Number(correction.lon)) ? Number(correction.lon) : null, coordinateSelected:!!correction.coordinateSelected, savedAt:correction.savedAt || new Date().toISOString()}, {id:mutationId});
-          if (!googleDriveFolderId || !googleDriveTokenIsValid()) return false;
+          if (driverStorageMode === "local-folder") return await syncPendingAppInfoMutations();
+          if (driverStorageMode === "device-only" || !googleDriveFolderId || !googleDriveTokenIsValid()) return false;
           return await syncPendingAppInfoMutations();
         } catch (error) {
           console.warn("Yhteisen osoitekorjauksen tallennus epäonnistui:", error);
@@ -3012,8 +3291,10 @@
       const lookupKey = sharedAddressCorrectionKey(address, postalCode);
       if (!lookupKey) return null;
       try {
-        if (googleDriveFolderId && appInfoCacheRootId !== googleDriveFolderId) loadAppInfoLocalState(googleDriveFolderId);
-        if (googleDriveFolderId && googleDriveTokenIsValid() && !appInfoLoadedAt) await loadAppInfoDatabase({force:true, migrate:true});
+        const rootId = activeAppInfoRootId();
+        if (rootId && appInfoCacheRootId !== rootId) loadAppInfoLocalState(rootId);
+        if (driverStorageMode === "local-folder" && localFolderPermission === "granted" && !appInfoLoadedAt) await loadAppInfoDatabase({force:true});
+        if (driverStorageMode === "drive-api" && googleDriveFolderId && googleDriveTokenIsValid() && !appInfoLoadedAt) await loadAppInfoDatabase({force:true, migrate:true});
         const identity = customerInfoIdentity({...identitySource, originalExtractedAddress:String(address || "").trim(), originalExtractedPostalCode:String(postalCode || "").match(/\b\d{5}\b/)?.[0] || ""});
         const customer = findAppInfoCustomer(appInfoDatabase, identity);
         if (!customer?.correctedAddress) return null;
@@ -3027,7 +3308,7 @@
     async function flushPendingAddressCorrections() {
       const pending = new Map();
       Object.entries(savedAddressCorrections).forEach(([storedKey, value]) => {
-        if (!value?.address || (Array.isArray(value.sharedRootIds) && value.sharedRootIds.includes(googleDriveFolderId))) return;
+        if (!value?.address || (Array.isArray(value.sharedRootIds) && value.sharedRootIds.includes(activeAppInfoRootId()))) return;
         const lookupKey = canonicalStoredCorrectionLookupKey(storedKey, value);
         if (!lookupKey) return;
         const candidate = {...value, pendingMutationId:value.pendingMutationId || `legacy-local-${stableInfoHash(`${lookupKey}|${value.address}|${value.savedAt || ""}`)}`, lookupKey, originalAddress:value.originalAddress || storedKey.split("|")[0], originalPostalCode:value.originalPostalCode || storedKey.split("|").pop() || ""};
@@ -3035,7 +3316,7 @@
         if (!old || String(candidate.savedAt || "") > String(old.savedAt || "")) pending.set(lookupKey, candidate);
       });
       for (const correction of pending.values()) await saveSharedAddressCorrection(correction);
-      if (googleDriveFolderId && googleDriveTokenIsValid()) await syncPendingAppInfoMutations();
+      if ((driverStorageMode === "local-folder" && localFolderPermission === "granted") || (driverStorageMode === "drive-api" && googleDriveFolderId && googleDriveTokenIsValid())) await syncPendingAppInfoMutations();
     }
 
     async function listLegacyAppInfoFiles(parentId) {
@@ -3112,17 +3393,18 @@
       customerInfoModal.classList.add("open");
       try {
         if (!stop?.address?.trim()) throw new Error("Tarkista ensin kohteen toimitusosoite esikatselussa.");
-        if (!googleDriveFolderId) throw new Error("Valitse ensin Kuljettajan asetuksista Rahtikirjat-juurikansio.");
-        if (appInfoCacheRootId !== googleDriveFolderId) loadAppInfoLocalState(googleDriveFolderId);
+        if (!rootId) throw new Error("Valitse ensin Kuljettajan asetuksista Rahtikirjat-juurikansio.");
+        if (driverStorageMode === "local-folder" && (!localRahtikirjatHandle || localFolderPermission !== "granted")) throw new Error("Vahvista ensin paikallisen Rahtikirjat-kansion käyttöoikeus asetuksista.");
+        if (appInfoCacheRootId !== rootId) loadAppInfoLocalState(rootId);
         let data = loadCustomerInfoEntries(null, identity);
         renderCustomerInfo(data);
         customerInfoActiveFile = {rootId, identity, data};
-        customerInfoStatus.textContent = `${googleDriveFolderName || "Rahtikirjat"}/AppInfo/asiakkaat.json · paikallinen välimuisti`;
-        if (googleDriveTokenIsValid()) {
-          await loadAppInfoDatabase({force:true, migrate:true});
+        customerInfoStatus.textContent = `${driverStorageMode === "local-folder" ? (localRahtikirjatHandle?.name || "Rahtikirjat") : (googleDriveFolderName || "Rahtikirjat")}/AppInfo/asiakkaat.json · paikallinen välimuisti`;
+        if ((driverStorageMode === "local-folder" && localFolderPermission === "granted") || (driverStorageMode === "drive-api" && googleDriveTokenIsValid())) {
+          await loadAppInfoDatabase({force:true, migrate:driverStorageMode === "drive-api"});
           data = loadCustomerInfoEntries(null, identity);
         }
-        if (requestId !== customerInfoRequestId || rootId !== googleDriveFolderId) return;
+        if (requestId !== customerInfoRequestId || rootId !== activeAppInfoRootId()) return;
         customerInfoActiveFile = {rootId, identity, data};
         renderCustomerInfo(data);
         customerInfoStatus.textContent = `${googleDriveFolderName || "Rahtikirjat"}/AppInfo/asiakkaat.json · yhteiset kohdetiedot`;
@@ -3136,7 +3418,7 @@
     function rememberCustomerInfoDraft() {
       if (!customerInfoActiveStop) return;
       const identity = customerInfoIdentity(customerInfoActiveStop);
-      const key = `${customerInfoActiveFile?.rootId || googleDriveFolderId}|${identity.key}`;
+      const key = `${customerInfoActiveFile?.rootId || activeAppInfoRootId()}|${identity.key}`;
       customerInfoDrafts.set(key, { contactName:customerInfoContactName.value, phone:customerInfoPhone.value, doorCode:customerInfoDoorCode.value, note:customerInfoNote.value });
     }
 
@@ -3150,7 +3432,7 @@
     async function saveCustomerInfo() {
       if (!customerInfoActiveStop || !customerInfoActiveFile) return;
       const target = customerInfoActiveFile;
-      if (target.rootId !== googleDriveFolderId) return;
+      if (target.rootId !== activeAppInfoRootId()) return;
       const entry = { id:crypto.randomUUID(), contactName:customerInfoContactName.value.trim(), phone:customerInfoPhone.value.trim(), doorCode:customerInfoDoorCode.value.trim(), note:customerInfoNote.value.trim(), createdAt:new Date().toISOString(), createdBy:[driverName, driverPlate].filter(Boolean).join(" / ") || "Kuljettaja" };
       if (!entry.contactName && !entry.phone && !entry.doorCode && !entry.note) return alert("Kirjoita vähintään yksi lisätieto.");
       const button = document.getElementById("btnCustomerInfoSave");
@@ -3189,6 +3471,10 @@
     }
 
     window.addEventListener("online", () => {
+      if (driverStorageMode === "local-folder") {
+        void retryLocalFolderWrites().catch(error => console.warn("Paikallisen kansiotallennuksen uusinta odottaa käyttöoikeutta:", error));
+        return;
+      }
       if (!googleDriveFolderId || !googleDriveTokenIsValid()) return;
       void (async () => {
         try {
@@ -3206,18 +3492,29 @@
       let description = requestedName
         ? `Tiedostonimi: <strong style="color:var(--text)">${escapeHtml(requestedName)}</strong>. Selain näyttää kohdevalinnan ensimmäisen tallennuksen yhteydessä.`
         : "Kirjoita ensin yllä olevaan kenttään PDF-tiedoston nimi.";
-      if (driverOutputFileHandle) {
+      if (driverOutputFileHandle && driverStorageMode !== "local-folder") {
         description = `Valittu tiedosto: <strong style="color:var(--text)">${escapeHtml(driverOutputFileHandle.name || driverRoutePdfName())}</strong>. Sama tiedosto päivitetään jatkossa päälle.`;
       } else if (driverDownloadedOutputName) {
         description = `Selaimen latauskansio (yleensä Lataukset): <strong style="color:var(--text)">${escapeHtml(driverDownloadedOutputName)}</strong>. Muokattava versio säilyy lisäksi sovelluksessa.`;
       } else if (driverCombinedPdfBytes) {
         description = `Sovelluksen pysyvä laitetallennus: <strong style="color:var(--text)">${escapeHtml(driverRoutePdfName())}</strong>. Ulkoista kansiota ei ole vielä valittu.`;
       }
-      if (googleDriveFolderId) {
+      if (driverStorageMode === "local-folder") {
+        description += localRahtikirjatHandle
+          ? ` Paikallinen Drive-kansio: <strong style="color:var(--text)">${escapeHtml(localFolderPathText())}/${escapeHtml(requestedName || driverRoutePdfName())}</strong>${localFolderPermission === "granted" ? " (yhdistetty)" : " (käyttöoikeus vahvistettava)"}.`
+          : " Paikallista Rahtikirjat-kansiota ei ole vielä valittu.";
+      } else if (driverStorageMode === "drive-api" && googleDriveFolderId) {
         description += ` Google Drive: <strong style="color:var(--text)">${escapeHtml(googleDriveDailyPathText())}/${escapeHtml(requestedName || driverRoutePdfName())}</strong>${googleDriveTokenIsValid() ? " (yhdistetty)" : " (yhdistä tili uudelleen)"}.`;
+      } else if (driverStorageMode === "device-only") {
+        description += " Käytössä on vain laitteen tallennus.";
       }
       const content = `<strong style="color:var(--text)">PDF-tallennus:</strong> ${description}<div style="margin-top:.25rem;font-size:.75rem;">Selain ei turvallisuussyistä näytä valitun kansion koko polkua.</div>`;
       document.querySelectorAll(".driver-pdf-save-destination").forEach(element => { element.innerHTML = content; });
+    }
+    function driverExternalSaveSuccessText() {
+      if (driverStorageMode === "local-folder") return "PDF tallennettu paikalliseen Rahtikirjat-kansioon. Drive for desktopin pilvisynkronoinnin tilaa selain ei pysty tarkistamaan.";
+      if (driverStorageMode === "drive-api") return "PDF tallennettu paikallisesti ja Google Driveen.";
+      return "PDF tallennettu laitteen pysyvään tallennukseen.";
     }
     updateDriverPdfSaveDestination();
 
@@ -3270,11 +3567,27 @@
         driverDownloadedOutputName = driverRoutePdfName();
         saveAs(new Blob([normalized], { type: "application/pdf" }), driverDownloadedOutputName);
       }
-      const driveSaved = await uploadDriverPdfToGoogleDrive(normalized);
+      let externalSaved = true;
+      let externalLabel = "";
+      if (driverStorageMode === "local-folder") {
+        externalLabel = "paikalliseen Rahtikirjat-kansioon";
+        try { await savePdfToLocalDriveFolder(normalized); }
+        catch (error) {
+          externalSaved = false;
+          localFolderLastError = error?.message || String(error);
+          await writeDriverPersistentValue("local-folder-pdf-outbox", {bytes:normalized, fileName:driverRoutePdfName(), archiveDate:driverArchiveDate || driverServiceDate}).catch(() => {});
+          console.error("Paikalliseen Rahtikirjat-kansioon tallennus epäonnistui:", error);
+          updateLocalFolderStatus();
+        }
+      } else if (driverStorageMode === "drive-api") {
+        externalLabel = "Google Driveen";
+        externalSaved = await uploadDriverPdfToGoogleDrive(normalized);
+      }
       updateDriverPdfSaveDestination();
       await saveDriverSessionNow();
-      if (!driveSaved) {
-        const error = new Error(`Tallennettu paikallisesti, mutta Google Drive -tallennus epäonnistui. ${googleDriveLastError || "Tarkista Drive-yhteys ja yritä uudelleen."}`);
+      if (!externalSaved) {
+        const reason = driverStorageMode === "local-folder" ? localFolderLastError : googleDriveLastError;
+        const error = new Error(`Tallennettu sovelluksen pysyvään laitetallennukseen, mutta tallennus ${externalLabel} epäonnistui. ${reason || "Tarkista yhteys ja yritä uudelleen."}`);
         error.localSaved = true;
         error.driveFailed = true;
         throw error;
@@ -5197,8 +5510,33 @@
       mmlApiKeyInput.value = mmlApiKey;
       googleDriveClientIdInput.value = googleDriveClientId;
       googleDriveApiKeyInput.value = googleDriveApiKey;
+      driverStorageModeInput.value = driverStorageMode;
+      driverStorageModeInput.querySelector('option[value="local-folder"]').disabled = !localFolderSupported();
+      updateLocalFolderStatus();
       updateGoogleDriveStatus();
       driverSettingsModal.classList.add("open");
+    });
+    driverStorageModeInput.addEventListener("change", () => {
+      const selected = driverStorageModeInput.value;
+      if (selected === "local-folder" && !localFolderSupported()) {
+        driverStorageModeInput.value = driverStorageMode;
+        return updateLocalFolderStatus("Tämä selain tai laite ei tue suoraa kansiotallennusta. Käytä Google Drive API -tallennusta tai tavallista latausta.");
+      }
+      localDriveFolderPanel.hidden = selected !== "local-folder";
+      updateLocalFolderStatus();
+    });
+    btnChooseLocalRahtikirjat.addEventListener("click", async () => {
+      btnChooseLocalRahtikirjat.disabled = true;
+      try { await chooseLocalRahtikirjatFolder(); }
+      catch (error) { if (error?.name !== "AbortError") updateLocalFolderStatus(`⚠ ${error.message || error}`); }
+      finally { btnChooseLocalRahtikirjat.disabled = !localFolderSupported(); }
+    });
+    btnRequestLocalFolderPermission.addEventListener("click", requestLocalFolderPermission);
+    btnRetryLocalFolderSave.addEventListener("click", async () => {
+      btnRetryLocalFolderSave.disabled = true;
+      try { await retryLocalFolderWrites(); }
+      catch (error) { localFolderLastError = error?.message || String(error); updateLocalFolderStatus(`⚠ Tallennus epäonnistui: ${localFolderLastError}`); }
+      finally { btnRetryLocalFolderSave.disabled = false; }
     });
     btnGoogleDriveConnect.addEventListener("click", async () => {
       btnGoogleDriveConnect.disabled = true;
@@ -5234,6 +5572,9 @@
       driverTehoUnloadMaxVolume = Math.max(0, Number(String(driverTehoUnloadMaxVolumeInput.value || "").replace(",", ".")) || 0);
       driverNavigateOtherDevice = driverNavigateOtherDeviceInput.checked;
       mmlApiKey = mmlApiKeyInput.value.trim();
+      const previousStorageMode = driverStorageMode;
+      driverStorageMode = driverStorageModeInput.value || "drive-api";
+      if (driverStorageMode === "local-folder" && !localFolderSupported()) driverStorageMode = "drive-api";
       captureGoogleDriveConfigFromInputs();
       try {
         localStorage.setItem("lahetejako_driver_navigation_app", driverNavigationChoice);
@@ -5246,7 +5587,14 @@
         localStorage.setItem("lahetejako_driver_teho_unload_max_volume", driverTehoUnloadMaxVolume > 0 ? String(driverTehoUnloadMaxVolume) : "");
         localStorage.setItem("lahetejako_driver_other_device_navigation", driverNavigateOtherDevice ? "1" : "0");
         localStorage.setItem("lahetejako_mml_api_key", mmlApiKey);
+        localStorage.setItem("lahetejako_driver_storage_mode_v1", driverStorageMode);
       } catch (_) { /* valinnat toimivat istunnon ajan */ }
+      if (previousStorageMode !== driverStorageMode) {
+        loadAppInfoLocalState(activeAppInfoRootId());
+        if (driverStorageMode === "local-folder" && localFolderPermission === "granted") void loadAppInfoDatabase({force:true}).then(syncPendingAppInfoMutations);
+        if (driverStorageMode === "drive-api" && googleDriveTokenIsValid()) void loadAppInfoDatabase({force:true, migrate:true}).then(syncPendingAppInfoMutations);
+      }
+      updateLocalFolderStatus();
       updateDriverSettingsButton();
       if (driverRouteState?.ordered?.length) {
         driverRouteState.loadBreaks = recalculateDriverLoadBreaks(driverRouteState.ordered, driverRouteState.loadBreaks);
@@ -5427,9 +5775,9 @@
       btnDownloadCompletedDriverPdf.disabled = true;
       btnDownloadCompletedDriverPdf.innerHTML = `<span class="spinner"></span> Kirjoitetaan kuittaukset PDF:iin…`;
       try {
-        const pickerSupported = typeof window.showSaveFilePicker === "function";
+        const pickerSupported = driverStorageMode !== "local-folder" && typeof window.showSaveFilePicker === "function";
         if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
-        await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: !driverOutputFileHandle }), "Tallennetaan kuitattuja PDF:iä");
+        await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: driverStorageMode !== "local-folder" && !driverOutputFileHandle }), "Tallennetaan kuitattuja PDF:iä");
       } catch (error) {
         alert("PDF:n luonti epäonnistui: " + (error.message || error));
       } finally {
@@ -5444,13 +5792,13 @@
       btnDownloadDriverPdf.innerHTML = `<span class="spinner"></span> Yhdistetään PDF:t…`;
       try {
         const unresolvedEntries = driverRouteState.unresolved.flatMap(stop => stop.files || []);
-        const pickerSupported = typeof window.showSaveFilePicker === "function";
+        const pickerSupported = driverStorageMode !== "local-folder" && typeof window.showSaveFilePicker === "function";
         if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
-        const saveResult = await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: !driverOutputFileHandle }), "Luodaan ja tallennetaan ajojärjestys-PDF");
+        const saveResult = await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: driverStorageMode !== "local-folder" && !driverOutputFileHandle }), "Luodaan ja tallennetaan ajojärjestys-PDF");
         driverUploadStatus.style.display = "flex";
         driverUploadStatus.innerHTML = saveResult?.driveFailed
           ? `<strong style="color:var(--warning)">${escapeHtml(saveResult.message)}</strong> Voit jatkaa työskentelyä ja yrittää Drive-tallennusta uudelleen.`
-          : `<strong>PDF tallennettu paikallisesti ja Google Driveen. Automaattitallennus on käytössä.</strong> Sivut ovat reittijärjestyksessä${unresolvedEntries.length ? "; reitittämättömät PDF:t ovat lopussa" : ""}.`;
+          : `<strong>${escapeHtml(driverExternalSaveSuccessText())} Automaattitallennus on käytössä.</strong> Sivut ovat reittijärjestyksessä${unresolvedEntries.length ? "; reitittämättömät PDF:t ovat lopussa" : ""}.`;
         openDriverLoadingPhase();
       } catch (error) {
         driverUploadStatus.style.display = "flex";
@@ -5576,10 +5924,10 @@
       btnDownloadUpdatedLoadingPdf.innerHTML = `<span class="spinner"></span> Kirjoitetaan merkinnät PDF:ään…`;
       try {
         await persistCurrentLoadingStop();
-        const pickerSupported = typeof window.showSaveFilePicker === "function";
+        const pickerSupported = driverStorageMode !== "local-folder" && typeof window.showSaveFilePicker === "function";
         if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
-        const saveResult = await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: !driverOutputFileHandle }), "Tallennetaan päivitettyä PDF:ää");
-        driverLoadingNoteStatus.textContent = saveResult?.driveFailed ? saveResult.message : "Päivitetty PDF tallennettu paikallisesti ja Google Driveen. Kaikki merkinnät ovat mukana.";
+        const saveResult = await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: driverStorageMode !== "local-folder" && !driverOutputFileHandle }), "Tallennetaan päivitettyä PDF:ää");
+        driverLoadingNoteStatus.textContent = saveResult?.driveFailed ? saveResult.message : `${driverExternalSaveSuccessText()} Kaikki merkinnät ovat mukana.`;
       } catch (error) {
         alert("PDF:n luonti epäonnistui: " + (error.message || error));
       } finally {
@@ -5840,6 +6188,7 @@
     }
 
     window.addEventListener("pagehide", () => saveDriverSessionNow());
+    restoreLocalFolderHandle();
     restoreDriverSession();
 
     // Täsmällinen postinumeroaluejako. Koodit perustuvat Tilastokeskuksen
