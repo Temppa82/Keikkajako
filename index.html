@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.85</title>
+  <title>Lähetejako v1.86</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -536,10 +536,14 @@
       height:100%;
       max-width:100%;
       padding:.75rem;
+      display:flex;
+      flex-direction:column;
     }
     #driverView.driver-phase-loading #driverLoadingCard,
     #driverView.driver-phase-transport #driverTransportCard {
-      height:100%;
+      height:auto;
+      flex:1;
+      min-height:0;
       margin:0 auto;
       display:flex !important;
       flex-direction:column;
@@ -720,6 +724,8 @@
     .loading-nav .btn:last-child { justify-self:end; }
 
     @media (max-width: 700px) {
+      #driverPhaseSwitcher { grid-template-columns:repeat(2,minmax(0,1fr)) !important; position:relative !important; top:auto !important; }
+      #driverPhaseSwitcher .btn { padding:.55rem .35rem; font-size:.78rem; }
       .fleet-row { grid-template-columns: 36px 1fr 80px; }
       #settingsCard > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
       .driver-route-settings { grid-template-columns: 1fr; }
@@ -759,7 +765,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.85</div>
+      <div style="font-weight:600; color:var(--text);">v1.86</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -791,6 +797,11 @@
         Keikat jaetaan autoille alueiden, työmäärän ja kapasiteetin perusteella. Kuljettaja päättää lopullisen ajojärjestyksen omassa näkymässään.
       </p>
       <div id="fleetList"></div>
+      <div style="margin-top:.8rem;padding:.75rem;border:1px solid var(--border);border-radius:8px;">
+        <label style="display:flex;gap:.6rem;align-items:center;"><input type="checkbox" id="dispatcherLearningEnabled" style="width:auto;"> <strong>Hyödynnä aikaisempia käsin tehtyjä jakoja</strong></label>
+        <div class="modal-file-meta" style="margin-top:.35rem;">Toistuvat käsin tehdyt autosiirrot vaikuttavat ehdotukseen. Kapasiteetti, aluevalinnat ja autokiellot ovat aina tärkeämpiä.</div>
+        <details style="margin-top:.55rem;"><summary>Opitut ehdotukset</summary><div id="dispatcherLearningRules" style="margin-top:.5rem;"></div><button class="btn btn-secondary" id="btnClearDispatcherLearning" type="button" style="margin-top:.5rem;">Tyhjennä oppimishistoria</button></details>
+      </div>
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:1rem;">
         <div>
           <h3 style="font-size:0.95rem; margin-bottom:0.5rem;">Alueet – <span id="selectedVehicleLabel">valitse auto</span></h3>
@@ -870,6 +881,12 @@
 
   <main class="mode-view" id="driverView" role="tabpanel" aria-labelledby="driverTab" hidden>
     <div class="container">
+      <nav id="driverPhaseSwitcher" aria-label="Kuljettajan työvaihe" style="position:sticky;top:.4rem;z-index:20;display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem;margin-bottom:.75rem;padding:.4rem;background:var(--card);border:1px solid var(--border);border-radius:10px;">
+        <button class="btn btn-secondary" type="button" data-driver-phase-jump="upload">1. PDF-lista</button>
+        <button class="btn btn-secondary" type="button" data-driver-phase-jump="route">2. Reittioptimointi</button>
+        <button class="btn btn-secondary" type="button" data-driver-phase-jump="loading">3. Lastaus</button>
+        <button class="btn btn-secondary" type="button" data-driver-phase-jump="transport">4. Kuorman jakaminen</button>
+      </nav>
       <div class="card driver-upload-card" id="driverUploadCard">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:0.35rem;">
           <h2 style="margin-bottom:0;">1. Omat lähetteet</h2>
@@ -1166,7 +1183,7 @@
             <div class="modal-file-meta">Valitse Google Drive for desktopissa näkyvä oikea <strong>Rahtikirjat</strong>-kansio. Windows-pikakuvaketta (.lnk) ei voi käyttää.</div>
             <div class="actions" style="margin-top:.65rem;">
               <button class="btn btn-primary" id="btnChooseLocalRahtikirjat" type="button">Valitse paikallinen Rahtikirjat-kansio</button>
-              <button class="btn btn-secondary" id="btnRequestLocalFolderPermission" type="button" hidden>Vahvista kansion käyttöoikeus</button>
+              <button class="btn btn-secondary" id="btnRequestLocalFolderPermission" type="button" hidden>Palauta kansioyhteys</button>
               <button class="btn btn-secondary" id="btnRetryLocalFolderSave" type="button" hidden>Yritä tallennusta uudelleen</button>
             </div>
             <div class="status-bar" id="localDriveFolderStatus" style="display:flex;margin-top:.65rem;"></div>
@@ -1329,7 +1346,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.85 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · Tallennustavan voi valita: synkronoitu paikallinen kansio, Drive API tai vain laite
+    Lähetejako v1.86 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · Sitovat aluevalinnat, SLT-tavoite ja paikallinen jakohistoria
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1629,6 +1646,12 @@
       driverView.classList.add(`driver-phase-${driverCurrentPhase}`);
       const fixedPhase = !driverView.hidden && (driverCurrentPhase === "loading" || driverCurrentPhase === "transport");
       document.body.classList.toggle("driver-fixed-phase", fixedPhase);
+      document.querySelectorAll("[data-driver-phase-jump]").forEach(button => {
+        const active = button.dataset.driverPhaseJump === driverCurrentPhase;
+        button.classList.toggle("btn-primary", active);
+        button.classList.toggle("btn-secondary", !active);
+        button.setAttribute("aria-current", active ? "step" : "false");
+      });
     }
 
     function setDriverPhase(phase, { save = true, scroll = true } = {}) {
@@ -2533,7 +2556,7 @@
       const supported = localFolderSupported();
       localDriveFolderPanel.hidden = driverStorageMode !== "local-folder";
       btnChooseLocalRahtikirjat.disabled = !supported;
-      btnRequestLocalFolderPermission.hidden = !supported || !localRahtikirjatHandle || localFolderPermission !== "prompt";
+      btnRequestLocalFolderPermission.hidden = !supported || (!localRahtikirjatHandle && !localFolderLastError) || (localFolderPermission === "granted" && !localFolderLastError);
       btnRetryLocalFolderSave.hidden = !localFolderLastError;
       if (message) localDriveFolderStatus.textContent = message;
       else if (!supported) localDriveFolderStatus.textContent = "Tämä selain tai laite ei tue suoraa kansiotallennusta. Käytä Google Drive API -tallennusta tai tavallista latausta.";
@@ -5531,7 +5554,16 @@
       catch (error) { if (error?.name !== "AbortError") updateLocalFolderStatus(`⚠ ${error.message || error}`); }
       finally { btnChooseLocalRahtikirjat.disabled = !localFolderSupported(); }
     });
-    btnRequestLocalFolderPermission.addEventListener("click", requestLocalFolderPermission);
+    btnRequestLocalFolderPermission.addEventListener("click", async () => {
+      btnRequestLocalFolderPermission.disabled = true;
+      try {
+        const restored = localRahtikirjatHandle && localFolderPermission !== "denied" ? await requestLocalFolderPermission() : false;
+        if (!restored) await chooseLocalRahtikirjatFolder();
+        await retryLocalFolderWrites();
+      } catch (error) {
+        if (error?.name !== "AbortError") updateLocalFolderStatus(`⚠ Kansioyhteyttä ei voitu palauttaa: ${error.message || error}`);
+      } finally { btnRequestLocalFolderPermission.disabled = false; }
+    });
     btnRetryLocalFolderSave.addEventListener("click", async () => {
       btnRetryLocalFolderSave.disabled = true;
       try { await retryLocalFolderWrites(); }
@@ -6133,6 +6165,17 @@
     document.querySelectorAll("[data-driver-reset]").forEach(button => {
       button.addEventListener("click", resetDriverWorkflow);
     });
+    document.getElementById("driverPhaseSwitcher").addEventListener("click", event => {
+      const button = event.target.closest("[data-driver-phase-jump]");
+      if (!button) return;
+      const phase = button.dataset.driverPhaseJump;
+      if (phase !== "upload" && !driverRouteState) return alert("Muodosta ensin reitti PDF-listasta.");
+      if ((phase === "loading" || phase === "transport") && !driverCombinedPdfBytes) return alert("Tallenna ensin ajojärjestys-PDF, jotta voit siirtyä tähän vaiheeseen.");
+      setDriverPhase(phase);
+      if (phase === "route") renderDriverRouteResult(true);
+      if (phase === "loading") renderDriverLoading();
+      if (phase === "transport") renderDriverTransportList();
+    });
 
     async function restoreDriverSession() {
       const saved = await readDriverSessionRecord();
@@ -6385,7 +6428,7 @@
 
     // Automaattisen KEIKKAJAON tehtäväprofiilit. Nämä eivät määritä käyntijärjestystä
     // eivätkä käytä tieverkkoa; sijainti vaikuttaa vain työalueen yhtenäisyyteen.
-    const DISPATCH_ASSIGNMENT_VERSION = "practical-v1";
+    const DISPATCH_ASSIGNMENT_VERSION = "strict-areas-learning-v2";
     const HELSINKI_AREAS = new Set(AREA_TREE.find(group => group.city === "Helsinki")?.districts || []);
     const ESPOO_AREAS = new Set(AREA_TREE.find(group => group.city === "Espoo / Kauniainen")?.districts || []);
     const VANTAA_AREAS = new Set(AREA_TREE.find(group => group.city === "Vantaa")?.districts || []);
@@ -6461,18 +6504,8 @@
     }
 
     function roleAreaLevel(driver, area) {
-      const role = dispatcherVehicleRole(driver);
       if (driver?.preferredAreas?.has(area)) return 3;
-      if (role === "slt" && SLT_CORE_AREAS.has(area)) return 3;
-      if (role === "enr" && ESPOO_AREAS.has(area)) return 3;
-      if (role === "llt" && LLT_PRIMARY_AREAS.has(area)) return 3;
-      if (role === "jts" && JTS_PRIMARY_AREAS.has(area)) return 3;
-      if (role === "mty" && HELSINKI_AREAS.has(area)) return 3;
       if (driver?.balanceAreas?.has(area)) return 2;
-      if (role === "slt" && SLT_APPROACH_AREAS.has(area)) return 2;
-      if (role === "llt" && LLT_BALANCE_AREAS.has(area)) return 2;
-      if (role === "jts" && JTS_BALANCE_AREAS.has(area)) return 2;
-      if (role === "mty" && (ESPOO_AREAS.has(area) || VANTAA_AREAS.has(area))) return 1;
       return 0;
     }
 
@@ -6578,11 +6611,11 @@
 
     const DEFAULT_FLEET = [
       { plate: "SLT-584", capacity: 10, maxJobVolume: 0, active: true, areas: ["Keskusta/Etu-Töölö", "Punavuori/Eira", "Ullanlinna/Kaartinkaupunki", "Katajanokka/Kruununhaka", "Kamppi/Ruoholahti/Jätkäsaari", "Suomenlinna"], balanceAreas: ["Lauttasaari", "Pitäjänmäki", "Konala/Malminkartano"], startAddress: DEFAULT_DEPOT_ADDRESS, homeAddress: DEFAULT_DEPOT_ADDRESS },
-      { plate: "LLT-265", capacity: 15, active: true, areas: [], balanceAreas: [], startAddress: DEFAULT_DEPOT_ADDRESS, homeAddress: DEFAULT_DEPOT_ADDRESS },
-      { plate: "JTS-790", capacity: 18, active: true, areas: [], balanceAreas: [], startAddress: DEFAULT_DEPOT_ADDRESS, homeAddress: DEFAULT_DEPOT_ADDRESS },
+      { plate: "LLT-265", capacity: 15, active: true, areas: [...LLT_PRIMARY_AREAS], balanceAreas: [...LLT_BALANCE_AREAS], startAddress: DEFAULT_DEPOT_ADDRESS, homeAddress: DEFAULT_DEPOT_ADDRESS },
+      { plate: "JTS-790", capacity: 18, active: true, areas: [...JTS_PRIMARY_AREAS], balanceAreas: [...JTS_BALANCE_AREAS], startAddress: DEFAULT_DEPOT_ADDRESS, homeAddress: DEFAULT_DEPOT_ADDRESS },
       { plate: "ZLC-613", capacity: 5, active: true, areas: [], balanceAreas: [], startAddress: DEFAULT_DEPOT_ADDRESS, homeAddress: DEFAULT_DEPOT_ADDRESS },
-      { plate: "MTY-164", capacity: 20, active: true, areas: [], balanceAreas: [], startAddress: DEFAULT_DEPOT_ADDRESS, homeAddress: DEFAULT_DEPOT_ADDRESS },
-      { plate: "ENR-210", capacity: 20, active: true, areas: [], balanceAreas: [], startAddress: DEFAULT_DEPOT_ADDRESS, homeAddress: DEFAULT_DEPOT_ADDRESS }
+      { plate: "MTY-164", capacity: 20, active: true, areas: [...HELSINKI_AREAS], balanceAreas: [], startAddress: DEFAULT_DEPOT_ADDRESS, homeAddress: DEFAULT_DEPOT_ADDRESS },
+      { plate: "ENR-210", capacity: 20, active: true, areas: [...ESPOO_AREAS], balanceAreas: [], startAddress: DEFAULT_DEPOT_ADDRESS, homeAddress: DEFAULT_DEPOT_ADDRESS }
     ];
 
     const AREA_SCHEMA_VERSION = "detailed-2026-v1";
@@ -6707,11 +6740,70 @@
     let fleet = loadFleet();
     let selectedPlate = fleet.find(v => v.active)?.plate || fleet[0]?.plate || null;
     const DELIVERY_RULES_STORAGE_KEY = "lahetejako_delivery_vehicle_rules_v1";
+    const DISPATCH_LEARNING_STORAGE_KEY = "lahetejako_dispatch_learning_v1";
+    const DISPATCH_LEARNING_ENABLED_KEY = "lahetejako_dispatch_learning_enabled_v1";
     let deliveryVehicleRules = {};
+    let dispatcherLearningEnabled = false;
+    let dispatcherLearningRules = {};
     try {
       const savedRules = JSON.parse(localStorage.getItem(DELIVERY_RULES_STORAGE_KEY) || "{}");
       if (savedRules && typeof savedRules === "object" && !Array.isArray(savedRules)) deliveryVehicleRules = savedRules;
     } catch (_) { /* Vaurioitunut sääntötallennus ohitetaan. */ }
+    try {
+      dispatcherLearningEnabled = localStorage.getItem(DISPATCH_LEARNING_ENABLED_KEY) === "1";
+      const learned = JSON.parse(localStorage.getItem(DISPATCH_LEARNING_STORAGE_KEY) || "{}");
+      if (learned && typeof learned === "object" && !Array.isArray(learned)) dispatcherLearningRules = learned;
+    } catch (_) {}
+
+    function saveDispatcherLearning() {
+      try {
+        localStorage.setItem(DISPATCH_LEARNING_ENABLED_KEY, dispatcherLearningEnabled ? "1" : "0");
+        localStorage.setItem(DISPATCH_LEARNING_STORAGE_KEY, JSON.stringify(dispatcherLearningRules));
+      } catch (_) {}
+    }
+
+    function learningKeyForStop(stop) {
+      return persistentDeliveryRuleKey(stop) || (stop?.area ? `area:${stop.area}|${String(stop.postalCode || "")}` : "");
+    }
+
+    function learnedPlateForGroup(group) {
+      if (!dispatcherLearningEnabled) return "";
+      const records = (group.list || []).map(stop => dispatcherLearningRules[learningKeyForStop(stop)]).filter(Boolean);
+      if (!records.length) return "";
+      const totals = {};
+      records.forEach(record => Object.entries(record.plates || {}).forEach(([plate, count]) => totals[plate] = (totals[plate] || 0) + Number(count || 0)));
+      const best = Object.entries(totals).sort((a,b) => b[1] - a[1])[0];
+      return best && best[1] >= 2 ? best[0] : "";
+    }
+
+    function recordDispatcherLearning(stop, fromPlate, toPlate) {
+      if (!dispatcherLearningEnabled || !stop || !toPlate || fromPlate === toPlate || stop.preferredDriverPlate) return;
+      const key = learningKeyForStop(stop);
+      if (!key) return;
+      const record = dispatcherLearningRules[key] || {recipient:stop.recipient || "", address:stop.address || "", area:stop.area || "", postalCode:stop.postalCode || "", plates:{}, changes:0};
+      record.plates[toPlate] = (Number(record.plates[toPlate]) || 0) + 1;
+      record.changes = (Number(record.changes) || 0) + 1;
+      record.lastFrom = fromPlate || "";
+      record.lastTo = toPlate;
+      record.updatedAt = new Date().toISOString();
+      record.weightKg = Number(stop.weightKg) || 0;
+      record.volumeM3 = Number(stop.volumeM3) || 0;
+      dispatcherLearningRules[key] = record;
+      saveDispatcherLearning();
+      renderDispatcherLearningRules();
+    }
+
+    function renderDispatcherLearningRules() {
+      const box = document.getElementById("dispatcherLearningRules");
+      const toggle = document.getElementById("dispatcherLearningEnabled");
+      if (toggle) toggle.checked = dispatcherLearningEnabled;
+      if (!box) return;
+      const entries = Object.entries(dispatcherLearningRules).sort((a,b) => String(b[1].updatedAt).localeCompare(String(a[1].updatedAt)));
+      box.innerHTML = entries.length ? entries.slice(0,50).map(([key, record]) => {
+        const best = Object.entries(record.plates || {}).sort((a,b) => b[1]-a[1])[0];
+        return `<div style="display:flex;justify-content:space-between;gap:.5rem;padding:.35rem 0;border-bottom:1px solid var(--border);"><span>${escapeHtml(record.recipient || record.address || record.area || key)} → <strong>${escapeHtml(best?.[0] || "–")}</strong> (${best?.[1] || 0} kertaa)</span><span><button class="btn-link" data-promote-learning="${escapeHtml(key)}" data-learning-plate="${escapeHtml(best?.[0] || "")}">Tee pakotus</button> · <button class="btn-link" data-remove-learning="${escapeHtml(key)}">Poista</button></span></div>`;
+      }).join("") : `<span class="modal-file-meta">Ei vielä opittuja ehdotuksia.</span>`;
+    }
 
     function normalizeForbiddenPlates(value) {
       return [...new Set((Array.isArray(value) ? value : []).map(String).map(x => x.trim()).filter(Boolean))];
@@ -8800,7 +8892,7 @@
       listCount.textContent = `(${stops.length})`;
       stopsBody.innerHTML = stops.map((s, idx) => {
         const statusBadge = s.status === "unassigned"
-          ? `<span class="badge badge-err">Ei sijoitettu</span>`
+          ? `<span class="badge badge-err" title="${escapeHtml(s.unassignedReason || "Aluetta ei ole sallittu yhdellekään autolle tai kapasiteetti ei riitä.")}">Ei sijoitettu</span>`
           : s.status === "ok"
           ? `<span class="badge badge-ok">OK</span>`
           : s.status === "warn"
@@ -9505,6 +9597,8 @@
         function pickDriverForGroup(group, opts = {}) {
           const mode = opts.mode || "primary";
           const geo = group.geo;
+          const learnedPlate = learnedPlateForGroup(group);
+          group.assignmentDiagnostics ||= [];
           let bestIdx = -1;
           let bestScore = Infinity;
 
@@ -9516,9 +9610,10 @@
             const role = dispatcherVehicleRole(drv);
             const isSlt = role === "slt";
             const areaLevel = roleAreaLevel(drv, group.area);
-            if (group.forbiddenPlates?.has(drv.name)) continue;
-            if (!driverAllowsArea(drv, group.area, mode) && !(isSlt && (group.facts.restaurant || group.facts.late) && SLT_CORE_AREAS.has(group.area))) continue;
-            if (!groupFitsStartingLoad(group, drv)) continue;
+            const diagnostic = {plate:drv.name, mode, areaLevel, allowed:false, reason:"", score:null};
+            if (group.forbiddenPlates?.has(drv.name)) { diagnostic.reason = "autokielto"; group.assignmentDiagnostics.push(diagnostic); continue; }
+            if (!driverAllowsArea(drv, group.area, mode)) { diagnostic.reason = "aluetta ei ole valittu tähän jakovaiheeseen"; group.assignmentDiagnostics.push(diagnostic); continue; }
+            if (!groupFitsStartingLoad(group, drv)) { diagnostic.reason = "kapasiteetti tai SLT:n soveltuvuusraja"; group.assignmentDiagnostics.push(diagnostic); continue; }
 
             const dist = straightLineGroupDistance(drv, geo);
             const projectedWork = (drv.workload || 0) + (group.workload || 0);
@@ -9529,6 +9624,7 @@
             const sameArea = drv.stops.some(stop => stop.area === group.area);
             let score = workBalance + capacityUse + dist * 1.8 + (samePostal ? -8 : 0) + (sameArea ? -10 : 0);
             score += areaLevel >= 3 ? -28 : (areaLevel === 2 ? -13 : 5);
+            if (learnedPlate && learnedPlate === drv.name) score -= 22;
             if (drv.points.length && geo && dist > 28) score += 35; // irrallinen saareke
 
             const otherAreaOwners = drivers.filter(other => other !== drv && other.stops.some(stop => stop.area === group.area));
@@ -9553,6 +9649,10 @@
               bestScore = score;
               bestIdx = d;
             }
+            diagnostic.allowed = true;
+            diagnostic.reason = learnedPlate === drv.name ? "sallittu; opittu ehdotus vaikutti" : "sallittu";
+            diagnostic.score = Number(score.toFixed(2));
+            group.assignmentDiagnostics.push(diagnostic);
           }
           return bestIdx;
         }
@@ -9585,7 +9685,7 @@
           }
           if (group.lockedPlate) {
             const lockedIdx = drivers.findIndex(drv => drv.name === group.lockedPlate);
-            if (lockedIdx >= 0 && !group.forbiddenPlates.has(group.lockedPlate)) {
+            if (lockedIdx >= 0 && !group.forbiddenPlates.has(group.lockedPlate) && groupFitsStartingLoad(group, drivers[lockedIdx])) {
               assignGroup(group, lockedIdx, "primary", true);
             } else {
               group.list.forEach(stop => { stop.driverIndex = -1; stop.status = "unassigned"; });
@@ -9594,7 +9694,7 @@
           }
           if (group.preferredPlate) {
             const preferredIdx = drivers.findIndex(drv => drv.name === group.preferredPlate);
-            if (preferredIdx >= 0 && !group.forbiddenPlates.has(group.preferredPlate)) {
+            if (preferredIdx >= 0 && !group.forbiddenPlates.has(group.preferredPlate) && groupFitsStartingLoad(group, drivers[preferredIdx])) {
               assignGroup(group, preferredIdx, "primary", true);
               continue;
             }
@@ -9610,9 +9710,9 @@
           if (d >= 0) {
             assignGroup(group, d, "balance");
           } else {
-            d = pickDriverForGroup(group, { mode:"flexible" });
-            if (d >= 0) assignGroup(group, d, "flexible");
-            else for (const stop of group.list) { stop.driverIndex = -1; stop.status = "unassigned"; }
+            const hasAllowedArea = drivers.some(driver => roleAreaLevel(driver, group.area) >= 2 && !group.forbiddenPlates.has(driver.name));
+            const reason = hasAllowedArea ? "Alueelle sallittujen autojen kapasiteetti tai keikan soveltuvuusraja estää sijoituksen." : "Aluetta ei ole sallittu yhdellekään autolle.";
+            for (const stop of group.list) { stop.driverIndex = -1; stop.status = "unassigned"; stop.unassignedReason = reason; }
           }
         }
 
@@ -9671,7 +9771,7 @@
                 const moving = movableGroup(source, stop);
                 if (!moving.length || moving.some(item => stopForbidsDriver(item, slt.name))) return;
                 const group = makeMovingGroup(moving);
-                if (!group.facts.small || !(SLT_CORE_AREAS.has(group.area) || SLT_APPROACH_AREAS.has(group.area))) return;
+                if (roleAreaLevel(slt, group.area) < 2 || !group.facts.small || !(SLT_CORE_AREAS.has(group.area) || SLT_APPROACH_AREAS.has(group.area))) return;
                 if (!groupFitsStartingLoad(group, slt)) return;
                 const distance = straightLineGroupDistance(slt, group.geo);
                 if (slt.points.length && group.geo && distance > 24) return;
@@ -9756,6 +9856,19 @@
         drivers.forEach(driver => recalculateDriverRoute(driver, {autoSecondLoad:false}));
         lastDistributionAudit.after = distributionMetrics(drivers);
         lastDistributionAudit.sltTarget = sltIndex >= 0 ? sltTarget() : null;
+        lastDistributionAudit.groups = groups.map(group => ({key:group.key, recipient:group.list[0]?.recipient || "", area:group.area, assignedPlate:group.list[0]?.driverIndex >= 0 ? drivers[group.list[0].driverIndex]?.name || "" : "", learnedPlate:learnedPlateForGroup(group), diagnostics:group.assignmentDiagnostics || []}));
+        if (sltIndex >= 0) {
+          const rejection = {area:0, capacity:0, size:0, lockedOrForbidden:0, eligible:0};
+          const slt = drivers[sltIndex];
+          groups.filter(group => group.list[0]?.driverIndex !== sltIndex).forEach(group => {
+            if (group.lockedPlate || group.preferredPlate || group.forbiddenPlates?.has(slt.name)) rejection.lockedOrForbidden++;
+            else if (roleAreaLevel(slt, group.area) < 2) rejection.area++;
+            else if (!group.facts.small) rejection.size++;
+            else if (!groupFitsStartingLoad(group, slt)) rejection.capacity++;
+            else rejection.eligible++;
+          });
+          lastDistributionAudit.sltRejections = rejection;
+        }
 
         stops.forEach(s => {
           if (s.driverIndex < 0 && s.status !== "err") s.status = "unassigned";
@@ -9771,7 +9884,7 @@
         if (unassignedCount > 0) {
           const lines = stops
             .filter(s => s.status === "unassigned")
-            .map((s, i) => `${i + 1}. ${s.fileName} | ${s.postalCode || "?"} ${s.area} | EUR ${s.eur || 0}`)
+            .map((s, i) => `${i + 1}. ${s.fileName} | ${s.postalCode || "?"} ${s.area} | EUR ${s.eur || 0} | ${s.unassignedReason || "Ei sallittua ja kapasiteettiin sopivaa autoa"}`)
             .join("\n");
           const msg =
             `${unassignedCount} lähetettä jäi sijoittamatta millekään autolle.\n\n` +
@@ -10010,6 +10123,16 @@
         stops.filter(s => physicalAddressKey(s) === key).forEach(s => expandedIds.add(s.id));
       });
       const targetPlate = toIdx >= 0 && drivers[toIdx] ? drivers[toIdx].name : "";
+      const learningMoves = [];
+      const learningSeen = new Set();
+      expandedIds.forEach(id => {
+        const item = stops.find(stop => stop.id === id);
+        if (!item) return;
+        const key = physicalAddressKey(item);
+        if (learningSeen.has(key)) return;
+        learningSeen.add(key);
+        learningMoves.push({stop:item, fromPlate:item.driverIndex >= 0 ? drivers[item.driverIndex]?.name || "" : ""});
+      });
       if (targetPlate && [...expandedIds].some(id => stopForbidsDriver(stops.find(stop => stop.id === id), targetPlate))) {
         alert(`Valituissa keikoissa on vähintään yksi keikka, joka on kielletty autolta ${targetPlate}. Muuta sääntöä keikan 🔍-esikatselussa.`);
         return;
@@ -10033,6 +10156,7 @@
       }
       // Päivitä vain niiden autojen kuorma- ja työmäärätilastot, joiden sisältö muuttui.
       affectedDrivers.forEach(idx => recalculateDriverRoute(drivers[idx], { autoSecondLoad: false }));
+      learningMoves.forEach(move => recordDispatcherLearning(move.stop, move.fromPlate, targetPlate));
       selectedMoveIds.clear();
       renderList();
       renderDrivers();
@@ -10125,8 +10249,12 @@
       const slt = current.find(item => dispatcherVehicleRole(item.plate) === "slt");
       const difference = slt && target ? slt.stops - target.average : null;
       const inTarget = difference != null && difference >= 4 - 0.01 && difference <= 8 + 0.01;
+      const rejection = lastDistributionAudit.sltRejections || {};
+      const targetStatus = inTarget
+        ? `<div style="color:var(--success);margin-top:.25rem;">Tila: tavoite saavutettu</div>`
+        : `<div style="color:var(--warning);margin-top:.25rem;">Tila: SLT jäi tavoitteen ulkopuolelle. Hylätyt vaihtoehdot – aluevalinta ${rejection.area || 0}, kapasiteetti ${rejection.capacity || 0}, liian suuri keikka ${rejection.size || 0}, pakotus/autokielto ${rejection.lockedOrForbidden || 0}. ${rejection.eligible ? `Sopivia ehdokkaita jäi ${rejection.eligible}; tarkista jakodiagnostiikka.` : "Sopivia sallittuja keikkoja ei ollut riittävästi."}</div>`;
       const sltLine = slt && target
-        ? `<div style="font-size:1rem;"><strong>SLT: ${slt.stops} paikkaa</strong> · muiden keskiarvo ${target.average.toLocaleString("fi-FI", {maximumFractionDigits:1})} · ero <strong style="color:${inTarget ? "var(--success)" : "var(--warning)"}">${difference >= 0 ? "+" : ""}${difference.toLocaleString("fi-FI", {maximumFractionDigits:1})}</strong> · tavoite +4…+8</div>`
+        ? `<div style="font-size:1rem;"><strong>SLT: ${slt.stops} paikkaa</strong> · muiden keskiarvo ${target.average.toLocaleString("fi-FI", {maximumFractionDigits:1})} · ero <strong style="color:${inTarget ? "var(--success)" : "var(--warning)"}">${difference >= 0 ? "+" : ""}${difference.toLocaleString("fi-FI", {maximumFractionDigits:1})}</strong> · tavoite +4…+8${targetStatus}</div>`
         : `<div>SLT-vertailua ei voitu laskea aktiivisesta kalustosta.</div>`;
       const beforeByPlate = new Map((lastDistributionAudit.before || []).map(item => [item.plate, item]));
       const rows = current.map(after => {
@@ -10134,7 +10262,8 @@
         const capacityPct = after.capacity > 0 ? Math.round(after.capacityUsed / after.capacity * 100) : 0;
         return `<tr><td><strong>${escapeHtml(after.plate)}</strong></td><td>${before.stops} → <strong>${after.stops}</strong></td><td>${after.weightKg.toFixed(0)} kg</td><td>${formatCapacityAmount(after.volumeM3)} m³</td><td>${formatCapacityAmount(after.palletPlaces)}</td><td>${formatCapacityAmount(after.unloadablePallets)}</td><td>${capacityPct}%</td></tr>`;
       }).join("");
-      return `<div style="grid-column:1/-1;padding:.8rem 1rem;margin-bottom:.5rem;background:var(--card);border:1px solid var(--border);border-radius:8px;">${sltLine}<details style="margin-top:.55rem;"><summary style="cursor:pointer;color:var(--muted);">Näytä ensimmäinen jako → tasattu jako ja kuormamittarit</summary><div style="overflow:auto;margin-top:.55rem;"><table style="width:100%;border-collapse:collapse;font-size:.82rem;"><thead><tr><th>Auto</th><th>Paikat</th><th>Paino</th><th>Tilavuus</th><th>Lavapaikat</th><th>Purettavat</th><th>Kapasiteetti</th></tr></thead><tbody>${rows}</tbody></table></div></details></div>`;
+      const groupDiagnostics = (lastDistributionAudit.groups || []).map(group => `<div style="padding:.35rem 0;border-bottom:1px solid var(--border);"><strong>${escapeHtml(group.recipient || group.key)}</strong> · ${escapeHtml(group.area)} → ${escapeHtml(group.assignedPlate || "ei sijoitettu")}${group.learnedPlate ? ` · opittu ehdotus ${escapeHtml(group.learnedPlate)}` : ""}<br><small>${group.diagnostics.map(item => `${item.plate}: ${item.allowed ? `pisteet ${item.score}` : item.reason}`).join(" · ")}</small></div>`).join("");
+      return `<div style="grid-column:1/-1;padding:.8rem 1rem;margin-bottom:.5rem;background:var(--card);border:1px solid var(--border);border-radius:8px;">${sltLine}<details style="margin-top:.55rem;"><summary style="cursor:pointer;color:var(--muted);">Näytä ensimmäinen jako → tasattu jako ja kuormamittarit</summary><div style="overflow:auto;margin-top:.55rem;"><table style="width:100%;border-collapse:collapse;font-size:.82rem;"><thead><tr><th>Auto</th><th>Paikat</th><th>Paino</th><th>Tilavuus</th><th>Lavapaikat</th><th>Purettavat</th><th>Kapasiteetti</th></tr></thead><tbody>${rows}</tbody></table></div></details><details style="margin-top:.55rem;"><summary style="cursor:pointer;color:var(--muted);">Jakodiagnostiikka</summary><div style="max-height:320px;overflow:auto;margin-top:.4rem;">${groupDiagnostics}</div></details></div>`;
     }
 
     function renderDrivers() {
@@ -11040,6 +11169,32 @@
       }
     });
 
+    document.getElementById("dispatcherLearningEnabled").addEventListener("change", event => {
+      dispatcherLearningEnabled = event.target.checked;
+      saveDispatcherLearning();
+    });
+    document.getElementById("btnClearDispatcherLearning").addEventListener("click", () => {
+      if (!confirm("Tyhjennetäänkö kaikki paikallisesti opitut jakoehdotukset?")) return;
+      dispatcherLearningRules = {};
+      saveDispatcherLearning();
+      renderDispatcherLearningRules();
+    });
+    document.getElementById("dispatcherLearningRules").addEventListener("click", event => {
+      const promote = event.target.closest("[data-promote-learning]");
+      if (promote) {
+        const stop = stops.find(item => learningKeyForStop(item) === promote.dataset.promoteLearning);
+        if (!stop) return alert("Tämän päivän PDF-listassa ei ole kyseistä kohdetta. Pakotus voidaan tehdä, kun kohde on listalla.");
+        setDeliveryVehicleRule(stop, promote.dataset.learningPlate, stop.forbiddenDriverPlates || []);
+        renderList();
+        return alert(`Kohteelle tallennettiin pysyvä autopakotus: ${promote.dataset.learningPlate}.`);
+      }
+      const button = event.target.closest("[data-remove-learning]");
+      if (!button) return;
+      delete dispatcherLearningRules[button.dataset.removeLearning];
+      saveDispatcherLearning();
+      renderDispatcherLearningRules();
+    });
+    renderDispatcherLearningRules();
     renderFleetUI();
   </script>
 </body>

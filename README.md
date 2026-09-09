@@ -1,8 +1,17 @@
-# Lähetejako v1.85
+# Lähetejako v1.86
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.86
+
+- Auto voi saada automaattisesti vain sellaisen alueen keikkoja, joka on valittu sille pää- tai tasausalueeksi. Pakotus voi ohittaa aluerajan, autokielto ei koskaan.
+- SLT:n paikkamäärää täydennetään erillisessä jälkitasauksessa kohti muiden ENR/LLT/JTS/MTY-autojen keskiarvoa +4…+8, kapasiteettia ja valittuja alueita rikkomatta.
+- Jaon yhteenveto näyttää SLT-tavoitteen tilan, hylkäyssyiden määrät ja keikkakohtaisen jakodiagnostiikan.
+- Valinnainen paikallinen oppiminen muistaa toistuvat käsin tehdyt autosiirrot. Opitut ehdotukset voi tarkistaa, poistaa tai muuttaa pysyväksi autopakotukseksi.
+- Kuljettajan vaihevalitsimella voi siirtyä PDF-listan, reittioptimoinnin, lastauksen ja kuorman jakamisen välillä turvallisin esitarkistuksin.
+- Paikallisen Drive-kansion asetuksissa on Palauta kansioyhteys -toiminto, joka vahvistaa luvan tai avaa kansiovalitsimen uudelleen ja yrittää odottavat tallennukset.
 
 ## Versio 1.85
 
@@ -138,10 +147,10 @@ Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettaji
 6. Syötä asiakastunnus ja API-avain Kuljettajan asetuksiin ja paina **Yhdistä Google Drive**. Ohjelma etsii täsmälleen **Rahtikirjat**-nimisen muokattavan kansion automaattisesti. Valitse kansio käsin vain, jos sitä ei löydy tai samannimisiä kansioita on useita.
 7. OAuthin kotisivuksi voi antaa GitHub Pages -osoitteen. Tietosuojaseloste löytyy osoitteesta `privacy.html` ja käyttöehdot osoitteesta `terms.html`.
 
-### v1.85 käyttöön vaiheittain
+### v1.86 käyttöön vaiheittain
 
 1. Pura ZIP ja lataa lahete-jako-app-kansion sisältö GitHub-repositorion juureen. Erillisiä v1.73–v1.75-päivityksiä ei tarvita. Poista GitHubissa oleva vanha irrallinen PDF erikseen, jos et halua sitä julkiseksi; päivityspaketti ei poista repositorion muita tiedostoja.
-2. Tarkista, että sovelluksessa näkyy v1.85. OAuth-sivut toimivat julkaisemisen jälkeen osoitteissa `https://temppa82.github.io/Keikkajako/privacy.html` ja `https://temppa82.github.io/Keikkajako/terms.html`. Lue tekstit ja varmista ylläpitäjän tiedot ennen niiden käyttöä.
+2. Tarkista, että sovelluksessa näkyy v1.86. OAuth-sivut toimivat julkaisemisen jälkeen osoitteissa `https://temppa82.github.io/Keikkajako/privacy.html` ja `https://temppa82.github.io/Keikkajako/terms.html`. Lue tekstit ja varmista ylläpitäjän tiedot ennen niiden käyttöä.
 3. Ota samassa Google Cloud -projektissa käyttöön Gmail API, Google Drive API ja Google Picker API. Käytä samaa OAuth-asiakastunnusta kaikilla kuljettajilla. JavaScript-origin on `https://temppa82.github.io` ilman polkua. Rajaa Pickerin API-avain sivustolle `https://temppa82.github.io/*` ja Google Picker API:lle.
 4. Drive- ja Gmail-luvat kuuluvat Googlen restricted scope -luokkaan. Julkinen käyttö voi vaatia Googlen OAuth-tarkistuksen. Testaustilassa käytä lisättyjä testikäyttäjiä; pelkkä HTML-sivujen julkaisu ei takaa Googlen hyväksyntää.
 5. Yhdistä Drive uudelleen asetuksista ja hyväksy lupa. Ohjelma löytää yhden muokattavan Rahtikirjat-kansion automaattisesti. Jos samannimisiä kansioita on useita, valitse oikea käsin. Jokainen käyttäjä tarvitsee kansion kirjoitusoikeuden. Ohjelma ei muuta kansion jakamisasetuksia.
