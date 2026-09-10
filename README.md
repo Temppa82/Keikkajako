@@ -1,8 +1,18 @@
-# Lähetejako v1.86
+# Lähetejako v1.88
 
 **Tekijä:** Teemu H. Fingerroos
 
 Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettajien kesken.
+
+## Versio 1.88
+
+- Karttakorjaus on käytettävissä suurennuslasista avautuvassa esikatselussa PDF-listassa, ajojärjestyksessä, lastauksessa ja kuljetuksessa. Osoitteen voi korjata tekstinä tai valita tarkan purkupaikan kartan keskellä olevalla nuppineulalla.
+- Työ-PDF muodostetaan ja sitä päivitetään työn aikana vain laitteen pysyvässä tallennuksessa. Driveen ei enää tallenneta automaattisesti keikalta toiselle siirryttäessä.
+- Kuljettajan vaihevalitsimen vieressä on **Tallenna Driveen**. Se varmistaa tarvittaessa Drive-yhteyden tai paikallisen Rahtikirjat-kansion oikeuden, tallentaa PDF:n valittuun päiväkansioon ja synkronoi yhteisen `AppInfo/asiakkaat.json`-tiedoston molempiin suuntiin.
+- Viimeisen kuorman viimeisessä kuljetuksessa **Päivän päätös** päivittää ensin paikallisen PDF:n, vie sen Drive-kohteeseen ja synkronoi asiakasrekisterin. Jos Drive-vienti epäonnistuu, paikallinen tiedosto ja jonossa olevat asiakastietomuutokset säilyvät.
+- Kohteen Info-, osoite- ja karttakorjaukset päivittyvät heti laitteen paikalliseen `asiakkaat.json`-välimuistiin myös ilman Drive-yhteyttä. Käyttöliittymä näyttää erikseen odottavien muutosten määrän sekä onnistuneen synkronoinnin.
+- Vaihevalitsimen kanssa päällekkäiset **PDF-listaan**- ja **Reittiin**-painikkeet sekä näkyvä **Kuljettajan merkintä PDF:ään** -kenttä on poistettu.
+- Versio 1.88 on tehty suoraan version 1.86 pohjalta. Hylätyn version 1.87 muutoksia ei ole mukana.
 
 ## Versio 1.86
 
@@ -147,14 +157,14 @@ Selainpohjainen työkalu, jolla jaat Pamark-tyyliset lähetteet (PDF) kuljettaji
 6. Syötä asiakastunnus ja API-avain Kuljettajan asetuksiin ja paina **Yhdistä Google Drive**. Ohjelma etsii täsmälleen **Rahtikirjat**-nimisen muokattavan kansion automaattisesti. Valitse kansio käsin vain, jos sitä ei löydy tai samannimisiä kansioita on useita.
 7. OAuthin kotisivuksi voi antaa GitHub Pages -osoitteen. Tietosuojaseloste löytyy osoitteesta `privacy.html` ja käyttöehdot osoitteesta `terms.html`.
 
-### v1.86 käyttöön vaiheittain
+### v1.88 käyttöön vaiheittain
 
 1. Pura ZIP ja lataa lahete-jako-app-kansion sisältö GitHub-repositorion juureen. Erillisiä v1.73–v1.75-päivityksiä ei tarvita. Poista GitHubissa oleva vanha irrallinen PDF erikseen, jos et halua sitä julkiseksi; päivityspaketti ei poista repositorion muita tiedostoja.
-2. Tarkista, että sovelluksessa näkyy v1.86. OAuth-sivut toimivat julkaisemisen jälkeen osoitteissa `https://temppa82.github.io/Keikkajako/privacy.html` ja `https://temppa82.github.io/Keikkajako/terms.html`. Lue tekstit ja varmista ylläpitäjän tiedot ennen niiden käyttöä.
+2. Tarkista, että sovelluksessa näkyy v1.88. OAuth-sivut toimivat julkaisemisen jälkeen osoitteissa `https://temppa82.github.io/Keikkajako/privacy.html` ja `https://temppa82.github.io/Keikkajako/terms.html`. Lue tekstit ja varmista ylläpitäjän tiedot ennen niiden käyttöä.
 3. Ota samassa Google Cloud -projektissa käyttöön Gmail API, Google Drive API ja Google Picker API. Käytä samaa OAuth-asiakastunnusta kaikilla kuljettajilla. JavaScript-origin on `https://temppa82.github.io` ilman polkua. Rajaa Pickerin API-avain sivustolle `https://temppa82.github.io/*` ja Google Picker API:lle.
 4. Drive- ja Gmail-luvat kuuluvat Googlen restricted scope -luokkaan. Julkinen käyttö voi vaatia Googlen OAuth-tarkistuksen. Testaustilassa käytä lisättyjä testikäyttäjiä; pelkkä HTML-sivujen julkaisu ei takaa Googlen hyväksyntää.
 5. Yhdistä Drive uudelleen asetuksista ja hyväksy lupa. Ohjelma löytää yhden muokattavan Rahtikirjat-kansion automaattisesti. Jos samannimisiä kansioita on useita, valitse oikea käsin. Jokainen käyttäjä tarvitsee kansion kirjoitusoikeuden. Ohjelma ei muuta kansion jakamisasetuksia.
-6. Valitse ajopäivä ja anna PDF:lle nimi. Esimerkiksi 6.9. valmisteltavat 7.9. keikat tallentuvat polkuun `Rahtikirjat/2026/Syyskuu/07092026/tiedosto.pdf`. Ensimmäinen tallennus lukitsee ajopäivän, ja saman työn myöhemmät tallennukset pysyvät tässä kansiossa myös yön yli. Aloita alusta aloittaa uuden työn.
+6. Valitse ajopäivä ja anna PDF:lle nimi. Esimerkiksi 6.9. valmisteltavat 7.9. keikat tallentuvat polkuun `Rahtikirjat/2026/Syyskuu/07092026/tiedosto.pdf`. Työn aikana PDF päivittyy vain laitteen pysyvään tallennukseen. Vie se valittuun Drive-kohteeseen painamalla **Tallenna Driveen** tai viimeisen keikan jälkeen **Päivän päätös**. Aloita alusta aloittaa uuden työn.
 7. Kohteen Info löytyy PDF-listasta, reittilistasta, lastauksesta ja kuljetuksesta. Kohdetiedot ja osoitekorjaukset yhdistetään asiakasnumeron, vastaanottajan ja alkuperäisen toimitusosoitteen avulla yhteen `Rahtikirjat/AppInfo/asiakkaat.json`-tiedostoon. Sovellus lukee tuoreen version ennen muutosta ja yrittää uudelleen, jos toinen käyttäjä ehti päivittää tiedostoa. Vanhanmalliset erilliset JSON-tiedostot jäävät Driveen varmuuskopioiksi migraation jälkeen.
 8. Hae Gmailista valitsee viestien vastaanottopäivän (ei lähetteen toimituspäivää). Rastita halutut PDF-liitteet ja paina Tuo valitut. Lähetetyt viestit ohitetaan. Sähköposteja ei muuteta eikä poisteta. Gmail-kirjautuminen tehdään erikseen; tili voi olla eri kuin Drive-tili.
 

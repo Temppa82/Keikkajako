@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f4246" />
-  <title>Lähetejako v1.86</title>
+  <title>Lähetejako v1.88</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -765,7 +765,7 @@
     </div>
     <div id="version" style="text-align:right; font-size:0.85rem; color:var(--muted);">
       <button class="btn btn-primary" id="btnInstallApp" type="button" style="display:none; margin-bottom:0.45rem;">📲 Asenna Lähetejako</button>
-      <div style="font-weight:600; color:var(--text);">v1.86</div>
+      <div style="font-weight:600; color:var(--text);">v1.88</div>
       <div>Teemu H. Fingerroos</div>
     </div>
   </header>
@@ -887,6 +887,10 @@
         <button class="btn btn-secondary" type="button" data-driver-phase-jump="loading">3. Lastaus</button>
         <button class="btn btn-secondary" type="button" data-driver-phase-jump="transport">4. Kuorman jakaminen</button>
       </nav>
+      <div id="driverCloudActions" style="display:flex;flex-wrap:wrap;align-items:center;gap:.55rem;margin-bottom:.75rem;padding:.65rem .75rem;background:var(--card);border:1px solid var(--border);border-radius:10px;">
+        <button class="btn btn-primary" id="btnSaveDriverToDrive" type="button">☁️ Tallenna Driveen</button>
+        <div id="driverCloudSyncStatus" class="modal-file-meta" role="status" aria-live="polite">PDF tallennetaan työn aikana vain laitteelle. Driveen tallennus tehdään tästä painikkeesta tai Päivän päätös -toiminnolla.</div>
+      </div>
       <div class="card driver-upload-card" id="driverUploadCard">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:0.35rem;">
           <h2 style="margin-bottom:0;">1. Omat lähetteet</h2>
@@ -937,7 +941,7 @@
         </div>
       </div>
       <div class="card" id="driverRouteCard" style="display:none;">
-        <div class="driver-phase-top"><h2>2. Suunniteltu reitti</h2><div class="driver-phase-top-actions"><button class="btn btn-secondary" id="btnDriverRouteToUpload" type="button">← PDF-listaan</button><button class="btn btn-secondary" data-driver-reset type="button">🔄 Aloita alusta</button></div></div>
+        <div class="driver-phase-top"><h2>2. Suunniteltu reitti</h2><div class="driver-phase-top-actions"><button class="btn btn-secondary" data-driver-reset type="button">🔄 Aloita alusta</button></div></div>
         <div class="driver-route-summary" id="driverRouteSummary"></div>
         <div class="driver-route-list" id="driverRouteList"></div>
         <div class="actions" id="driverManualActions" style="display:none;">
@@ -949,14 +953,14 @@
         </div>
         <div class="actions" id="driverDownloadActions" style="display:none;">
           <button class="btn btn-primary" id="btnGoTransport" type="button" hidden>🚚 Siirry kuljetukseen</button>
-          <button class="btn btn-success" id="btnDownloadDriverPdf" type="button">💾 Tallenna PDF ja aloita lastaus</button>
+          <button class="btn btn-success" id="btnDownloadDriverPdf" type="button">💾 Luo paikallinen PDF ja aloita lastaus</button>
         </div>
         <div id="driverRouteMap"></div>
       </div>
       <div class="card loading-card" id="driverLoadingCard" hidden>
         <div class="driver-phase-top">
           <div><h2 style="margin-bottom:.2rem;">📦 Lastausvaihe</h2><p class="driver-upload-intro" style="margin:0;">Yksi keikka kerrallaan lastausjärjestyksessä.</p></div>
-          <div class="driver-phase-top-actions"><button class="btn btn-secondary" id="btnDriverLoadingToUpload" type="button">← PDF-listaan</button><button class="btn btn-secondary" id="btnBackToDriverRoute" type="button">← Reittiin</button><button class="btn btn-secondary" data-driver-reset type="button">🔄 Aloita alusta</button></div>
+          <div class="driver-phase-top-actions"><button class="btn btn-secondary" data-driver-reset type="button">🔄 Aloita alusta</button></div>
         </div>
         <div class="driver-pdf-save-destination" style="margin-top:.75rem;padding:.7rem .85rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,.38);font-size:.84rem;color:var(--muted);"></div>
         <div class="loading-progress"><span id="driverLoadingProgress"></span></div>
@@ -971,9 +975,7 @@
           <button class="btn btn-primary" id="btnOpenDriverTransport" type="button" hidden style="width:100%;justify-content:center;margin-top:1rem;font-size:1.05rem;">🚚 Siirry kuljetusnäkymään</button>
           <button class="btn btn-secondary" id="btnDriverLoadingPreview" type="button" style="width:100%;justify-content:center;margin-top:1rem;">🔍 Esikatselu – koko PDF</button>
           <button class="btn btn-secondary" id="btnDriverLoadingInfo" type="button" style="width:100%;justify-content:center;margin-top:.55rem;">ℹ️ Kohteen info</button>
-          <label for="driverLoadingNote" id="driverLoadingNoteLabel" style="display:block;margin-top:1rem;font-weight:800;">Kuljettajan merkintä PDF:ään</label>
-          <textarea class="loading-note" id="driverLoadingNote" placeholder="Kirjoita tähän lastausta tai toimitusta koskeva merkintä…"></textarea>
-          <div class="loading-note-status" id="driverLoadingNoteStatus"></div>
+          <div hidden aria-hidden="true"><label for="driverLoadingNote" id="driverLoadingNoteLabel">Kuljettajan merkintä PDF:ään</label><textarea id="driverLoadingNote"></textarea><div id="driverLoadingNoteStatus"></div></div>
           <div class="loading-nav">
             <button class="btn btn-secondary" id="btnDriverLoadingPrev" type="button">← Edellinen</button>
             <strong id="driverLoadingPosition">1 / 1</strong>
@@ -981,17 +983,17 @@
           </div>
         </div>
         <div class="actions" style="margin-top:1rem;">
-          <button class="btn btn-success" id="btnDownloadUpdatedLoadingPdf" type="button">💾 Tallenna / päivitä PDF</button>
+          <button class="btn btn-success" id="btnDownloadUpdatedLoadingPdf" type="button">💾 Päivitä paikallinen PDF</button>
         </div>
       </div>
       <div class="card" id="driverTransportCard" style="display:none;" hidden>
-        <div class="driver-phase-top"><h2 id="driverTransportTitle">🚚 Kuorma kuljetuksessa</h2><div class="driver-phase-top-actions"><button class="btn btn-secondary" id="btnDriverTransportToUpload" type="button">← PDF-listaan</button><button class="btn btn-secondary" data-driver-reset type="button">🔄 Aloita alusta</button></div></div>
+        <div class="driver-phase-top"><h2 id="driverTransportTitle">🚚 Kuorma kuljetuksessa</h2><div class="driver-phase-top-actions"><button class="btn btn-secondary" data-driver-reset type="button">🔄 Aloita alusta</button></div></div>
         <p class="driver-upload-intro" id="driverTransportIntro">Yksi keikka kerrallaan: tarkista lähete, navigoi, soita asiakkaalle ja kirjaa kuittaus tai varaumat.</p>
         <div class="driver-pdf-save-destination" style="margin-bottom:.75rem;padding:.7rem .85rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,.38);font-size:.84rem;color:var(--muted);"></div>
         <div class="transport-list" id="driverTransportList"></div>
         <div class="actions">
           <button class="btn btn-primary" id="btnFinishDriverLoad" type="button">📦 Kuorma toimitettu – seuraavaan lastaukseen</button>
-          <button class="btn btn-success" id="btnDownloadCompletedDriverPdf" type="button">💾 Tallenna kuitatut PDF:t</button>
+          <button class="btn btn-success" id="btnDownloadCompletedDriverPdf" type="button">💾 Päivitä paikallinen PDF</button>
         </div>
       </div>
     </div>
@@ -1016,6 +1018,11 @@
         <button class="btn btn-secondary" id="btnDriverLoadingPreviewPrev" type="button">← Edellinen PDF</button>
         <span id="driverLoadingPreviewPosition" style="color:var(--muted);font-size:.85rem;"></span>
         <button class="btn btn-secondary" id="btnDriverLoadingPreviewNext" type="button">Seuraava PDF →</button>
+      </div>
+      <div style="margin-top:.7rem;padding:.7rem;border:1px solid var(--border);border-radius:8px;">
+        <div class="modal-fields"><div><label for="driverLoadingPreviewAddress">Toimitusosoite</label><input type="text" id="driverLoadingPreviewAddress" placeholder="Katuosoite, postinumero ja kaupunki"></div></div>
+        <div class="actions" style="margin-top:.55rem;"><button type="button" class="btn btn-primary" id="btnDriverLoadingPreviewSaveAddress">Tallenna osoite</button><button type="button" class="btn btn-secondary" id="btnDriverLoadingPreviewChooseMap">📍 Korjaa purkupaikka kartalla</button></div>
+        <div id="driverLoadingPreviewAddressStatus" class="modal-file-meta" style="min-height:1.2em;margin-top:.45rem;"></div>
       </div>
     </div>
   </div>
@@ -1172,13 +1179,14 @@
           <div class="modal-file-meta" style="margin-top:0.35rem;">Parantaa suomalaisten osoitteiden löytymistä. Avain tallennetaan vain tälle laitteelle, ei GitHubiin.</div>
         </div>
         <div style="padding:.75rem;border:1px solid var(--border);border-radius:8px;">
-          <strong>Tiedostojen tallennustapa</strong>
-          <label for="driverStorageMode" style="display:block;margin-top:.65rem;">Tallennuskohde</label>
+          <strong>Driveen viennin tapa</strong>
+          <label for="driverStorageMode" style="display:block;margin-top:.65rem;">Drive-kohde</label>
           <select id="driverStorageMode" style="width:100%;padding:.65rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font:inherit;">
             <option value="local-folder">Paikallinen Drive-kansio (suositeltu tietokoneella)</option>
             <option value="drive-api">Google Drive API</option>
-            <option value="device-only">Vain laitteen tallennus</option>
+            <option value="device-only">Ei Drive-vientiä</option>
           </select>
+          <div class="modal-file-meta" style="margin-top:.45rem;">Työ-PDF ja asiakkaat.json-muutokset tallennetaan aina ensin laitteen muistiin. Valittu kohde käytetään vasta Tallenna Driveen- tai Päivän päätös -painikkeella.</div>
           <div id="localDriveFolderPanel" style="margin-top:.7rem;">
             <div class="modal-file-meta">Valitse Google Drive for desktopissa näkyvä oikea <strong>Rahtikirjat</strong>-kansio. Windows-pikakuvaketta (.lnk) ei voi käyttää.</div>
             <div class="actions" style="margin-top:.65rem;">
@@ -1315,6 +1323,8 @@
           <input type="text" id="modalPostal" placeholder="esim. 00380" maxlength="5" />
         </div>
       </div>
+      <div class="actions" style="margin-top:.65rem;"><button type="button" class="btn btn-secondary" id="modalChooseMap">📍 Korjaa purkupaikka kartalla</button></div>
+      <div id="modalCoordinateStatus" class="modal-file-meta" style="min-height:1.2em;margin-top:.4rem;"></div>
       <div style="margin-top:0.85rem;padding:0.8rem;border:1px solid var(--border);border-radius:8px;background:rgba(15,23,42,0.45);">
         <div style="font-weight:800;margin-bottom:0.25rem;">🚚 Keikan pysyvät autovalinnat</div>
         <div style="color:var(--muted);font-size:0.8rem;margin-bottom:0.7rem;">Valinnat koskevat samaa toimitusosoitetta myös seuraavina päivinä.</div>
@@ -1346,7 +1356,7 @@
   </div>
 
   <footer>
-    Lähetejako v1.86 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · Sitovat aluevalinnat, SLT-tavoite ja paikallinen jakohistoria
+    Lähetejako v1.88 · Teemu H. Fingerroos · <a href="privacy.html">Tietosuojaseloste</a> · <a href="terms.html">Käyttöehdot</a> · Paikallinen työskentely, hallittu Drive-tallennus ja karttakorjaus kaikissa vaiheissa
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1429,7 +1439,8 @@
     const driverStartAddress = document.getElementById("driverStartAddress");
     const driverEndAddress = document.getElementById("driverEndAddress");
     const driverRouteCard = document.getElementById("driverRouteCard");
-    const btnDriverRouteToUpload = document.getElementById("btnDriverRouteToUpload");
+    const btnSaveDriverToDrive = document.getElementById("btnSaveDriverToDrive");
+    const driverCloudSyncStatus = document.getElementById("driverCloudSyncStatus");
     const driverRouteSummary = document.getElementById("driverRouteSummary");
     const driverRouteList = document.getElementById("driverRouteList");
     const driverManualActions = document.getElementById("driverManualActions");
@@ -1441,8 +1452,6 @@
     const driverDownloadActions = document.getElementById("driverDownloadActions");
     const btnDownloadDriverPdf = document.getElementById("btnDownloadDriverPdf");
     const driverLoadingCard = document.getElementById("driverLoadingCard");
-    const btnBackToDriverRoute = document.getElementById("btnBackToDriverRoute");
-    const btnDriverLoadingToUpload = document.getElementById("btnDriverLoadingToUpload");
     const driverLoadingProgress = document.getElementById("driverLoadingProgress");
     const driverLoadingBadges = document.getElementById("driverLoadingBadges");
     const driverLoadingAddress = document.getElementById("driverLoadingAddress");
@@ -1461,6 +1470,10 @@
     const btnDriverLoadingPdfPagePrev = document.getElementById("btnDriverLoadingPdfPagePrev");
     const btnDriverLoadingPdfPageNext = document.getElementById("btnDriverLoadingPdfPageNext");
     const driverLoadingPdfPagePosition = document.getElementById("driverLoadingPdfPagePosition");
+    const driverLoadingPreviewAddress = document.getElementById("driverLoadingPreviewAddress");
+    const driverLoadingPreviewAddressStatus = document.getElementById("driverLoadingPreviewAddressStatus");
+    const btnDriverLoadingPreviewSaveAddress = document.getElementById("btnDriverLoadingPreviewSaveAddress");
+    const btnDriverLoadingPreviewChooseMap = document.getElementById("btnDriverLoadingPreviewChooseMap");
     const driverLoadingNoteLabel = document.getElementById("driverLoadingNoteLabel");
     const driverLoadingNote = document.getElementById("driverLoadingNote");
     const driverLoadingNoteStatus = document.getElementById("driverLoadingNoteStatus");
@@ -1475,7 +1488,6 @@
     const driverTransportIntro = document.getElementById("driverTransportIntro");
     const driverTransportList = document.getElementById("driverTransportList");
     const btnFinishDriverLoad = document.getElementById("btnFinishDriverLoad");
-    const btnDriverTransportToUpload = document.getElementById("btnDriverTransportToUpload");
     const btnDownloadCompletedDriverPdf = document.getElementById("btnDownloadCompletedDriverPdf");
     const driverEntryModal = document.getElementById("driverEntryModal");
     const driverEntryTitle = document.getElementById("driverEntryTitle");
@@ -2358,7 +2370,6 @@
       await flushPendingAddressCorrections();
       await syncPendingAppInfoMutations();
       updateGoogleDriveStatus();
-      if (driverCombinedPdfBytes) await uploadDriverPdfToGoogleDrive(new Uint8Array(driverCombinedPdfBytes));
     }
 
     function googleDriveFileMapKey(fileName = driverRoutePdfName(), parentId = googleDriveFolderId) {
@@ -3072,6 +3083,7 @@
       applyAppInfoMutation(appInfoDatabase, mutation);
       persistAppInfoLocalState();
       if (driverStorageMode === "local-folder") void writeDriverPersistentValue("local-folder-appinfo-outbox", appInfoPendingMutations).catch(error => console.warn("AppInfo-varmistuksen tallennus epäonnistui:", error));
+      if (typeof updateDriverCloudSyncStatus === "function") updateDriverCloudSyncStatus(`Asiakastiedot päivitetty laitteelle. ${appInfoPendingMutations.length} muutosta odottaa Drive-synkronointia.`);
       return mutation;
     }
 
@@ -3259,11 +3271,29 @@
       return false;
     }
 
-    function syncPendingAppInfoMutations() {
+    function syncPendingAppInfoMutations({explicit = false} = {}) {
+      if (!explicit) {
+        if (typeof updateDriverCloudSyncStatus === "function") updateDriverCloudSyncStatus();
+        return Promise.resolve(false);
+      }
       const operation = appInfoSyncPromise.then(performAppInfoSync, performAppInfoSync);
       appInfoSyncPromise = operation.catch(() => false);
       return operation;
     }
+
+    function updateDriverCloudSyncStatus(message = "") {
+      if (!driverCloudSyncStatus) return;
+      if (message) {
+        driverCloudSyncStatus.textContent = message;
+        return;
+      }
+      const pending = appInfoPendingMutations.length;
+      const pdf = driverCombinedPdfBytes ? driverRoutePdfName() : "PDF:ää ei ole vielä muodostettu";
+      driverCloudSyncStatus.textContent = pending
+        ? `${pdf}. Asiakkaat.json on päivitetty laitteella; ${pending} muutosta odottaa Drive-synkronointia.`
+        : `${pdf}. Asiakkaat.json on ajan tasalla laitteen muistissa.`;
+    }
+    updateDriverCloudSyncStatus();
 
     function canonicalStoredCorrectionLookupKey(storedKey, correction = null) {
       if (correction?.lookupKey) return correction.lookupKey;
@@ -3416,13 +3446,11 @@
       customerInfoModal.classList.add("open");
       try {
         if (!stop?.address?.trim()) throw new Error("Tarkista ensin kohteen toimitusosoite esikatselussa.");
-        if (!rootId) throw new Error("Valitse ensin Kuljettajan asetuksista Rahtikirjat-juurikansio.");
-        if (driverStorageMode === "local-folder" && (!localRahtikirjatHandle || localFolderPermission !== "granted")) throw new Error("Vahvista ensin paikallisen Rahtikirjat-kansion käyttöoikeus asetuksista.");
         if (appInfoCacheRootId !== rootId) loadAppInfoLocalState(rootId);
         let data = loadCustomerInfoEntries(null, identity);
         renderCustomerInfo(data);
         customerInfoActiveFile = {rootId, identity, data};
-        customerInfoStatus.textContent = `${driverStorageMode === "local-folder" ? (localRahtikirjatHandle?.name || "Rahtikirjat") : (googleDriveFolderName || "Rahtikirjat")}/AppInfo/asiakkaat.json · paikallinen välimuisti`;
+        customerInfoStatus.textContent = "Laitteen asiakkaat.json-välimuisti · muokkaaminen onnistuu ilman Drive-yhteyttä";
         if ((driverStorageMode === "local-folder" && localFolderPermission === "granted") || (driverStorageMode === "drive-api" && googleDriveTokenIsValid())) {
           await loadAppInfoDatabase({force:true, migrate:driverStorageMode === "drive-api"});
           data = loadCustomerInfoEntries(null, identity);
@@ -3430,7 +3458,7 @@
         if (requestId !== customerInfoRequestId || rootId !== activeAppInfoRootId()) return;
         customerInfoActiveFile = {rootId, identity, data};
         renderCustomerInfo(data);
-        customerInfoStatus.textContent = `${googleDriveFolderName || "Rahtikirjat"}/AppInfo/asiakkaat.json · yhteiset kohdetiedot`;
+        customerInfoStatus.textContent = "Laitteen asiakkaat.json-välimuisti · yhteinen Drive-versio synkronoidaan erikseen";
         document.getElementById("btnCustomerInfoSave").disabled = false;
       } catch (error) {
         if (requestId !== customerInfoRequestId) return;
@@ -3468,8 +3496,8 @@
         [customerInfoContactName, customerInfoPhone, customerInfoDoorCode, customerInfoNote].forEach(input => { input.value = ""; });
         customerInfoDrafts.delete(`${target.rootId}|${target.identity.key}`);
         renderCustomerInfo(target.data);
-        const synced = await syncPendingAppInfoMutations();
-        customerInfoStatus.textContent = synced ? `Tallennettu tiedostoon Rahtikirjat/AppInfo/asiakkaat.json klo ${new Intl.DateTimeFormat("fi-FI", { hour:"2-digit", minute:"2-digit" }).format(new Date())}.` : "Tallennettu turvallisesti laitteelle. Muutos synkronoidaan Driveen, kun yhteys palautuu.";
+        await syncPendingAppInfoMutations();
+        customerInfoStatus.textContent = "Tallennettu turvallisesti laitteen asiakkaat.json-välimuistiin. Muutos synkronoidaan Tallenna Driveen- tai Päivän päätös -painikkeella.";
       } catch (error) {
         if (customerInfoActiveFile !== target) return;
         customerInfoStatus.innerHTML = `<strong style="color:var(--danger)">${escapeHtml(error.message || String(error))}</strong>`;
@@ -3524,20 +3552,18 @@
       }
       if (driverStorageMode === "local-folder") {
         description += localRahtikirjatHandle
-          ? ` Paikallinen Drive-kansio: <strong style="color:var(--text)">${escapeHtml(localFolderPathText())}/${escapeHtml(requestedName || driverRoutePdfName())}</strong>${localFolderPermission === "granted" ? " (yhdistetty)" : " (käyttöoikeus vahvistettava)"}.`
-          : " Paikallista Rahtikirjat-kansiota ei ole vielä valittu.";
+          ? ` Erillinen Drive-vienti: <strong style="color:var(--text)">${escapeHtml(localFolderPathText())}/${escapeHtml(requestedName || driverRoutePdfName())}</strong>${localFolderPermission === "granted" ? " (valmis)" : " (käyttöoikeus vahvistettava)"}.`
+          : " Paikallista Rahtikirjat-kansiota ei ole vielä valittu Drive-vientiä varten.";
       } else if (driverStorageMode === "drive-api" && googleDriveFolderId) {
-        description += ` Google Drive: <strong style="color:var(--text)">${escapeHtml(googleDriveDailyPathText())}/${escapeHtml(requestedName || driverRoutePdfName())}</strong>${googleDriveTokenIsValid() ? " (yhdistetty)" : " (yhdistä tili uudelleen)"}.`;
+        description += ` Erillinen Drive-vienti: <strong style="color:var(--text)">${escapeHtml(googleDriveDailyPathText())}/${escapeHtml(requestedName || driverRoutePdfName())}</strong>${googleDriveTokenIsValid() ? " (valmis)" : " (yhdistetään tallennettaessa)"}.`;
       } else if (driverStorageMode === "device-only") {
-        description += " Käytössä on vain laitteen tallennus.";
+        description += " Drive-vienti ei ole käytössä.";
       }
       const content = `<strong style="color:var(--text)">PDF-tallennus:</strong> ${description}<div style="margin-top:.25rem;font-size:.75rem;">Selain ei turvallisuussyistä näytä valitun kansion koko polkua.</div>`;
       document.querySelectorAll(".driver-pdf-save-destination").forEach(element => { element.innerHTML = content; });
     }
     function driverExternalSaveSuccessText() {
-      if (driverStorageMode === "local-folder") return "PDF tallennettu paikalliseen Rahtikirjat-kansioon. Drive for desktopin pilvisynkronoinnin tilaa selain ei pysty tarkistamaan.";
-      if (driverStorageMode === "drive-api") return "PDF tallennettu paikallisesti ja Google Driveen.";
-      return "PDF tallennettu laitteen pysyvään tallennukseen.";
+      return "PDF tallennettu laitteen pysyvään tallennukseen. Driveen ei tallennettu automaattisesti.";
     }
     updateDriverPdfSaveDestination();
 
@@ -3590,31 +3616,9 @@
         driverDownloadedOutputName = driverRoutePdfName();
         saveAs(new Blob([normalized], { type: "application/pdf" }), driverDownloadedOutputName);
       }
-      let externalSaved = true;
-      let externalLabel = "";
-      if (driverStorageMode === "local-folder") {
-        externalLabel = "paikalliseen Rahtikirjat-kansioon";
-        try { await savePdfToLocalDriveFolder(normalized); }
-        catch (error) {
-          externalSaved = false;
-          localFolderLastError = error?.message || String(error);
-          await writeDriverPersistentValue("local-folder-pdf-outbox", {bytes:normalized, fileName:driverRoutePdfName(), archiveDate:driverArchiveDate || driverServiceDate}).catch(() => {});
-          console.error("Paikalliseen Rahtikirjat-kansioon tallennus epäonnistui:", error);
-          updateLocalFolderStatus();
-        }
-      } else if (driverStorageMode === "drive-api") {
-        externalLabel = "Google Driveen";
-        externalSaved = await uploadDriverPdfToGoogleDrive(normalized);
-      }
       updateDriverPdfSaveDestination();
       await saveDriverSessionNow();
-      if (!externalSaved) {
-        const reason = driverStorageMode === "local-folder" ? localFolderLastError : googleDriveLastError;
-        const error = new Error(`Tallennettu sovelluksen pysyvään laitetallennukseen, mutta tallennus ${externalLabel} epäonnistui. ${reason || "Tarkista yhteys ja yritä uudelleen."}`);
-        error.localSaved = true;
-        error.driveFailed = true;
-        throw error;
-      }
+      updateDriverCloudSyncStatus();
       return writtenOver;
     }
 
@@ -3622,6 +3626,51 @@
       if (!driverRouteState) return false;
       const bytes = await mergeDriverPdfsInOrder(driverAnnotatedEntries());
       return await writeDriverOutputFile(bytes, { downloadFallback });
+    }
+
+    async function ensureExplicitDriverDriveDestination() {
+      if (driverStorageMode === "local-folder") {
+        if (!localFolderSupported()) throw new Error("Tämä selain ei tue paikallista Drive-kansiota. Valitse asetuksista Google Drive API.");
+        if (!localRahtikirjatHandle || await queryLocalFolderPermission() !== "granted") await chooseLocalRahtikirjatFolder();
+        await requireLocalFolderAccess({request:true});
+        return "local-folder";
+      }
+      if (driverStorageMode === "device-only") throw new Error("Drive-vienti ei ole käytössä. Valitse asetuksista paikallinen Drive-kansio tai Google Drive API.");
+      if (!googleDriveTokenIsValid()) await connectGoogleDrive();
+      if (!googleDriveFolderId) {
+        const root = await autoAttachGoogleDriveRoot();
+        if (!root) await chooseGoogleDriveFolder();
+      }
+      if (!googleDriveFolderId) throw new Error("Rahtikirjat-kansiota ei ole valittu.");
+      return "drive-api";
+    }
+
+    async function saveDriverWorkToDrive({dayEnd = false} = {}) {
+      if (!driverRouteState?.ordered?.length) throw new Error("Muodosta ensin ajojärjestys.");
+      if (!ensureDriverPdfFileName()) throw Object.assign(new Error("Anna PDF-tiedostolle nimi."), {code:"FILE_NAME_REQUIRED"});
+      await syncDriverCombinedPdf({downloadFallback:false});
+      const mode = await ensureExplicitDriverDriveDestination();
+      const pendingBefore = appInfoPendingMutations.length;
+      let pdfSaved = false;
+      let appInfoSynced = false;
+      driverCloudSyncStatus.textContent = dayEnd ? "Päätetään päivää: tallennetaan PDF ja synkronoidaan asiakkaat.json…" : "Tallennetaan PDF Driveen ja synkronoidaan asiakkaat.json…";
+      if (mode === "local-folder") {
+        await loadAppInfoDatabase({force:true});
+        await flushPendingAddressCorrections();
+        appInfoSynced = await syncPendingAppInfoMutations({explicit:true});
+        pdfSaved = await savePdfToLocalDriveFolder(new Uint8Array(driverCombinedPdfBytes));
+      } else {
+        await loadAppInfoDatabase({force:true, migrate:true});
+        await flushPendingAddressCorrections();
+        appInfoSynced = await syncPendingAppInfoMutations({explicit:true});
+        pdfSaved = await uploadDriverPdfToGoogleDrive(new Uint8Array(driverCombinedPdfBytes));
+      }
+      if (!pdfSaved) throw new Error("PDF:n Drive-tallennus epäonnistui. Paikallinen tiedosto ja asiakastietojen muutokset säilyvät laitteella.");
+      if (!appInfoSynced) throw new Error("PDF tallennettiin Driveen, mutta asiakkaat.json-synkronointia ei voitu vahvistaa. Muutokset säilyvät laitteella odottamassa uutta yritystä.");
+      const destination = mode === "local-folder" ? "paikalliseen Rahtikirjat-kansioon" : "Google Driveen";
+      driverCloudSyncStatus.textContent = `PDF tallennettu ${destination}. Asiakkaat.json synkronoitu molempiin suuntiin${pendingBefore ? `; ${pendingBefore} paikallista muutosta vietiin Driveen` : ""}.`;
+      updateDriverPdfSaveDestination();
+      return true;
     }
 
     async function persistCurrentLoadingStop() {
@@ -3741,7 +3790,8 @@
         }
         if (affected.length && driverRouteState) renderDriverRouteResult(true);
       } catch (_) { /* Tiedostokohtainen korjaus jää silti voimaan. */ }
-      driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Osoite tallennettu pysyvästi${shared ? " tälle laitteelle ja yhteiseen Rahtikirjat/AppInfo-kansioon" : " tälle laitteelle"}. ${shared ? "Se päivittyy muille Drive-käyttäjille." : "Yhteinen tallennus tehdään seuraavan Drive-yhdistämisen yhteydessä."}</span>`;
+      driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Osoite tallennettu pysyvästi laitteelle. ${shared ? "Asiakastiedot synkronoitiin." : "Muutos synkronoidaan Tallenna Driveen- tai Päivän päätös -painikkeella."}</span>`;
+      updateDriverCloudSyncStatus();
       queueDriverSessionSave();
     }
 
@@ -3771,15 +3821,23 @@
         address,
         originalAddress: extracted?.address || address,
         originalPostalCode: extracted?.postalCode || "",
-        identitySource:extracted
+        identitySource:extracted,
+        statusElement:driverPreviewAddressStatus,
+        addressElement:driverPreviewAddress
       };
+      await showDriverCoordinatePicker(driverCoordinateTarget, storedGeo);
+    }
+
+    async function showDriverCoordinatePicker(target, storedGeo = null) {
+      if (!target?.file || !target?.fileKey) return;
+      driverCoordinateTarget = target;
       driverCoordinatePickerModal.classList.add("open");
       driverCoordinatePosition.textContent = "Haetaan lähtökohtaa kartalle…";
       let center = storedGeo;
-      if (!center && address) {
-        try { center = await geocodeAddressText(address); } catch (_) {}
+      if (!center && target.address) {
+        try { center = await geocodeAddressText(target.address); } catch (_) {}
       }
-      if (!driverCoordinateTarget || driverCoordinateTarget.fileKey !== fileKey) return;
+      if (!driverCoordinateTarget || driverCoordinateTarget.fileKey !== target.fileKey) return;
       const start = center || { lat:60.2055, lon:24.6559 };
       if (!driverCoordinateMap) {
         driverCoordinateMap = L.map("driverCoordinateMap", { zoomControl:true }).setView([start.lat, start.lon], center ? 17 : 10);
@@ -3814,9 +3872,11 @@
           driverRouteState.ordered.push(stop);
         }
       });
-      driverPreviewAddress.value = correctedAddress;
       const shared = await saved.sharedPromise;
-      driverPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Kartalta valittu paikka tallennettu pysyvästi: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}. ${shared ? "Koordinaatti tallennettiin myös yhteiseen Rahtikirjat/AppInfo-kansioon." : "Yhteinen tallennus tehdään seuraavan Drive-yhdistämisen yhteydessä."}</span>`;
+      if (target.addressElement) target.addressElement.value = correctedAddress;
+      const message = `Kartalta valittu paikka tallennettu laitteelle: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}. ${shared ? "Asiakastiedot synkronoitiin." : "Muutos odottaa Tallenna Driveen- tai Päivän päätös -toimintoa."}`;
+      if (target.statusElement) target.statusElement.innerHTML = `<span style="color:var(--success)">${escapeHtml(message)}</span>`;
+      if (typeof target.onSaved === "function") await target.onSaved({geo, correctedAddress, shared, message});
       closeDriverCoordinatePicker();
       if (affected.length && driverRouteState) renderDriverRouteResult(true);
       await saveDriverSessionNow();
@@ -4036,7 +4096,7 @@
       btnFinishDriverLoad.hidden = driverTransportIndex !== stops.length - 1 || driverLoadingReturnIndex == null;
       const totalLoads = driverLoadSegments(driverRouteState.ordered || [], driverRouteState.loadBreaks).length;
       btnFinishDriverLoad.textContent = driverActiveTransportLoadNumber === totalLoads
-        ? "✅ Viimeinen kuorma toimitettu – päätä kuljetukset"
+        ? "✅ Päivän päätös"
         : "📦 Kuorma toimitettu – seuraavaan lastaukseen";
       const phoneItems = [
         ...(stop.recipientPhones || (stop.recipientPhone ? [stop.recipientPhone] : [])).map(phone => ({ label: "Soita vastaanottajalle", phone })),
@@ -4421,17 +4481,26 @@
       return item?.kind === "stop" ? (item.stop.files || []) : [];
     }
 
+    function driverStopForPreviewEntry(entry) {
+      if (!entry) return null;
+      const allStops = [...(driverRouteState?.ordered || []), ...(driverRouteState?.unresolved || []), ...(driverRouteState?.manualCandidates || [])];
+      return allStops.find(stop => (stop.files || []).some(item => item === entry || item.file === entry.file || (item.fileName && item.fileName === entry.fileName))) || null;
+    }
+
     async function renderDriverLoadingPreview() {
       const files = currentDriverPreviewFiles();
       if (!files.length) return;
       driverLoadingPreviewFileIndex = Math.max(0, Math.min(files.length - 1, driverLoadingPreviewFileIndex));
       const entry = files[driverLoadingPreviewFileIndex];
+      const previewStop = driverStopForPreviewEntry(entry);
       const token = ++driverLoadingPreviewRenderToken;
       driverLoadingPreviewFileName.textContent = entry.fileName || entry.file?.name || "Lähete";
       driverLoadingPreviewPosition.textContent = `${driverLoadingPreviewFileIndex + 1} / ${files.length}`;
       btnDriverLoadingPreviewPrev.disabled = driverLoadingPreviewFileIndex === 0;
       btnDriverLoadingPreviewNext.disabled = driverLoadingPreviewFileIndex === files.length - 1;
       driverLoadingPreviewContainer.innerHTML = `<span style="color:#666;">Ladataan koko PDF:ää…</span>`;
+      driverLoadingPreviewAddress.value = previewStop?.address || entry.address || "";
+      driverLoadingPreviewAddressStatus.textContent = previewStop?.geo?.manual ? "Käytössä on kartalta tallennettu tarkka purkupaikka." : "";
       driverLoadingPreviewModal.classList.add("open");
       try {
         const pdfInfo = await renderFullDriverPdf(entry.file, driverLoadingPreviewContainer, driverLoadingPreviewPdfPage);
@@ -4452,6 +4521,57 @@
       driverLoadingPreviewModal.classList.remove("open");
       driverLoadingPreviewContainer.innerHTML = "";
       driverLoadingPreviewEntries = null;
+    }
+
+    async function saveDriverLoadingPreviewAddress() {
+      const entry = currentDriverPreviewFiles()[driverLoadingPreviewFileIndex];
+      const stop = driverStopForPreviewEntry(entry);
+      const address = driverLoadingPreviewAddress.value.trim();
+      if (!entry?.file || !stop || !address) return driverLoadingPreviewAddressStatus.textContent = "Kirjoita kelvollinen toimitusosoite.";
+      const originalAddress = stop.originalExtractedAddress || entry.originalExtractedAddress || entry.address || stop.address || address;
+      const originalPostalCode = stop.originalExtractedPostalCode || entry.originalExtractedPostalCode || entry.postalCode || stop.postalCode || "";
+      const key = driverFileKey(entry.file);
+      driverAddressOverrides.set(key, address);
+      driverCoordinateOverrides.delete(key);
+      stop.address = address;
+      stop.postalCode = address.match(/\b\d{5}\b/)?.[0] || stop.postalCode || "";
+      stop.geo = null;
+      entry.address = address;
+      entry.postalCode = stop.postalCode;
+      normalizeStop(stop, {clearStreetIfMissing:true});
+      const saved = rememberAddressCorrection(originalAddress, originalPostalCode, address, null, stop);
+      await geocodeStop(stop).catch(() => null);
+      await saved.sharedPromise;
+      driverLoadingPreviewAddressStatus.innerHTML = `<span style="color:var(--success)">Osoite tallennettu laitteelle. Asiakastietojen muutos odottaa Drive-synkronointia.</span>`;
+      updateDriverCloudSyncStatus();
+      if (driverCurrentPhase === "loading") renderDriverLoading();
+      if (driverCurrentPhase === "transport") renderDriverTransportList();
+      if (driverCurrentPhase === "route") renderDriverRouteResult(true);
+      await saveDriverSessionNow();
+    }
+
+    async function openDriverLoadingPreviewCoordinatePicker() {
+      const entry = currentDriverPreviewFiles()[driverLoadingPreviewFileIndex];
+      const stop = driverStopForPreviewEntry(entry);
+      if (!entry?.file || !stop) return;
+      const fileKey = driverFileKey(entry.file);
+      const address = driverLoadingPreviewAddress.value.trim() || stop.address || entry.address || "";
+      const remembered = await resolvedAddressCorrection(stop.originalExtractedAddress || entry.address || address, stop.originalExtractedPostalCode || entry.postalCode || "", stop);
+      await showDriverCoordinatePicker({
+        file:entry.file, fileKey, address,
+        originalAddress:stop.originalExtractedAddress || entry.address || address,
+        originalPostalCode:stop.originalExtractedPostalCode || entry.postalCode || stop.postalCode || "",
+        identitySource:stop, addressElement:driverLoadingPreviewAddress, statusElement:driverLoadingPreviewAddressStatus,
+        onSaved:async ({geo, correctedAddress}) => {
+          stop.address = correctedAddress;
+          stop.geo = geo;
+          entry.address = correctedAddress;
+          updateDriverCloudSyncStatus();
+          if (driverCurrentPhase === "loading") renderDriverLoading();
+          if (driverCurrentPhase === "transport") renderDriverTransportList();
+          if (driverCurrentPhase === "route") renderDriverRouteResult(true);
+        }
+      }, driverCoordinateOverrides.get(fileKey) || stop.geo || correctionGeo(remembered));
     }
 
     function driverAnnotatedEntries() {
@@ -5715,8 +5835,17 @@
       }
     });
     btnOptimizeDriverRoute.addEventListener("click", () => optimizeDriverRoute(false));
-    [btnDriverRouteToUpload, btnDriverLoadingToUpload, btnDriverTransportToUpload].forEach(button => {
-      button.addEventListener("click", openDriverPdfList);
+    btnSaveDriverToDrive.addEventListener("click", async () => {
+      btnSaveDriverToDrive.disabled = true;
+      btnSaveDriverToDrive.innerHTML = `<span class="spinner"></span> Tallennetaan Driveen…`;
+      try {
+        await saveDriverWorkToDrive();
+      } catch (error) {
+        if (error?.code !== "FILE_NAME_REQUIRED") driverCloudSyncStatus.innerHTML = `<strong style="color:var(--danger)">Drive-tallennus epäonnistui:</strong> ${escapeHtml(error.message || String(error))}`;
+      } finally {
+        btnSaveDriverToDrive.disabled = false;
+        btnSaveDriverToDrive.textContent = "☁️ Tallenna Driveen";
+      }
     });
     btnResumeDriverPhase.addEventListener("click", async () => {
       const phase = driverResumePhase;
@@ -5809,12 +5938,12 @@
       try {
         const pickerSupported = driverStorageMode !== "local-folder" && typeof window.showSaveFilePicker === "function";
         if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
-        await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: driverStorageMode !== "local-folder" && !driverOutputFileHandle }), "Tallennetaan kuitattuja PDF:iä");
+        await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: driverStorageMode !== "local-folder" && !driverOutputFileHandle }), "Tallennetaan kuitattuja PDF:iä laitteelle");
       } catch (error) {
         alert("PDF:n luonti epäonnistui: " + (error.message || error));
       } finally {
         btnDownloadCompletedDriverPdf.disabled = false;
-        btnDownloadCompletedDriverPdf.innerHTML = "💾 Tallenna kuitatut PDF:t";
+        btnDownloadCompletedDriverPdf.innerHTML = "💾 Päivitä paikallinen PDF";
       }
     });
     btnDownloadDriverPdf.addEventListener("click", async () => {
@@ -5826,30 +5955,16 @@
         const unresolvedEntries = driverRouteState.unresolved.flatMap(stop => stop.files || []);
         const pickerSupported = driverStorageMode !== "local-folder" && typeof window.showSaveFilePicker === "function";
         if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
-        const saveResult = await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: driverStorageMode !== "local-folder" && !driverOutputFileHandle }), "Luodaan ja tallennetaan ajojärjestys-PDF");
+        await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: driverStorageMode !== "local-folder" && !driverOutputFileHandle }), "Luodaan paikallinen ajojärjestys-PDF");
         driverUploadStatus.style.display = "flex";
-        driverUploadStatus.innerHTML = saveResult?.driveFailed
-          ? `<strong style="color:var(--warning)">${escapeHtml(saveResult.message)}</strong> Voit jatkaa työskentelyä ja yrittää Drive-tallennusta uudelleen.`
-          : `<strong>${escapeHtml(driverExternalSaveSuccessText())} Automaattitallennus on käytössä.</strong> Sivut ovat reittijärjestyksessä${unresolvedEntries.length ? "; reitittämättömät PDF:t ovat lopussa" : ""}.`;
+        driverUploadStatus.innerHTML = `<strong>${escapeHtml(driverExternalSaveSuccessText())}</strong> Sivut ovat reittijärjestyksessä${unresolvedEntries.length ? "; reitittämättömät PDF:t ovat lopussa" : ""}. Tallenna Driveen erillisestä painikkeesta.`;
         openDriverLoadingPhase();
       } catch (error) {
         driverUploadStatus.style.display = "flex";
         driverUploadStatus.innerHTML = `<strong style="color:var(--danger)">PDF-tiedostojen yhdistäminen epäonnistui:</strong> ${escapeHtml(error.message || String(error))}`;
       } finally {
         btnDownloadDriverPdf.disabled = false;
-        btnDownloadDriverPdf.innerHTML = "💾 Tallenna PDF ja aloita lastaus";
-      }
-    });
-    btnBackToDriverRoute.addEventListener("click", async () => {
-      try {
-        await persistCurrentLoadingStop();
-        closeDriverLoadingPreview();
-        driverResumePhase = null;
-        setDriverPhase("route", { save:false });
-        if (driverRouteState?.readyRoute) renderDriverRouteResult(true);
-        await saveDriverSessionNow();
-      } catch (error) {
-        alert("PDF:n automaattitallennus epäonnistui: " + (error.message || error));
+        btnDownloadDriverPdf.innerHTML = "💾 Luo paikallinen PDF ja aloita lastaus";
       }
     });
     driverLoadingNote.addEventListener("input", () => {
@@ -5917,6 +6032,8 @@
       driverLoadingPreviewPdfPage++;
       renderDriverLoadingPreview();
     });
+    btnDriverLoadingPreviewSaveAddress.addEventListener("click", saveDriverLoadingPreviewAddress);
+    btnDriverLoadingPreviewChooseMap.addEventListener("click", openDriverLoadingPreviewCoordinatePicker);
     btnDriverLoadingPrev.addEventListener("click", async () => {
       if (driverLoadingIndex <= 0) return;
       btnDriverLoadingPrev.disabled = true;
@@ -5958,17 +6075,31 @@
         await persistCurrentLoadingStop();
         const pickerSupported = driverStorageMode !== "local-folder" && typeof window.showSaveFilePicker === "function";
         if (!driverOutputFileHandle && pickerSupported && !(await chooseDriverOutputFile())) return;
-        const saveResult = await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: driverStorageMode !== "local-folder" && !driverOutputFileHandle }), "Tallennetaan päivitettyä PDF:ää");
-        driverLoadingNoteStatus.textContent = saveResult?.driveFailed ? saveResult.message : `${driverExternalSaveSuccessText()} Kaikki merkinnät ovat mukana.`;
+        await enqueueDriverPdfSave(() => syncDriverCombinedPdf({ downloadFallback: driverStorageMode !== "local-folder" && !driverOutputFileHandle }), "Tallennetaan päivitettyä PDF:ää laitteelle");
+        driverLoadingNoteStatus.textContent = `${driverExternalSaveSuccessText()} Kaikki merkinnät ovat mukana.`;
       } catch (error) {
         alert("PDF:n luonti epäonnistui: " + (error.message || error));
       } finally {
         btnDownloadUpdatedLoadingPdf.disabled = false;
-        btnDownloadUpdatedLoadingPdf.innerHTML = "💾 Tallenna / päivitä PDF";
+        btnDownloadUpdatedLoadingPdf.innerHTML = "💾 Päivitä paikallinen PDF";
       }
     });
     btnFinishDriverLoad.addEventListener("click", async () => {
       if (driverLoadingReturnIndex == null) return;
+      const totalLoads = driverLoadSegments(driverRouteState?.ordered || [], driverRouteState?.loadBreaks).length;
+      const isDayEnd = driverActiveTransportLoadNumber === totalLoads;
+      if (isDayEnd) {
+        btnFinishDriverLoad.disabled = true;
+        btnFinishDriverLoad.innerHTML = `<span class="spinner"></span> Päätetään päivää…`;
+        try {
+          await saveDriverWorkToDrive({dayEnd:true});
+        } catch (error) {
+          driverCloudSyncStatus.innerHTML = `<strong style="color:var(--danger)">Päivän päätös jäi kesken:</strong> ${escapeHtml(error.message || String(error))}`;
+          btnFinishDriverLoad.disabled = false;
+          btnFinishDriverLoad.textContent = "✅ Päivän päätös";
+          return;
+        }
+      }
       driverLoadingIndex = driverLoadingReturnIndex;
       driverLoadingReturnIndex = null;
       driverActiveTransportLoadNumber = null;
@@ -5976,6 +6107,7 @@
       setDriverPhase("loading", { save:false });
       renderDriverLoading();
       await saveDriverSessionNow();
+      btnFinishDriverLoad.disabled = false;
     });
     driverRouteList.addEventListener("click", event => {
       const diagnosticsButton = event.target.closest("[data-driver-route-diagnostics]");
@@ -10828,6 +10960,7 @@
       modalRecipient.value = current.entry.recipient || stop.recipient || "";
       modalAddress.value = current.entry.address || stop.address || "";
       modalPostal.value = current.entry.postalCode || stop.postalCode || "";
+      document.getElementById("modalCoordinateStatus").textContent = stop.geo?.manual ? "Käytössä on kartalta tallennettu tarkka purkupaikka." : "";
       updateModalVehicleRuleControls(stop);
       modalPosition.textContent = isMerged
         ? `${modalPdfIndex + 1} / ${all.length} · yhdistetty keikka`
@@ -11102,6 +11235,35 @@
 
     document.getElementById("modalSave").addEventListener("click", () => {
       applyModalFieldsToCurrent(true);
+    });
+
+    document.getElementById("modalChooseMap").addEventListener("click", async () => {
+      const all = getAllPdfEntries();
+      const current = all[modalPdfIndex];
+      const stop = stops.find(item => item.id === modalStopId);
+      if (!current?.entry?.file || !stop) return;
+      const entry = current.entry;
+      const address = modalAddress.value.trim() || entry.address || stop.address || "";
+      const postal = modalPostal.value.trim() || entry.postalCode || stop.postalCode || "";
+      const fileKey = driverFileKey(entry.file);
+      const remembered = await resolvedAddressCorrection(stop.originalExtractedAddress || entry.address || address, stop.originalExtractedPostalCode || postal, stop);
+      await showDriverCoordinatePicker({
+        file:entry.file, fileKey, address,
+        originalAddress:stop.originalExtractedAddress || entry.address || address,
+        originalPostalCode:stop.originalExtractedPostalCode || entry.postalCode || postal,
+        identitySource:stop, addressElement:modalAddress, statusElement:document.getElementById("modalCoordinateStatus"),
+        onSaved:async ({geo, correctedAddress}) => {
+          stop.address = correctedAddress;
+          stop.geo = geo;
+          stop.postalCode = correctedAddress.match(/\b\d{5}\b/)?.[0] || postal;
+          entry.address = correctedAddress;
+          entry.postalCode = stop.postalCode;
+          updateDriverCloudSyncStatus();
+          if (drivers.length && stop.driverIndex >= 0 && drivers[stop.driverIndex]) recalculateDriverRoute(drivers[stop.driverIndex], {autoSecondLoad:false});
+          renderList();
+          if (drivers.length) renderDrivers();
+        }
+      }, stop.geo || correctionGeo(remembered));
     });
 
     modalPreferredVehicle.addEventListener("change", () => {
